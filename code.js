@@ -150,8 +150,65 @@ async function generateOnCanvas(collectionId, groupFilter) {
     mainContainer.appendChild(title);
 
     // 3. Process each group
-    // Sort groups alphabetically
-    const sortedGroupNames = Object.keys(groups).sort();
+    // Sort groups by Hue (Warm to Cold / Rainbow)
+
+    // Helper to get Hue from RGB
+    const getHue = (r, g, b) => {
+      let max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0;
+      if (max === min) return 0;
+      let d = max - min;
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      return h * 60;
+    };
+
+    // Calculate average/dominant Hue for each group
+    const groupsWithHue = Object.keys(groups).map(groupName => {
+      const vars = groups[groupName];
+      let maxSat = -1;
+      let bestHue = 0;
+
+      for (const v of vars) {
+        const val = v.valuesByMode[modeId];
+        if (val && 'r' in val) {
+          const { r, g, b } = val;
+          const hue = getHue(r, g, b);
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const sat = max === 0 ? 0 : (max - min) / max;
+
+          if (sat > maxSat) {
+            maxSat = sat;
+            bestHue = hue;
+          }
+        }
+      }
+
+      // Neutral Logic Improvement:
+      // 1. Semantic Check: If name contains common neutral keywords, force to end.
+      // 2. Saturation Check: Increase threshold to 0.10 (some "Cool Greys" are quite blue).
+      const lowerName = groupName.toLowerCase();
+      const neutralKeywords = ['gray', 'grey', 'slate', 'zinc', 'stone', 'neutral', 'cement', 'silver', 'ash', 'sand'];
+      const isSemanticNeutral = neutralKeywords.some(kw => lowerName.includes(kw));
+
+      if (isSemanticNeutral || maxSat < 0.10) {
+        bestHue = 1000; // Force to very end
+        // Optional: Secondary sort for neutrals? 
+        // We can add "sub-hue" (1000 + hue) to sort neutrals by temperature among themselves
+        // or just 1000 and let them sort by original generic hue.
+        // Let's keep it simple: 1000.
+      }
+
+      return { name: groupName, hue: bestHue };
+    });
+
+    // Sort: 0 (Red) -> 60 (Yellow) -> 120 (Green) -> 240 (Blue) -> ... -> 1000 (Neutral)
+    groupsWithHue.sort((a, b) => a.hue - b.hue);
+
+    const sortedGroupNames = groupsWithHue.map(g => g.name);
     let totalProcessed = 0;
 
     for (const groupName of sortedGroupNames) {

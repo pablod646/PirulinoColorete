@@ -27,8 +27,8 @@ figma.ui.onmessage = async (msg) => {
     const group = msg.group;
     await generateOnCanvas(collectionId, group);
   } else if (msg.type === 'preview-scale') {
-    const hex = msg.color;
-    const color = parseHex(hex);
+    const rawColor = msg.color;
+    const color = parseColor(rawColor); // Updated
     if (color) {
       // Return preview data: { 50: { hex: "#...", r, g, b }, ... }
       const scale = calculateScale(color);
@@ -44,7 +44,7 @@ figma.ui.onmessage = async (msg) => {
     }
   } else if (msg.type === 'create-variables') {
     const { baseColorHex, config } = msg;
-    const color = parseHex(baseColorHex);
+    const color = parseColor(baseColorHex); // Updated
     if (color) {
       const scale = calculateScale(color);
       await createVariables(scale, config);
@@ -54,12 +54,20 @@ figma.ui.onmessage = async (msg) => {
     handleSelectionChange();
   } else if (msg.type === 'get-groups-for-tab2') {
     const collectionId = msg.collectionId;
-    await getGroups(collectionId, true); // true = indicate tab2
+    await getGroups(collectionId, 'tab2'); // true = indicate tab2
+  } else if (msg.type === 'get-groups-for-measures') {
+    const collectionId = msg.collectionId;
+    await getGroups(collectionId, 'measures');
+  } else if (msg.type === 'create-measure-variables') {
+    await createMeasureVariables(msg.values, msg.config);
   }
 };
 
-// Helper: Parse Hex
-function parseHex(hex) {
+// Helper: Parse Color (Hex or OKLCH)
+function parseColor(input) {
+  const hex = input.trim();
+
+  // 1. Try Hex
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (result) {
     return {
@@ -76,34 +84,147 @@ function parseHex(hex) {
       b: parseInt(shortResult[3] + shortResult[3], 16) / 255
     };
   }
+
+  // 2. Try OKLCH
+  // Format: oklch(L C H) or oklch(L% C H)
+  // e.g. oklch(63.7% 0.237 25.331)
+  const oklchMatch = /^oklch\(\s*([0-9.]+)%?\s+([0-9.]+)\s+([0-9.]+)\s*\)$/i.exec(hex);
+  if (oklchMatch) {
+    let L = parseFloat(oklchMatch[1]);
+    if (hex.includes('%') && L > 1) L = L / 100; // Handle percentage
+    const C = parseFloat(oklchMatch[2]);
+    const H = parseFloat(oklchMatch[3]);
+    return oklchToRgb(L, C, H);
+  }
+
+  // 3. Try RGB / RGBA
+  // Format: rgb(r, g, b) or rgba(r, g, b, a)
+  // Simple parsing assuming comma separation mainly
+  const rgbMatch = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(hex);
+  if (rgbMatch) {
+    return {
+      r: parseInt(rgbMatch[1], 10) / 255,
+      g: parseInt(rgbMatch[2], 10) / 255,
+      b: parseInt(rgbMatch[3], 10) / 255
+    };
+  }
+
   return null;
 }
 
-// Logic: Calculate Scale (Shared)
-function calculateScale(baseColor) {
-  const mix = (c1, c2, weight) => {
-    return {
-      r: c1.r * (1 - weight) + c2.r * weight,
-      g: c1.g * (1 - weight) + c2.g * weight,
-      b: c1.b * (1 - weight) + c2.b * weight
-    };
+// Helper: OKLCH to sRGB
+function oklchToRgb(l, c, h) {
+  // Convert degrees to radians
+  const hRad = h * (Math.PI / 180);
+
+  // 1. OKLCH -> OKLab
+  const L = l;
+  const a = c * Math.cos(hRad);
+  const b = c * Math.sin(hRad);
+
+  // 2. OKLab -> Linear sRGB (approximate matrices)
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+  const l3 = l_ * l_ * l_;
+  const m3 = m_ * m_ * m_;
+  const s3 = s_ * s_ * s_;
+
+  const rLinear = +4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
+  const gLinear = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
+  const bLinear = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3;
+
+  // 3. Linear sRGB -> sRGB (Gamma correction)
+  const srgbTransfer = (val) => {
+    let v = val;
+    // Gamut mapping constraint (simple clipping)
+    // For production, complex gamut mapping is preferred, but clipping is standard MVP.
+    // v = Math.max(0, Math.min(1, v)); // We clip later
+
+    if (v <= 0.0031308) {
+      return 12.92 * v;
+    } else {
+      return 1.055 * Math.pow(v, 1.0 / 2.4) - 0.055;
+    }
   };
-  const white = { r: 1, g: 1, b: 1 };
-  const black = { r: 0, g: 0, b: 0 };
 
   return {
-    50: mix(baseColor, white, 0.95),
-    100: mix(baseColor, white, 0.85),
-    200: mix(baseColor, white, 0.60),
-    300: mix(baseColor, white, 0.40),
-    400: mix(baseColor, white, 0.20),
-    500: baseColor,
-    600: mix(baseColor, black, 0.20),
-    700: mix(baseColor, black, 0.40),
-    800: mix(baseColor, black, 0.60),
-    900: mix(baseColor, black, 0.80),
-    950: mix(baseColor, black, 0.90),
+    r: Math.max(0, Math.min(1, srgbTransfer(rLinear))),
+    g: Math.max(0, Math.min(1, srgbTransfer(gLinear))),
+    b: Math.max(0, Math.min(1, srgbTransfer(bLinear)))
   };
+}
+
+// Logic: Calculate Scale (Tailwind-like Smart Curve)
+function calculateScale(baseColorRgb) {
+  // 1. Convert Base to OKLCH
+  const base = rgbToOklchStruct(baseColorRgb.r, baseColorRgb.g, baseColorRgb.b);
+
+  // 2. Define Distribution Curves
+  // Based on analysis of Tailwind v3/v4 standard palettes
+  // 500 is the anchor (1.0 relative L/C)
+
+  const steps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+
+  // Specific target Lightness for the extremes (white/black anchors)
+  const targetL = {
+    50: 0.975, // Paper white
+    500: base.l,
+    950: 0.28 // Corrected: 0.15 was too dark (Slate rule). 0.28 matches Sky/Rose (Vibrant rule).
+  };
+
+  // Chroma Multipliers (Relative to Base Chroma)
+  // Tints drop chroma fast to avoid "neon pastels". Shades keep some chroma but darken.
+  const chromaFactors = {
+    50: 0.08,  // Reduced from 0.1
+    100: 0.20, // Reduced from 0.25
+    200: 0.45,
+    300: 0.75,
+    400: 0.92,
+    500: 1.0,
+    600: 0.92,
+    700: 0.80,
+    800: 0.65,
+    900: 0.50,
+    950: 0.40 // Reduced slightly to match Sky/Rose (~0.4 ratio)
+  };
+
+  // 3. Interpolation Helper (Piecewise Linear for Lightness)
+  // We strictly interpolate L between the anchors (50 <-> 500 <-> 950)
+  const getLightness = (step) => {
+    if (step === 500) return base.l;
+
+    if (step < 500) {
+      // Interpolate between 50 (0.98) and 500 (Base.L)
+      // Normalized t (0 at 50, 1 at 500)
+      const t = (step - 50) / (450);
+      // L = L50 * (1-t) + L500 * t
+      return targetL[50] * (1 - t) + targetL[500] * t;
+    } else {
+      // Interpolate between 500 (Base.L) and 950 (0.15)
+      // Normalized t (0 at 500, 1 at 950)
+      const t = (step - 500) / (450);
+      return targetL[500] * (1 - t) + targetL[950] * t;
+    }
+  };
+
+  const scale = {};
+
+  steps.forEach(step => {
+    const l = getLightness(step);
+
+    // Chroma: Base C * Factor
+    // Clamp C to avoid weirdness if base is super dull
+    let c = base.c * chromaFactors[step];
+
+    // Hue: Constant (Tailwind sometimes shifts hue, but constant is safer for generic)
+    const h = base.h;
+
+    scale[step] = oklchToRgb(l, c, h);
+  });
+
+  return scale;
 }
 
 // Logic: Create Variables
@@ -171,14 +292,72 @@ async function createVariables(scale, config) {
   }
 }
 
+// Logic: Create Variables (Measures)
+async function createMeasureVariables(values, config) {
+  try {
+    const { collectionId, groupName } = config;
+
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) throw new Error("Collection not found");
+
+    const modeId = collection.defaultModeId;
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Measures...' });
+
+    const allVars = await figma.variables.getLocalVariablesAsync();
+
+    for (const value of values) {
+      // Figma prohibits '.' in variable names. Replace with '_'
+      const safeValueStr = value.toString().replace('.', '_');
+      const name = `${safeValueStr}px`; // e.g. "0_5px", "32px"
+
+      let fullPath = "";
+      // Sanitize group name too (allow / for nesting, but no dots)
+      const safeGroupName = groupName ? groupName.replace(/\./g, '_') : "";
+
+      if (safeGroupName) {
+        fullPath = `${safeGroupName}/${name}`;
+      } else {
+        fullPath = name;
+      }
+
+      let variable = allVars.find(v => v.variableCollectionId === collectionId && v.name === fullPath);
+
+      if (!variable) {
+        variable = figma.variables.createVariable(fullPath, collection, "FLOAT");
+      }
+
+      variable.setValueForMode(modeId, value);
+
+      // Scope can be set too (GAP, CORNER_RADIUS, etc), but defaults (ALL) is fine for now.
+    }
+
+    figma.ui.postMessage({ type: 'measures-created-success' });
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify(`Created ${values.length} measure variables!`);
+
+  } catch (err) {
+    console.error(err);
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify("Error creating measures: " + err.message);
+  }
+}
+
 async function generateScale(baseColor, hexCode = "") {
 }
 
 // Logic: Get Groups
-async function getGroups(collectionId, isTab2 = false) {
+async function getGroups(collectionId, mode = 'tab1') {
   try {
     const allVariables = await figma.variables.getLocalVariablesAsync();
-    const collectionVariables = allVariables.filter(v => v.variableCollectionId === collectionId && v.resolvedType === 'COLOR');
+    // Filter by type? For measures, we might want to also see group names even if they only have colors? 
+    // Usually groups are mixed. But safer to just list all groups in collection.
+    // The previous filter was `resolvedType === 'COLOR'`. 
+    // If we want to add numbers to existing groups, we should probably see ALL groups.
+    // But let's stick to consistent behavior or relax it. 
+    // Let's relax to show groups regardless of variable type.
+    const collectionVariables = allVariables.filter(v => v.variableCollectionId === collectionId);
+
     // Extract unique groups (first part of name)
     const groupSet = new Set();
     collectionVariables.forEach(v => {
@@ -189,8 +368,10 @@ async function getGroups(collectionId, isTab2 = false) {
     });
 
     const payload = Array.from(groupSet).sort();
-    if (isTab2) {
+    if (mode === 'tab2') {
       figma.ui.postMessage({ type: 'load-groups-tab2', payload });
+    } else if (mode === 'measures') {
+      figma.ui.postMessage({ type: 'load-groups-measures', payload });
     } else {
       figma.ui.postMessage({ type: 'load-groups', payload });
     }
@@ -665,8 +846,8 @@ function rgbToHex(r, g, b) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function rgbToOklch(r, g, b) {
-  // 1. Linearize sRGB
+// Helper: RGB to OKLCH (Numeric)
+function rgbToOklchStruct(r, g, b) {
   const linearize = (c) => {
     return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   };
@@ -675,7 +856,6 @@ function rgbToOklch(r, g, b) {
   const lg = linearize(g);
   const lb = linearize(b);
 
-  // 2. Linear sRGB to OKLab (approximate matrices)
   const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
   const m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
   const s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
@@ -688,7 +868,6 @@ function rgbToOklch(r, g, b) {
   const a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
   const b_ = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
 
-  // 3. OKLab to OKLCH
   const C = Math.sqrt(a * a + b_ * b_);
   let h = Math.atan2(b_, a) * (180 / Math.PI);
 
@@ -696,7 +875,12 @@ function rgbToOklch(r, g, b) {
     h += 360;
   }
 
-  return `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${h.toFixed(1)})`;
+  return { l: L, c: C, h: h };
+}
+
+function rgbToOklch(r, g, b) {
+  const { l, c, h } = rgbToOklchStruct(r, g, b);
+  return `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(1)})`;
 }
 
 // --- Accessibility Helpers ---

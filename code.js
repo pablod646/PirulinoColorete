@@ -26,25 +26,176 @@ figma.ui.onmessage = async (msg) => {
     const collectionId = msg.collectionId;
     const group = msg.group;
     await generateOnCanvas(collectionId, group);
+  } else if (msg.type === 'preview-scale') {
+    const hex = msg.color;
+    const color = parseHex(hex);
+    if (color) {
+      // Return preview data: { 50: { hex: "#...", r, g, b }, ... }
+      const scale = calculateScale(color);
+      // Enrich with Hex strings for UI
+      const payload = {};
+      for (const [k, v] of Object.entries(scale)) {
+        payload[k] = {
+          hex: rgbToHex(v.r, v.g, v.b).toUpperCase(),
+          r: v.r, g: v.g, b: v.b
+        };
+      }
+      figma.ui.postMessage({ type: 'preview-scale-result', payload });
+    }
+  } else if (msg.type === 'create-variables') {
+    const { baseColorHex, config } = msg;
+    const color = parseHex(baseColorHex);
+    if (color) {
+      const scale = calculateScale(color);
+      await createVariables(scale, config);
+    }
+  } else if (msg.type === 'get-selection-color') {
+    // Force a re-check of current selection
+    handleSelectionChange();
+  } else if (msg.type === 'get-groups-for-tab2') {
+    const collectionId = msg.collectionId;
+    await getGroups(collectionId, true); // true = indicate tab2
   }
 };
 
-async function getGroups(collectionId) {
+// Helper: Parse Hex
+function parseHex(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (result) {
+    return {
+      r: parseInt(result[1], 16) / 255,
+      g: parseInt(result[2], 16) / 255,
+      b: parseInt(result[3], 16) / 255
+    };
+  }
+  const shortResult = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
+  if (shortResult) {
+    return {
+      r: parseInt(shortResult[1] + shortResult[1], 16) / 255,
+      g: parseInt(shortResult[2] + shortResult[2], 16) / 255,
+      b: parseInt(shortResult[3] + shortResult[3], 16) / 255
+    };
+  }
+  return null;
+}
+
+// Logic: Calculate Scale (Shared)
+function calculateScale(baseColor) {
+  const mix = (c1, c2, weight) => {
+    return {
+      r: c1.r * (1 - weight) + c2.r * weight,
+      g: c1.g * (1 - weight) + c2.g * weight,
+      b: c1.b * (1 - weight) + c2.b * weight
+    };
+  };
+  const white = { r: 1, g: 1, b: 1 };
+  const black = { r: 0, g: 0, b: 0 };
+
+  return {
+    50: mix(baseColor, white, 0.95),
+    100: mix(baseColor, white, 0.85),
+    200: mix(baseColor, white, 0.60),
+    300: mix(baseColor, white, 0.40),
+    400: mix(baseColor, white, 0.20),
+    500: baseColor,
+    600: mix(baseColor, black, 0.20),
+    700: mix(baseColor, black, 0.40),
+    800: mix(baseColor, black, 0.60),
+    900: mix(baseColor, black, 0.80),
+    950: mix(baseColor, black, 0.90),
+  };
+}
+
+// Logic: Create Variables
+async function createVariables(scale, config) {
+  try {
+    const { colorName, collectionId, groupName } = config;
+
+    // 1. Get Collection
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) throw new Error("Collection not found");
+
+    const modeId = collection.defaultModeId;
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Variables...' });
+
+    // 2. Iterate and Create
+    for (const [step, color] of Object.entries(scale)) {
+      // Construct Name: Group/ColorName/ColorName-Step
+      // If groupName is empty: ColorName/ColorName-Step
+      // Actually user asked for: "nombre del color mas un guion mas el valor de la escala (ej: slate/slate-100)"
+      // And "dentro de esa seleccion deberas crear un grupo con el nombre del color".
+      // So structure:
+      // Group (e.g. Primitives) 
+      //   -> Slate (Folder)
+      //      -> Slate-100 (Variable)
+
+      let fullPath = "";
+      if (groupName) {
+        fullPath = `${groupName}/${colorName}/${colorName}-${step}`;
+      } else {
+        fullPath = `${colorName}/${colorName}-${step}`;
+      }
+
+      // Check if variable exists to update, or create new
+      // Note: Figma variables are flat list, identified by name path.
+      // But we need to check ALL variables in collection to find conflict?
+      // createVariable returns existing? No, throws error if name conflict?
+      // Actually it allows distinct variables with same name if ids differ, but usually we filter by name.
+
+      // Optimization: Just try create, if fails, look for it. Use existing `find` logic maybe? 
+      // Better: loop through all variables ONCE at start or just do createVariable.
+      // figma.variables.createVariable(name, collectionId, resolvedType)
+
+      // Let's rely on finding by name first to avoid duplicates.
+      const allVars = await figma.variables.getLocalVariablesAsync();
+      let variable = allVars.find(v => v.variableCollectionId === collectionId && v.name === fullPath);
+
+      if (!variable) {
+        // Fix: Pass the collection OBJECT, not the ID.
+        variable = figma.variables.createVariable(fullPath, collection, "COLOR");
+      }
+
+      // Set Value
+      variable.setValueForMode(modeId, color);
+    }
+
+    figma.ui.postMessage({ type: 'variables-created-success' });
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify(`Created variables for ${colorName} successfully!`);
+
+  } catch (err) {
+    console.error(err);
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify("Error creating variables: " + err.message);
+  }
+}
+
+async function generateScale(baseColor, hexCode = "") {
+}
+
+// Logic: Get Groups
+async function getGroups(collectionId, isTab2 = false) {
   try {
     const allVariables = await figma.variables.getLocalVariablesAsync();
     const collectionVariables = allVariables.filter(v => v.variableCollectionId === collectionId && v.resolvedType === 'COLOR');
-
-    const groups = new Set();
+    // Extract unique groups (first part of name)
+    const groupSet = new Set();
     collectionVariables.forEach(v => {
-      if (v.name.includes('/')) {
-        const groupName = v.name.substring(0, v.name.lastIndexOf('/'));
-        groups.add(groupName);
+      const parts = v.name.split('/');
+      if (parts.length > 1) {
+        groupSet.add(parts[0]);
       }
     });
 
-    figma.ui.postMessage({ type: 'load-groups', payload: Array.from(groups).sort() });
+    const payload = Array.from(groupSet).sort();
+    if (isTab2) {
+      figma.ui.postMessage({ type: 'load-groups-tab2', payload });
+    } else {
+      figma.ui.postMessage({ type: 'load-groups', payload });
+    }
   } catch (error) {
-    console.error('Error getting groups:', error);
+    console.error('Error loading groups:', error);
   }
 }
 

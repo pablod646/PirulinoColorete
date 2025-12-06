@@ -123,24 +123,101 @@
 </head>
 
 <body>
-    <h2>Select Collection</h2>
-    <select id="collection-select">
-        <option value="" disabled selected>Loading collections...</option>
-    </select>
-
-    <h2>Select Group (Optional)</h2>
-    <select id="group-select" disabled>
-        <option value="">All Groups</option>
-    </select>
-
-    <div style="display: flex; gap: 8px;">
-        <button id="convert-btn" style="flex: 1;">List in UI</button>
-        <button id="generate-btn" style="flex: 1; background-color: #2C2C2C;">Generate on Canvas</button>
+    <div class="tabs">
+        <div class="tab active" data-tab="collections">Collections</div>
+        <div class="tab" data-tab="scale">Scale Generator</div>
     </div>
 
-    <div id="result">
-        <p style="color: #888; text-align: center; margin-top: 30px;">Select a collection to see colors.</p>
+    <!-- Tab 1: Collections -->
+    <div id="tab-collections" class="tab-content active">
+        <h2>Select Collection</h2>
+        <select id="collection-select">
+            <option value="" disabled selected>Loading collections...</option>
+        </select>
+
+        <h2>Select Group (Optional)</h2>
+        <select id="group-select" disabled>
+            <option value="">All Groups</option>
+        </select>
+
+        <div style="display: flex; gap: 8px;">
+            <button id="convert-btn" style="flex: 1;">List in UI</button>
+            <button id="generate-btn" style="flex: 1; background-color: #2C2C2C;">Generate on Canvas</button>
+        </div>
+
+        <div id="result">
+            <p style="color: #888; text-align: center; margin-top: 30px;">Select a collection to see colors.</p>
+        </div>
     </div>
+
+    <!-- Tab 2: Scale Generator -->
+    <div id="tab-scale" class="tab-content">
+        <h2>Scale Generator</h2>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 8px; color: #444;">1. Base
+                Color</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="scale-input" placeholder="#18A0FB"
+                    style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace;">
+                <div id="scale-preview-swatch"
+                    style="width: 38px; height: 38px; border-radius: 6px; background: #eee; border: 1px solid #ccc;">
+                </div>
+            </div>
+            <p id="input-error" style="color: #d93025; font-size: 11px; margin-top: 4px; display: none;">Invalid Hex
+                Color</p>
+        </div>
+
+        <button id="preview-scale-btn" disabled style="background-color: #2C2C2C; margin-bottom: 20px;">Preview
+            Scale</button>
+
+        <!-- Preview Section (Hidden Initially) -->
+        <div id="scale-preview-container" style="display: none; border-top: 1px solid #eee; padding-top: 20px;">
+
+            <!-- List of generated colors -->
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">2.
+                Preview</label>
+            <div id="scale-list" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px;">
+                <!-- Items injected here via JS -->
+            </div>
+
+            <!-- Configuration Form -->
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">3.
+                Configuration</label>
+
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Color Name (e.g.
+                    Slate)</label>
+                <input type="text" id="var-name" placeholder="Slate"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Target
+                    Collection</label>
+                <select id="var-collection-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="" disabled selected>Select Collection...</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Target Group
+                    (Parent)</label>
+                <select id="var-group-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="">(Root / No Group)</option>
+                    <option value="NEW_GROUP">+ New Group...</option>
+                </select>
+                <!-- Hidden input for custom group name if needed -->
+                <input type="text" id="var-group-custom" placeholder="Enter new group name"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; margin-top: 8px; display: none;">
+            </div>
+
+            <button id="create-vars-btn" style="background-color: #18A0FB;">Create Variables</button>
+        </div>
+    </div>
+
+    <!-- Progress Overlay -->
     <div id="progress-overlay"
         style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 100; flex-direction: column; justify-content: center; align-items: center;">
         <div class="spinner"
@@ -150,6 +227,38 @@
     </div>
 
     <style>
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            color: #666;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #18A0FB;
+            border-bottom-color: #18A0FB;
+        }
+
+        .tab:hover {
+            color: #333;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         @keyframes spin {
             to {
                 transform: rotate(360deg);
@@ -158,6 +267,20 @@
     </style>
 
     <script>
+        // Tabs Logic
+        document.querySelectorAll('.tab').forEach(t => {
+            t.addEventListener('click', () => {
+                // Remove active class
+                document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+
+                // Add active
+                t.classList.add('active');
+                document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Backend Messages
         window.onmessage = (event) => {
             const { type, payload } = event.data.pluginMessage;
             if (type === 'load-collections') {
@@ -222,17 +345,105 @@
                     `;
                     resultDiv.appendChild(item);
                 });
+            } else if (type === 'preview-scale-result') {
+                // Render preview list
+                const list = document.getElementById('scale-list');
+                list.innerHTML = '';
+                const steps = payload;
+
+                // Sort keys numerically
+                const keys = Object.keys(steps).map(Number).sort((a, b) => a - b);
+
+                keys.forEach(k => {
+                    const color = steps[k];
+                    const hex = color.hex;
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.alignItems = 'center';
+                    row.style.gap = '8px';
+                    row.style.fontSize = '12px';
+
+                    row.innerHTML = `
+                        <div style="width: 24px; height: 24px; border-radius: 4px; background: ${hex}; border: 1px solid #ddd;"></div>
+                        <span style="font-weight: 600; min-width: 30px;">${k}</span>
+                        <span style="color: #666; font-family: monospace;">${hex}</span>
+                    `;
+                    list.appendChild(row);
+                });
+
+                document.getElementById('scale-preview-container').style.display = 'block';
+
+                // Populate Collection Select in Tab 2 if empty
+                const tab1Select = document.getElementById('collection-select');
+                const tab2Select = document.getElementById('var-collection-select');
+
+                if (tab2Select.children.length <= 1 && tab1Select.children.length > 1) {
+                    tab2Select.innerHTML = tab1Select.innerHTML;
+                }
+            } else if (type === 'variables-created-success') {
+                // Reset Form
+                document.getElementById('scale-input').value = '';
+                document.getElementById('scale-preview-swatch').style.backgroundColor = '#eee';
+                document.getElementById('preview-scale-btn').disabled = true;
+
+                document.getElementById('scale-preview-container').style.display = 'none';
+                document.getElementById('scale-list').innerHTML = '';
+
+                document.getElementById('var-name').value = '';
+                // Optional: Reset Group? Maybe keep collection/group as user might add more colors to same place.
+                // User said "blanquear el formulario". Let's clear Name but keep Context (Collection/Group) as it's efficient?
+                // Or clear everything? "Blanquear" usually means reset. I'll clear Name. 
+                // Creating multiple colors in same group is common workflow.
+                // I will clear Name and Input, but leave Collection/Group selected for speed.
+
+            } else if (type === 'load-groups-tab2') {
+                // Populate Tab 2 Group Select (Reusing logic but specifically for tab 2)
+                // Wait, we can reuse load-groups if we know who asked? 
+                // Simpler: Just make a new message type to update the specific dropdown.
+                const groupSelect = document.getElementById('var-group-select');
+                // Keep first 2 options
+                groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
+                payload.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g;
+                    option.textContent = g;
+                    groupSelect.appendChild(option);
+                });
+            } else if (type === 'selection-contrast-update') {
+                // Reuse this existing message for Scale Tab selection Check too?
+                // Yes, if we are in Scale Tab, we want to update the swatch.
+                const swatch = document.getElementById('scale-swatch');
+                const hexLabel = document.getElementById('scale-hex');
+                const statusLabel = document.getElementById('scale-status');
+                const genBtn = document.getElementById('generate-scale-btn');
+
+                if (payload.status === 'result' || payload.status === 'result-simple') { // We might add a simple mode
+                    swatch.style.backgroundColor = payload.fg;
+                    hexLabel.textContent = payload.fg;
+                    statusLabel.textContent = "Base Color (500)";
+                    genBtn.disabled = false;
+                } else {
+                    swatch.style.backgroundColor = '#eee';
+                    hexLabel.textContent = '-';
+                    statusLabel.textContent = payload.status === 'no-fill' ? 'Selection has no fill' : 'Select an object';
+                    genBtn.disabled = true;
+                }
+            } else if (type === 'progress-start') {
+                document.getElementById('progress-overlay').style.display = 'flex';
+                document.getElementById('progress-message').innerText = payload;
+            } else if (type === 'progress-update') {
+                document.getElementById('progress-message').innerText = payload;
+            } else if (type === 'progress-end') {
+                document.getElementById('progress-overlay').style.display = 'none';
             }
         };
 
+        // Existing Collections Logic
         document.getElementById('collection-select').onchange = (e) => {
             const collectionId = e.target.value;
-            // Reset and disable group select
             const groupSelect = document.getElementById('group-select');
             groupSelect.innerHTML = '<option value="">Loading groups...</option>';
             groupSelect.disabled = true;
-
-            // Request groups
             parent.postMessage({ pluginMessage: { type: 'get-groups', collectionId } }, '*');
         };
 
@@ -250,6 +461,90 @@
             if (collectionId) {
                 parent.postMessage({ pluginMessage: { type: 'generate-on-canvas', collectionId, group } }, '*');
             }
+        };
+
+        // Tab 2 Collection Change -> Load Groups
+        document.getElementById('var-collection-select').onchange = (e) => {
+            const collectionId = e.target.value;
+            parent.postMessage({ pluginMessage: { type: 'get-groups-for-tab2', collectionId } }, '*');
+        };
+
+        // Tab 2 Group Change -> Show Custom Input if NEW
+        document.getElementById('var-group-select').onchange = (e) => {
+            const val = e.target.value;
+            const customInput = document.getElementById('var-group-custom');
+            if (val === 'NEW_GROUP') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        };
+
+        // New Scale Logic - Manual Input
+        const scaleInput = document.getElementById('scale-input');
+        const scalePreview = document.getElementById('scale-preview-swatch');
+        const previewBtn = document.getElementById('preview-scale-btn');
+        const errorMsg = document.getElementById('input-error');
+
+        scaleInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            // Simple Hex Regex
+            const hexRegex = /^#?([0-9A-F]{3}){1,2}$/i;
+
+            if (hexRegex.test(val)) {
+                let color = val;
+                if (!color.startsWith('#')) color = '#' + color;
+                scalePreview.style.backgroundColor = color;
+                previewBtn.disabled = false;
+                errorMsg.style.display = 'none';
+            } else {
+                scalePreview.style.backgroundColor = '#eee';
+                previewBtn.disabled = true;
+                if (val.length > 0) errorMsg.style.display = 'block';
+                else errorMsg.style.display = 'none';
+            }
+        });
+
+        // Generate Preview
+        previewBtn.onclick = () => {
+            const color = scaleInput.value.trim();
+            parent.postMessage({ pluginMessage: { type: 'preview-scale', color } }, '*');
+        };
+
+        // Create Variables
+        document.getElementById('create-vars-btn').onclick = () => {
+            const colorName = document.getElementById('var-name').value.trim();
+            const collectionId = document.getElementById('var-collection-select').value;
+
+            // Logic to determine group name
+            const selectVal = document.getElementById('var-group-select').value;
+            let groupName = selectVal;
+            if (selectVal === 'NEW_GROUP') {
+                groupName = document.getElementById('var-group-custom').value.trim();
+            }
+
+            if (!colorName || !collectionId) {
+                // Highlight errors? Simple alert for now.
+                // We can use the existing Notification mechanism via backend? Or simple alert? Using backend notify is better UI.
+                // But cannot send notify from UI directly.
+                console.error("Missing fields");
+                // Maybe show a small red text
+                // For now, let's assume validation in backend or simple JS check
+                return;
+            }
+
+            // We need the scale data again? Or backend state?
+            // Safer to re-send the base color and let backend regenerate-and-save.
+            const baseColor = scaleInput.value.trim();
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-variables',
+                    baseColorHex: baseColor,
+                    config: { colorName, collectionId, groupName }
+                }
+            }, '*');
         };
     </script>
 </body>

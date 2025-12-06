@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PirulinoColorete</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #18A0FB;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: #0D8DE3;
+        }
+
+        #result {
+            margin-top: 20px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            min-height: 100px;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .color-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .color-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .color-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .color-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .color-value {
+            color: #666;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .a11y-info {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .a11y-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #eee;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .a11y-badge.pass {
+            background: #e6f4ea;
+            color: #1e8e3e;
+        }
+
+        .a11y-badge.fail {
+            background: #fce8e6;
+            color: #d93025;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Select Collection</h2>
+    <select id="collection-select">
+        <option value="" disabled selected>Loading collections...</option>
+    </select>
+
+    <h2>Select Group (Optional)</h2>
+    <select id="group-select" disabled>
+        <option value="">All Groups</option>
+    </select>
+
+    <div style="display: flex; gap: 8px;">
+        <button id="convert-btn" style="flex: 1;">List in UI</button>
+        <button id="generate-btn" style="flex: 1; background-color: #2C2C2C;">Generate on Canvas</button>
+    </div>
+
+    <div id="result">
+        <p style="color: #888; text-align: center; margin-top: 30px;">Select a collection to see colors.</p>
+    </div>
+    <div id="progress-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 100; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="spinner"
+            style="width: 24px; height: 24px; border: 3px solid #E5E7EB; border-top-color: #2563EB; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;">
+        </div>
+        <div id="progress-message" style="font-weight: 500; color: #1F2937;">Processing...</div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
+    <script>
+        window.onmessage = (event) => {
+            const { type, payload } = event.data.pluginMessage;
+            if (type === 'load-collections') {
+                const select = document.getElementById('collection-select');
+                select.innerHTML = '<option value="" disabled selected>Select a collection</option>';
+                payload.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = c.name;
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+            } else if (type === 'load-groups') {
+                const groupSelect = document.getElementById('group-select');
+                groupSelect.innerHTML = '<option value="">All Groups</option>';
+                payload.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g;
+                    option.textContent = g;
+                    groupSelect.appendChild(option);
+                });
+                groupSelect.disabled = false;
+            } else if (type === 'conversion-result') {
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = '';
+                if (payload.length === 0) {
+                    resultDiv.innerHTML = '<p style="text-align: center;">No colors found in this collection/group.</p>';
+                    return;
+                }
+                payload.forEach(color => {
+                    const item = document.createElement('div');
+                    item.className = 'color-item';
+
+                    const formatRatings = (ratings) => {
+                        if (ratings.includes("Fail")) return "Fail";
+                        // Show the highest rating
+                        if (ratings.includes("AAA")) return "AAA";
+                        if (ratings.includes("AA")) return "AA";
+                        return ratings[0];
+                    };
+
+                    const whiteRating = formatRatings(color.accessibility.white.ratings);
+                    const blackRating = formatRatings(color.accessibility.black.ratings);
+
+                    const whiteClass = whiteRating === 'Fail' ? 'fail' : 'pass';
+                    const blackClass = blackRating === 'Fail' ? 'fail' : 'pass';
+
+                    item.innerHTML = `
+                        <div class="color-preview" style="background-color: ${color.hex}"></div>
+                        <div class="color-info">
+                            <span class="color-name">${color.name}</span>
+                            <span class="color-value">${color.oklch}</span>
+                            <div class="a11y-info">
+                                <span class="a11y-badge ${whiteClass}" title="Contrast vs White: ${color.accessibility.white.ratio}">
+                                    On White: ${whiteRating}
+                                </span>
+                                <span class="a11y-badge ${blackClass}" title="Contrast vs Black: ${color.accessibility.black.ratio}">
+                                    On Black: ${blackRating}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                    resultDiv.appendChild(item);
+                });
+            }
+        };
+
+        document.getElementById('collection-select').onchange = (e) => {
+            const collectionId = e.target.value;
+            // Reset and disable group select
+            const groupSelect = document.getElementById('group-select');
+            groupSelect.innerHTML = '<option value="">Loading groups...</option>';
+            groupSelect.disabled = true;
+
+            // Request groups
+            parent.postMessage({ pluginMessage: { type: 'get-groups', collectionId } }, '*');
+        };
+
+        document.getElementById('convert-btn').onclick = () => {
+            const collectionId = document.getElementById('collection-select').value;
+            const group = document.getElementById('group-select').value;
+            if (collectionId) {
+                parent.postMessage({ pluginMessage: { type: 'convert-collection', collectionId, group } }, '*');
+            }
+        };
+
+        document.getElementById('generate-btn').onclick = () => {
+            const collectionId = document.getElementById('collection-select').value;
+            const group = document.getElementById('group-select').value;
+            if (collectionId) {
+                parent.postMessage({ pluginMessage: { type: 'generate-on-canvas', collectionId, group } }, '*');
+            }
+        };
+    </script>
+</body>
+
+</html>

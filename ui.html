@@ -237,15 +237,15 @@
 
 <body>
     <div class="tabs">
-        <div class="tab active" data-tab="collections">Collections</div>
-        <div class="tab" data-tab="scale">Colors</div>
+        <div class="tab active" data-tab="scale">Colors</div>
+        <div class="tab" data-tab="collections">Collections</div>
         <div class="tab" data-tab="measures">Measures</div>
         <div class="tab" data-tab="typography">Typography</div>
         <div class="tab" data-tab="aliases">Aliases</div>
     </div>
 
     <!-- Tab 1: Collections -->
-    <div id="tab-collections" class="tab-content active">
+    <div id="tab-collections" class="tab-content">
         <h2>Select Collection</h2>
         <select id="collection-select">
             <option value="" disabled selected>Loading collections...</option>
@@ -267,8 +267,24 @@
     </div>
 
     <!-- Tab 2: Colors Generator (formerly Scale) -->
-    <div id="tab-scale" class="tab-content">
+    <div id="tab-scale" class="tab-content active">
         <h2>Color Palettes</h2>
+
+        <!-- Step 0: Create Collection if needed -->
+        <div class="section-title">Step 1: Collection Setup</div>
+        <p class="description">Create a new collection or select an existing one to store your color variables.</p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+            <input type="text" id="new-collection-name" placeholder="Collection Name (e.g. Primitives)"
+                style="flex: 1; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1d5db; font-size: 14px;">
+            <button id="create-collection-btn" class="primary" style="width: auto; padding: 10px 20px;">
+                Create Collection
+            </button>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="section-title">Step 2: Add Colors</div>
         <p class="section-desc" style="margin-bottom: 20px;">Add multiple base colors to generate consistent scales.</p>
 
         <!-- 1. Add Color Form -->
@@ -912,6 +928,24 @@
         let colorQueue = [];
         const scaleList = document.getElementById('scale-list'); // Container for results
 
+        // === Collection Creation ===
+        document.getElementById('create-collection-btn').onclick = () => {
+            const collectionName = document.getElementById('new-collection-name').value.trim();
+            if (!collectionName) {
+                alert('Please enter a collection name.');
+                return;
+            }
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-collection',
+                    name: collectionName
+                }
+            }, '*');
+            // Clear input after sending
+            document.getElementById('new-collection-name').value = '';
+        };
+
+        // === Color Queue Management ===
         // Inputs
         const nameInput = document.getElementById('new-color-name');
         const hexInput = document.getElementById('new-color-hex');

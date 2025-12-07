@@ -134,6 +134,17 @@ figma.ui.onmessage = async (msg) => {
     await getGroupsCustom(msg.collectionId, 'load-groups-alias');
   } else if (msg.type === 'create-aliases') {
     await createSemanticTokens(msg.config);
+  } else if (msg.type === 'create-collection') {
+    // Create a new variable collection
+    try {
+      const newCollection = figma.variables.createVariableCollection(msg.name);
+      figma.notify(`Collection "${msg.name}" created successfully! ✅`);
+      // Reload collections in UI
+      await loadCollections();
+    } catch (err) {
+      console.error(err);
+      figma.notify(`Error creating collection: ${err.message}`);
+    }
   } else if (msg.type === 'create-text-styles') {
     await createTextStyles(msg.config);
   }

@@ -76,13 +76,18 @@ figma.ui.onmessage = async (msg) => {
     try {
       figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Color Variables...' });
 
+      if (!colors || !Array.isArray(colors)) throw new Error("Invalid colors data");
+      if (!config) throw new Error("Missing configuration");
+
       let createdCount = 0;
       for (const item of colors) {
+        if (!item || !item.hex) continue;
         const color = parseColor(item.hex);
         if (color) {
           const scale = calculateScale(color);
-          // Override name in config for this specific iteration
-          const itemConfig = { ...config, colorName: item.name };
+          // Override name in config for this specific iteration (Safe Object.assign)
+          const itemConfig = Object.assign({}, config, { colorName: item.name });
+
           // Ensure we await each creation to avoid race conditions in variable lookup
           await createVariables(scale, itemConfig);
           createdCount++;

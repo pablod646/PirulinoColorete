@@ -134,50 +134,62 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
-// Helper: Parse Color (Hex or OKLCH)
+// Helper: Parse Color (Hex, RGB, OKLCH - Robust)
 function parseColor(input) {
-  const hex = input.trim();
+  const str = input.trim().toLowerCase();
 
-  // 1. Try Hex
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (result) {
-    return {
-      r: parseInt(result[1], 16) / 255,
-      g: parseInt(result[2], 16) / 255,
-      b: parseInt(result[3], 16) / 255
-    };
-  }
-  const shortResult = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
-  if (shortResult) {
-    return {
-      r: parseInt(shortResult[1] + shortResult[1], 16) / 255,
-      g: parseInt(shortResult[2] + shortResult[2], 16) / 255,
-      b: parseInt(shortResult[3] + shortResult[3], 16) / 255
-    };
-  }
-
-  // 2. Try OKLCH
-  // Format: oklch(L C H) or oklch(L% C H)
-  // e.g. oklch(63.7% 0.237 25.331)
-  const oklchMatch = /^oklch\(\s*([0-9.]+)%?\s+([0-9.]+)\s+([0-9.]+)\s*\)$/i.exec(hex);
-  if (oklchMatch) {
-    let L = parseFloat(oklchMatch[1]);
-    if (hex.includes('%') && L > 1) L = L / 100; // Handle percentage
-    const C = parseFloat(oklchMatch[2]);
-    const H = parseFloat(oklchMatch[3]);
-    return oklchToRgb(L, C, H);
+  // 1. Hex
+  if (str.startsWith('#')) {
+    const hex = str;
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (result) {
+      return {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+      };
+    }
+    const shortResult = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
+    if (shortResult) {
+      return {
+        r: parseInt(shortResult[1] + shortResult[1], 16) / 255,
+        g: parseInt(shortResult[2] + shortResult[2], 16) / 255,
+        b: parseInt(shortResult[3] + shortResult[3], 16) / 255
+      };
+    }
   }
 
-  // 3. Try RGB / RGBA
-  // Format: rgb(r, g, b) or rgba(r, g, b, a)
-  // Simple parsing assuming comma separation mainly
-  const rgbMatch = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(hex);
-  if (rgbMatch) {
-    return {
-      r: parseInt(rgbMatch[1], 10) / 255,
-      g: parseInt(rgbMatch[2], 10) / 255,
-      b: parseInt(rgbMatch[3], 10) / 255
-    };
+  // 2. Functional Syntax (rgb(...), oklch(...))
+  const match = str.match(/^([a-z]+)\((.+)\)$/);
+  if (match) {
+    const type = match[1];
+    // Split params by comma, space, or slash (for alpha)
+    // Filter out empty strings
+    const params = match[2].split(/[,\s/]+/).filter(x => x.length > 0);
+
+    if ((type === 'rgb' || type === 'rgba') && params.length >= 3) {
+      const getVal = (raw) => {
+        const val = parseFloat(raw);
+        if (raw.includes('%')) return (val / 100) * 255;
+        return val;
+      };
+      return {
+        r: getVal(params[0]) / 255,
+        g: getVal(params[1]) / 255,
+        b: getVal(params[2]) / 255
+      };
+    }
+
+    if (type === 'oklch' && params.length >= 3) {
+      // L C H
+      let L = parseFloat(params[0]);
+      if (params[0].includes('%') && L > 1) L = L / 100; // Handle 95% -> 0.95
+
+      const C = parseFloat(params[1]);
+      const H = parseFloat(params[2]);
+
+      return oklchToRgb(L, C, H);
+    }
   }
 
   return null;

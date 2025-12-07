@@ -1,7 +1,7 @@
 console.clear();
 
 // Show the UI with improved dimensions
-figma.showUI(__html__, { width: 500, height: 600, themeColors: true });
+figma.showUI(__html__, { width: 600, height: 800, themeColors: true });
 
 async function loadCollections() {
   try {

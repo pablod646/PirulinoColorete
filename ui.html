@@ -127,6 +127,7 @@
         <div class="tab active" data-tab="collections">Collections</div>
         <div class="tab" data-tab="scale">Scale</div>
         <div class="tab" data-tab="measures">Measures</div>
+        <div class="tab" data-tab="typography">Typography</div>
     </div>
 
     <!-- Tab 1: Collections -->
@@ -269,6 +270,84 @@
             </div>
 
             <button id="create-measures-btn" style="background-color: #18A0FB;">Create Variables</button>
+        </div>
+    </div>
+
+    <!-- Tab 4: Typography -->
+    <div id="tab-typography" class="tab-content">
+        <h2>Typography System</h2>
+
+        <!-- Section 1: Fonts -->
+        <div style="margin-bottom: 24px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">1. Font
+                Families</label>
+
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Heading Font</label>
+                <select id="font-heading" class="font-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="" disabled selected>Loading fonts...</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Body Font</label>
+                <select id="font-body" class="font-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="" disabled selected>Loading fonts...</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Code/Mono Font</label>
+                <select id="font-code" class="font-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="" disabled selected>Loading fonts...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Section 2: Scale Lists -->
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">2.
+                Scales</label>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Font Weights
+                    (Numeric)</label>
+                <textarea id="typo-weights"
+                    style="width: 100%; height: 60px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">100, 200, 300, 400, 500, 600, 700, 800, 900</textarea>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Letter Spacing
+                    (%)</label>
+                <textarea id="typo-spacing"
+                    style="width: 100%; height: 60px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">-2, -1, 0, 1, 2, 4, 8, 10</textarea>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div style="border-top: 1px solid #eee; padding-top: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">3.
+                Target</label>
+
+            <div style="margin-bottom: 12px;">
+                <select id="typo-collection-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="" disabled selected>Select Collection...</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <select id="typo-group-select"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                    <option value="">(Root / No Group)</option>
+                    <option value="NEW_GROUP">+ New Group...</option>
+                </select>
+                <input type="text" id="typo-group-custom" placeholder="e.g. Typography" value="Typography"
+                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; margin-top: 8px; display: none;">
+            </div>
+
+            <button id="create-typo-btn" style="background-color: #18A0FB;">Create Typography Variables</button>
         </div>
     </div>
 
@@ -510,6 +589,27 @@
                     statusLabel.textContent = payload.status === 'no-fill' ? 'Selection has no fill' : 'Select an object';
                     genBtn.disabled = true;
                 }
+            } else if (type === 'load-fonts') {
+                const selects = document.querySelectorAll('.font-select');
+                selects.forEach(sel => {
+                    sel.innerHTML = '<option value="" disabled selected>Select Font...</option>';
+                    payload.forEach(f => {
+                        const op = document.createElement('option');
+                        op.value = f;
+                        op.textContent = f;
+                        sel.appendChild(op);
+                    });
+                    sel.disabled = false;
+                });
+            } else if (type === 'load-groups-typo') {
+                const groupSelect = document.getElementById('typo-group-select');
+                groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
+                payload.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g;
+                    option.textContent = g;
+                    groupSelect.appendChild(option);
+                });
             } else if (type === 'progress-start') {
                 document.getElementById('progress-overlay').style.display = 'flex';
                 document.getElementById('progress-message').innerText = payload;
@@ -730,6 +830,88 @@
                 pluginMessage: {
                     type: 'create-measure-variables',
                     values, // Sending array instead of base/steps
+                    config: { collectionId, groupName }
+                }
+            }, '*');
+        };
+        // --- TYPOGRAPHY TAB LOGIC ---
+
+        let fontsLoaded = false;
+
+        // Tab Switch Listener Enhancement: Load fonts if Typography tab is active
+        document.querySelectorAll('.tab').forEach(t => {
+            t.addEventListener('click', () => {
+                if (t.dataset.tab === 'typography' && !fontsLoaded) {
+                    fontsLoaded = true;
+                    // Request fonts
+                    parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
+
+                    // Also populate collection select if empty
+                    const tab1Select = document.getElementById('collection-select');
+                    const typoSelect = document.getElementById('typo-collection-select');
+                    if (typoSelect.children.length <= 1 && tab1Select.children.length > 1) {
+                        typoSelect.innerHTML = tab1Select.innerHTML;
+                    }
+                }
+            });
+        });
+
+        // Backend Messages (Typography Additions)
+        // Note: modify window.onmessage to handle 'load-fonts'
+        // Since I cannot rewrite the entire onmessage block easily in this tool call without replacing everything,
+        // I will rely on the next step to update window.onmessage or inject it here if I replace the whole block?
+        // Let's add the handlers below and I'll do a separate edit for onmessage to keep it clean.
+
+        // Typo Collection Change
+        document.getElementById('typo-collection-select').onchange = (e) => {
+            const collectionId = e.target.value;
+            parent.postMessage({ pluginMessage: { type: 'get-groups-for-typo', collectionId } }, '*');
+        };
+
+        // Typo Group Change
+        document.getElementById('typo-group-select').onchange = (e) => {
+            const val = e.target.value;
+            const customInput = document.getElementById('typo-group-custom');
+            if (val === 'NEW_GROUP') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        };
+
+        // Create Typography Variables
+        document.getElementById('create-typo-btn').onclick = () => {
+            const heading = document.getElementById('font-heading').value;
+            const body = document.getElementById('font-body').value;
+            const code = document.getElementById('font-code').value;
+
+            const weightsRaw = document.getElementById('typo-weights').value;
+            const spacingRaw = document.getElementById('typo-spacing').value;
+
+            const collectionId = document.getElementById('typo-collection-select').value;
+            // Group Logic
+            const selectVal = document.getElementById('typo-group-select').value;
+            let groupName = selectVal;
+            if (selectVal === 'NEW_GROUP') {
+                groupName = document.getElementById('typo-group-custom').value.trim();
+            }
+
+            if (!collectionId) {
+                alert("Please select a target collection.");
+                return;
+            }
+
+            // Parse lists
+            const weights = weightsRaw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+            const spacing = spacingRaw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-typography',
+                    families: { heading, body, code },
+                    weights,
+                    spacing,
                     config: { collectionId, groupName }
                 }
             }, '*');

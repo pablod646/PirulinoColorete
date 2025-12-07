@@ -1,6 +1,7 @@
 console.clear();
 
-figma.showUI(__html__, { width: 300, height: 400 });
+// Show the UI with improved dimensions
+figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
 async function loadCollections() {
   try {
@@ -60,6 +61,12 @@ figma.ui.onmessage = async (msg) => {
     await getGroups(collectionId, 'measures');
   } else if (msg.type === 'create-measure-variables') {
     await createMeasureVariables(msg.values, msg.config);
+  } else if (msg.type === 'get-fonts') {
+    await getUniqueFonts();
+  } else if (msg.type === 'get-groups-for-typo') {
+    await getGroups(msg.collectionId, 'measures'); // Reuse 'measures' type as it just fills dropdown
+  } else if (msg.type === 'create-typography') {
+    await createTypographyVariables(msg);
   }
 };
 
@@ -340,6 +347,101 @@ async function createMeasureVariables(values, config) {
     console.error(err);
     figma.ui.postMessage({ type: 'progress-end' });
     figma.notify("Error creating measures: " + err.message);
+  }
+}
+
+async function getUniqueFonts() {
+  try {
+    // This can be slow, but it's the only way
+    const fonts = await figma.listAvailableFontsAsync();
+    const families = new Set(fonts.map(f => f.fontName.family));
+    const sorted = Array.from(families).sort();
+    figma.ui.postMessage({ type: 'load-fonts', payload: sorted });
+  } catch (err) {
+    console.error(err);
+    figma.notify("Error loading fonts: " + err.message);
+  }
+}
+
+async function createTypographyVariables(data) {
+  try {
+    const { families, weights, spacing, config } = data;
+    const { collectionId, groupName } = config;
+
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) throw new Error("Collection not found");
+
+    const modeId = collection.defaultModeId;
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Typography...' });
+
+    // 1. Font Families (Strings)
+    for (const [key, familyName] of Object.entries(families)) {
+      if (!familyName) continue;
+      const nameKey = key.charAt(0).toUpperCase() + key.slice(1); // Heading, Body
+
+      let path = `Font Family/${nameKey}`;
+      if (groupName) path = `${groupName.replace(/\./g, '_')}/${path}`;
+
+      const allVars = await figma.variables.getLocalVariablesAsync();
+      let variable = allVars.find(v => v.variableCollectionId === collectionId && v.name === path);
+      if (!variable) {
+        variable = figma.variables.createVariable(path, collection, "STRING");
+      }
+      variable.setValueForMode(modeId, familyName);
+    }
+
+    // 2. Font Weights (Floats)
+    const weightNames = {
+      100: "Thin",
+      200: "ExtraLight",
+      300: "Light",
+      400: "Regular",
+      500: "Medium",
+      600: "SemiBold",
+      700: "Bold",
+      800: "ExtraBold",
+      900: "Black",
+      950: "ExtraBlack"
+    };
+
+    for (const w of weights) {
+      const humanName = weightNames[w] || w; // Fallback to number if not standard
+      let path = `Font Weight/${humanName}`;
+      if (groupName) path = `${groupName.replace(/\./g, '_')}/${path}`;
+
+      const allVars = await figma.variables.getLocalVariablesAsync();
+      let variable = allVars.find(v => v.variableCollectionId === collectionId && v.name === path);
+      if (!variable) {
+        variable = figma.variables.createVariable(path, collection, "FLOAT");
+      }
+      variable.setValueForMode(modeId, w);
+    }
+
+    // 3. Letter Spacing (Floats)
+    for (const s of spacing) {
+      // Sanitize: replace . with _ and % with 'pct' or just remove?
+      // Figma vars don't allow % in name usually? Actually only . / : etc.
+      // Let's safe-string it. 
+      let safeName = s.toString().replace(/\./g, '_').replace('%', '');
+      let path = `Letter Spacing/${safeName}`;
+      if (groupName) path = `${groupName.replace(/\./g, '_')}/${path}`;
+
+      const allVars = await figma.variables.getLocalVariablesAsync();
+      let variable = allVars.find(v => v.variableCollectionId === collectionId && v.name === path);
+      if (!variable) {
+        variable = figma.variables.createVariable(path, collection, "FLOAT");
+      }
+      variable.setValueForMode(modeId, s);
+    }
+
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify("Typography variables created!");
+
+  } catch (err) {
+    console.error(err);
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify("Error: " + err.message);
   }
 }
 

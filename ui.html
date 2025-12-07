@@ -237,15 +237,15 @@
 
 <body>
     <div class="tabs">
-        <div class="tab active" data-tab="collections">Collections</div>
-        <div class="tab" data-tab="scale">Colors</div>
-        <div class="tab" data-tab="measures">Measures</div>
-        <div class="tab" data-tab="typography">Typography</div>
-        <div class="tab" data-tab="aliases">Aliases</div>
+        <div class="tab active" data-tab="scale">1. Colors</div>
+        <div class="tab" data-tab="measures">2. Measures</div>
+        <div class="tab" data-tab="typography">3. Typography</div>
+        <div class="tab" data-tab="aliases">4. Aliases</div>
+        <div class="tab" data-tab="collections">5. Documentation</div>
     </div>
 
-    <!-- Tab 1: Collections -->
-    <div id="tab-collections" class="tab-content active">
+    <!-- Tab 5: Documentation (formerly Collections) -->
+    <div id="tab-collections" class="tab-content">
         <h2>Select Collection</h2>
         <select id="collection-select">
             <option value="" disabled selected>Loading collections...</option>
@@ -266,8 +266,8 @@
         </div>
     </div>
 
-    <!-- Tab 2: Colors Generator (formerly Scale) -->
-    <div id="tab-scale" class="tab-content">
+    <!-- Tab 1: Colors Generator -->
+    <div id="tab-scale" class="tab-content active">
         <h2>Color Palettes</h2>
         <p class="description">Generate color scales for your design system.</p>
 
@@ -280,8 +280,8 @@
                 <option value="NEW_COLLECTION">+ Create New Collection...</option>
             </select>
         </div>
-        <input type="text" id="var-collection-custom" placeholder="Enter new collection name" class="input-group"
-            style="display: none;">
+        <input type="text" id="var-collection-custom" placeholder="Enter new collection name"
+            style="display: none; width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #3b82f6; font-size: 14px; margin-top: 8px; margin-bottom: 16px; background: #eff6ff; transition: all 0.2s ease;">
 
         <!-- Step 2: Group -->
         <div class="section-title">2. Group (Optional)</div>
@@ -292,8 +292,8 @@
                 <option value="NEW_GROUP">+ New Group...</option>
             </select>
         </div>
-        <input type="text" id="var-group-custom" placeholder="Enter new group name" class="input-group"
-            style="display: none; margin-bottom: 24px;">
+        <input type="text" id="var-group-custom" placeholder="Enter new group name"
+            style="display: none; width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #3b82f6; font-size: 14px; margin-top: 8px; margin-bottom: 24px; background: #eff6ff; transition: all 0.2s ease;">
 
         <div class="separator"></div>
 

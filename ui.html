@@ -277,8 +277,11 @@
             <label>Target Collection</label>
             <select id="var-collection-select">
                 <option value="" disabled selected>Select Collection...</option>
+                <option value="NEW_COLLECTION">+ Create New Collection...</option>
             </select>
         </div>
+        <input type="text" id="var-collection-custom" placeholder="Enter new collection name" class="input-group"
+            style="display: none;">
 
         <!-- Step 2: Group -->
         <div class="section-title">2. Group (Optional)</div>
@@ -895,6 +898,18 @@
             parent.postMessage({ pluginMessage: { type: 'get-groups-for-tab2', collectionId } }, '*');
         };
 
+        // Tab 2 Collection Change -> Show Custom Input if NEW
+        document.getElementById('var-collection-select').onchange = (e) => {
+            const val = e.target.value;
+            const customInput = document.getElementById('var-collection-custom');
+            if (val === 'NEW_COLLECTION') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        };
+
         // Tab 2 Group Change -> Show Custom Input if NEW
         document.getElementById('var-group-select').onchange = (e) => {
             const val = e.target.value;
@@ -1026,7 +1041,19 @@
 
         // Create Variables (Batch)
         document.getElementById('create-vars-btn').onclick = () => {
-            const collectionId = document.getElementById('var-collection-select').value;
+            let collectionId = document.getElementById('var-collection-select').value;
+            let collectionName = null;
+
+            // Collection Logic
+            if (collectionId === 'NEW_COLLECTION') {
+                collectionName = document.getElementById('var-collection-custom').value.trim();
+                if (!collectionName) {
+                    alert("Please enter a collection name.");
+                    return;
+                }
+                collectionId = null; // Will be created by backend
+            }
+
             // Group Logic
             const selectVal = document.getElementById('var-group-select').value;
             let groupName = selectVal;
@@ -1034,8 +1061,8 @@
                 groupName = document.getElementById('var-group-custom').value.trim();
             }
 
-            if (!collectionId) {
-                alert("Please select a target collection.");
+            if (!collectionId && !collectionName) {
+                alert("Please select or create a collection.");
                 return;
             }
 
@@ -1048,7 +1075,7 @@
                 pluginMessage: {
                     type: 'create-variables-batch',
                     colors: colorQueue,
-                    config: { collectionId, groupName }
+                    config: { collectionId, collectionName, groupName }
                 }
             }, '*');
         };

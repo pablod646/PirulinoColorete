@@ -71,13 +71,30 @@ figma.ui.onmessage = async (msg) => {
     figma.ui.postMessage({ type: 'preview-scale-batch-result', payload: results });
 
   } else if (msg.type === 'create-variables-batch') {
-    const { colors, config } = msg; // colors: [{name, hex}], config: { collectionId, groupName }
+    const { colors, config } = msg; // colors: [{name, hex}], config: { collectionId, collectionName, groupName }
 
     try {
       figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Color Variables...' });
 
       if (!colors || !Array.isArray(colors)) throw new Error("Invalid colors data");
       if (!config) throw new Error("Missing configuration");
+
+      // Create collection if collectionName is provided
+      let targetCollectionId = config.collectionId;
+      if (config.collectionName && !targetCollectionId) {
+        const newCollection = figma.variables.createVariableCollection(config.collectionName);
+        targetCollectionId = newCollection.id;
+        figma.notify(`Collection "${config.collectionName}" created! ✅`);
+        // Reload collections in UI
+        await loadCollections();
+      }
+
+      if (!targetCollectionId) {
+        throw new Error("No collection specified");
+      }
+
+      // Update config with actual collection ID
+      const finalConfig = Object.assign({}, config, { collectionId: targetCollectionId });
 
       let createdCount = 0;
       for (const item of colors) {
@@ -86,7 +103,7 @@ figma.ui.onmessage = async (msg) => {
         if (color) {
           const scale = calculateScale(color);
           // Override name in config for this specific iteration (Safe Object.assign)
-          const itemConfig = Object.assign({}, config, { colorName: item.name });
+          const itemConfig = Object.assign({}, finalConfig, { colorName: item.name });
 
           // Ensure we await each creation to avoid race conditions in variable lookup
           await createVariables(scale, itemConfig);

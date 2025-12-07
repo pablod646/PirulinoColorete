@@ -679,6 +679,70 @@ async function createSemanticTokens(config) {
       { name: 'Spacing/Radius/2xl', desktop: '24px', tablet: '20px', mobile: '16px' }
     ];
 
+    // PROCESS SEMANTIC TOKENS (Restored)
+
+    // A. Typography Aliases
+    const allTextMaps = [...textMap, ...componentTextMap];
+    for (const item of allTextMaps) {
+      const createModeVar = (leaf, val) => {
+        // val is like 'xs', 'base', '4xl'
+        const path = `${item.name}`; // e.g. Typography/Body/m
+        let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+        if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+        // Find Source (Font Size)
+        const sourceVar = findSource(typoGroup, val);
+        if (sourceVar) {
+          v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+          // If item has specific modes? item.desktop, item.tablet...
+          // The map has desktop, tablet, mobile keys!
+        }
+        return v;
+      };
+
+      // Actually we need to handle the responsive keys in the map: desktop, tablet, mobile
+      const path = item.name;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+      const setMode = (modeId, valName) => {
+        const sourceVar = findSource(typoGroup, valName); // e.g. find 4xl
+        if (sourceVar) {
+          v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        } else {
+          console.warn(`Source not found for ${valName}`);
+        }
+      };
+
+      setMode(desktopId, item.desktop);
+      setMode(tabletId, item.tablet);
+      setMode(mobileId, item.mobile);
+    }
+
+    // B. Spacing & Radius Aliases
+    const allSpaceMaps = [...spaceMap, ...radiusMap];
+    for (const item of allSpaceMaps) {
+      const path = item.name;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+      const setMode = (modeId, valRaw) => {
+        // valRaw is '4px', '16px' etc.
+        // Clean string
+        let safeName = valRaw.replace('.', '_');
+        const sourceVar = findSource(measureGroup, safeName);
+        if (sourceVar) {
+          v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        } else {
+          // Fallback?
+          console.warn(`Source not found for ${safeName}`);
+        }
+      };
+
+      setMode(desktopId, item.desktop);
+      setMode(tabletId, item.tablet);
+      setMode(mobileId, item.mobile);
+    }
     // 5. Shadows / Elevation System
     // Standard Tailwind Shadows
     const shadowMap = [

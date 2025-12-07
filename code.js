@@ -688,21 +688,6 @@ async function createSemanticTokens(config) {
       { name: 'Elevation/xl', y: 20, blur: 25, spread: -5, opacity: 0.1 }
     ];
 
-    // Create Base Shadow Color Variable
-    // Color: Black (Native Color Variable)
-    const baseShadowColorPath = "Elevation/Color/shadow-base";
-    let shadowColorVar = allVars.find(v => v.variableCollectionId === targetCollection.id && v.name === baseShadowColorPath);
-    if (!shadowColorVar) {
-      shadowColorVar = figma.variables.createVariable(baseShadowColorPath, targetCollection, "COLOR");
-    }
-    // Set default (black) for all modes
-    // Note: We create opacity variations by binding this color but strictly Figma vars don't support alpha override easily in Effects via number? 
-    // Actually, in Effects, we bind the Color. The variable ITSELF has opacity.
-    // So we need specific shadow color variables per opacity if we want strict binding?
-    // Tailwind uses rgba(0,0,0, 0.1).
-    // Strategy: Create "Elevation/Color/soft" (10%), "Elevation/Color/subtle" (5%).
-
-    // Let's create specific color vars for readability
     // NOTE: User requested NO Color Variables for now. Using raw black with opacity.
 
     // Process Shadows
@@ -752,6 +737,7 @@ async function createSemanticTokens(config) {
       }
 
       // Apply with Bindings (Geometry only)
+      // Corrected boundVariables keys: offsetY, radius, spread
       effectStyle.effects = [{
         type: 'DROP_SHADOW',
         color: { r: 0, g: 0, b: 0, a: shadow.opacity }, // Raw Color
@@ -761,10 +747,8 @@ async function createSemanticTokens(config) {
         visible: true,
         blendMode: 'NORMAL',
         boundVariables: {
-          // No Color Variable Binding
-          offset: {
-            y: { type: 'VARIABLE_ALIAS', id: varY.id }
-          },
+          // Flattened keys for offset
+          offsetY: { type: 'VARIABLE_ALIAS', id: varY.id },
           radius: { type: 'VARIABLE_ALIAS', id: varBlur.id },
           spread: { type: 'VARIABLE_ALIAS', id: varSpread.id }
         }

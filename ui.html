@@ -269,30 +269,54 @@
     <!-- Tab 2: Colors Generator (formerly Scale) -->
     <div id="tab-scale" class="tab-content">
         <h2>Color Palettes</h2>
-        <p class="section-desc" style="margin-bottom: 20px;">Add multiple base colors to generate consistent scales.</p>
+        <p class="description">Generate color scales for your design system.</p>
 
-        <!-- 1. Add Color Form -->
+        <!-- Step 1: Collection -->
+        <div class="section-title">1. Collection</div>
+        <div class="input-group">
+            <label>Target Collection</label>
+            <select id="var-collection-select">
+                <option value="" disabled selected>Select Collection...</option>
+            </select>
+        </div>
+
+        <!-- Step 2: Group -->
+        <div class="section-title">2. Group (Optional)</div>
+        <div class="input-group">
+            <label>Target Group</label>
+            <select id="var-group-select">
+                <option value="">(Root / No Group)</option>
+                <option value="NEW_GROUP">+ New Group...</option>
+            </select>
+        </div>
+        <input type="text" id="var-group-custom" placeholder="Enter new group name" class="input-group"
+            style="display: none; margin-bottom: 24px;">
+
+        <div class="separator"></div>
+
+        <!-- Step 3: Add Colors -->
+        <div class="section-title">3. Add Colors</div>
         <div
-            style="margin-bottom: 20px; background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
-            <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 8px; color: #555;">Add New
-                Color</label>
+            style="margin-bottom: 20px; background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #374151;">Add
+                New Color</label>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
                 <div>
                     <input type="text" id="new-color-name" placeholder="Name (e.g. Primary)"
-                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 13px;">
+                        style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1d5db; font-size: 14px;">
                 </div>
-                <div style="display: flex; gap: 4px;">
+                <div style="display: flex; gap: 8px;">
                     <input type="text" id="new-color-hex" placeholder="#Hex"
-                        style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ddd; font-family: monospace; font-size: 13px;">
+                        style="flex: 1; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1d5db; font-family: monospace; font-size: 14px;">
                     <div id="new-color-swatch"
-                        style="width: 34px; height: 34px; border-radius: 4px; background: #eee; border: 1px solid #ddd;">
+                        style="width: 40px; height: 40px; border-radius: 8px; background: #f3f4f6; border: 1.5px solid #d1d5db;">
                     </div>
                 </div>
             </div>
 
-            <button id="add-color-btn" class="secondary" style="width: 100%; padding: 6px;">+ Add to List</button>
-            <p id="add-error" style="color: #d93025; font-size: 11px; margin-top: 4px; display: none;">Invalid Input</p>
+            <button id="add-color-btn" class="secondary" style="width: 100%;">+ Add to Queue</button>
+            <p id="add-error" style="color: #dc2626; font-size: 12px; margin-top: 8px; display: none;">Invalid Input</p>
         </div>
 
         <!-- 2. Color Queue List -->
@@ -319,32 +343,7 @@
                 <!-- Setup for Multiple Palettes -->
             </div>
 
-            <!-- Configuration Form -->
-            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">Output
-                Configuration</label>
-
-            <div style="margin-bottom: 12px;">
-                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Target
-                    Collection</label>
-                <select id="var-collection-select"
-                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
-                    <option value="" disabled selected>Select Collection...</option>
-                </select>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Target Group
-                    (Parent)</label>
-                <select id="var-group-select"
-                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
-                    <option value="">(Root / No Group)</option>
-                    <option value="NEW_GROUP">+ New Group...</option>
-                </select>
-                <input type="text" id="var-group-custom" placeholder="Enter new group name"
-                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; margin-top: 8px; display: none;">
-            </div>
-
-            <button id="create-vars-btn" style="background-color: #18A0FB;">Create All Variables</button>
+            <button id="create-vars-btn" class="primary" style="width: 100%;">Create All Variables</button>
         </div>
     </div>
 

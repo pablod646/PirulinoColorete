@@ -1,7 +1,7 @@
 console.clear();
 
 // Show the UI with improved dimensions
-figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
+figma.showUI(__html__, { width: 500, height: 600, themeColors: true });
 
 async function loadCollections() {
   try {
@@ -64,9 +64,24 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'get-fonts') {
     await getUniqueFonts();
   } else if (msg.type === 'get-groups-for-typo') {
-    await getGroups(msg.collectionId, 'measures'); // Reuse 'measures' type as it just fills dropdown
+    await getGroupsCustom(msg.collectionId, 'load-groups-typo'); // Send type specifically so UI knows where to put it? Wait, getGroups sends 'load-groups' back? 
+    // Ah, getGroups implementation (lines 53-58) sends 'load-groups'. 
+    // I need to update getGroups to accept a returnType or handle it manually.
+    // Current getGroups sends 'load-groups' generically. UI listens to 'load-groups'.
+    // Wait, in previous step I added 'load-groups-typo' and 'load-groups-typo-source'.
+    // I must refactor getGroups to support custom event types or just duplicate the logic here for safety.
+    // Duplicating for safety to avoid breaking other calls.
+  } else if (msg.type === 'get-groups-for-typo-source') {
+    await getGroupsCustom(msg.collectionId, 'load-groups-typo-source');
+
   } else if (msg.type === 'create-typography') {
     await createTypographyVariables(msg);
+  } else if (msg.type === 'get-groups-for-alias') {
+    await getGroupsCustom(msg.collectionId, 'load-groups-alias');
+  } else if (msg.type === 'create-aliases') {
+    await createSemanticTokens(msg.config);
+  } else if (msg.type === 'create-text-styles') {
+    await createTextStyles(msg.config);
   }
 };
 
@@ -435,6 +450,43 @@ async function createTypographyVariables(data) {
       variable.setValueForMode(modeId, s);
     }
 
+    // 4. Font Sizes (Floats)
+    const { sizes } = data; // sizes array passed in
+
+    // Size naming convention (Tailwind-like)
+    const sizeNames = {
+      8: '3xs',
+      10: '2xs',
+      12: 'xs',
+      14: 'sm',
+      16: 'base',
+      18: 'lg',
+      20: 'xl',
+      24: '2xl',
+      30: '3xl',
+      36: '4xl',
+      48: '5xl',
+      60: '6xl',
+      72: '7xl'
+    };
+
+    if (sizes && sizes.length > 0) {
+      const allVars = await figma.variables.getLocalVariablesAsync();
+
+      for (const s of sizes) {
+        const humanName = sizeNames[s] || s;
+        let path = `Font Size/${humanName}`;
+        if (groupName) path = `${groupName.replace(/\./g, '_')}/${path}`; // Target Path
+
+        let variable = allVars.find(v => v.variableCollectionId === collectionId && v.name === path);
+        if (!variable) {
+          variable = figma.variables.createVariable(path, collection, "FLOAT");
+        }
+
+        variable.setValueForMode(modeId, s);
+      }
+    }
+
     figma.ui.postMessage({ type: 'progress-end' });
     figma.notify("Typography variables created!");
 
@@ -442,6 +494,312 @@ async function createTypographyVariables(data) {
     console.error(err);
     figma.ui.postMessage({ type: 'progress-end' });
     figma.notify("Error: " + err.message);
+  }
+}
+
+async function createSemanticTokens(config) {
+  try {
+    const { sourceCollectionId, measureGroup, typoGroup, targetName } = config;
+
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Responsive Tokens...' });
+
+    // 1. Setup Target Collection
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    let targetCollection = collections.find(c => c.name === targetName);
+
+    if (!targetCollection) {
+      targetCollection = figma.variables.createVariableCollection(targetName);
+    }
+
+    // 2. Setup Modes: Desktop, Tablet, Mobile
+    // Rename default Mode 1 -> Desktop, add others if missing
+    // CAREFUL: Removing modes or renamed modes might exist.
+    // Let's assume standard creation.
+
+    // Rename first mode
+    if (targetCollection.modes.length > 0) {
+      targetCollection.renameMode(targetCollection.modes[0].modeId, "Desktop");
+    }
+
+    // Add others if not exist
+    const ensureMode = (name) => {
+      const existing = targetCollection.modes.find(m => m.name === name);
+      if (existing) return existing.modeId;
+      return targetCollection.addMode(name);
+    };
+
+    const desktopId = targetCollection.modes.find(m => m.name === "Desktop").modeId;
+    const tabletId = ensureMode("Tablet");
+    const mobileId = ensureMode("Mobile");
+
+    // 3. Prepare Source Variables lookup
+    const allVars = await figma.variables.getLocalVariablesAsync();
+    // Helper to find source var by simple name (e.g. "4xl", "16px") within the specific group
+    const findSource = (group, leafName) => {
+      // Source group structure: "TypoGroup/Font Size/4xl" or "MeasureGroup/16px"
+      // Typo variables in previous step were created as "Font Size/4xl" inside the group.
+      // Measures were created as "16px" inside the group.
+
+      // Try strict path first
+      let path = `${group}/${leafName}`;
+      let v = allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === path);
+      if (v) return v;
+
+      // Try with Font Size folder
+      path = `${group}/Font Size/${leafName}`;
+      v = allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === path);
+      if (v) return v;
+
+      // Try with Font Weight folder
+      path = `${group}/Font Weight/${leafName}`;
+      v = allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === path);
+
+      return v;
+    };
+
+
+    // 4. Define Semantic Map (The "Brain")
+    // GOD TIER SCALING: High Contrast on Desktop, Readable on Mobile.
+    // SORT ORDER: Ascending (Small -> Large)
+    const textMap = [
+      { name: 'Typography/Caption', desktop: 'xs', tablet: 'xs', mobile: 'xs' },
+      { name: 'Typography/Body/s', desktop: 'sm', tablet: 'sm', mobile: 'sm' },
+      { name: 'Typography/Body/m', desktop: 'base', tablet: 'base', mobile: 'base' },
+      { name: 'Typography/Body/l', desktop: 'lg', tablet: 'lg', mobile: 'lg' },
+      { name: 'Typography/Heading/h4', desktop: '2xl', tablet: 'xl', mobile: 'lg' },
+      { name: 'Typography/Heading/h3', desktop: '3xl', tablet: '2xl', mobile: 'xl' },
+      { name: 'Typography/Heading/h2', desktop: '4xl', tablet: '3xl', mobile: '2xl' },
+      { name: 'Typography/Heading/h1', desktop: '5xl', tablet: '4xl', mobile: '3xl' },
+      { name: 'Typography/Display/h2', desktop: '6xl', tablet: '5xl', mobile: '4xl' },
+      { name: 'Typography/Display/h1', desktop: '7xl', tablet: '6xl', mobile: '5xl' }
+    ];
+
+    const componentTextMap = [
+      { name: 'Typography/Component/badge', desktop: 'xs', tablet: 'xs', mobile: 'xs' },
+      { name: 'Typography/Component/label', desktop: 'sm', tablet: 'sm', mobile: 'sm' },
+      { name: 'Typography/Component/button', desktop: 'base', tablet: 'base', mobile: 'base' },
+      { name: 'Typography/Component/input', desktop: 'base', tablet: 'base', mobile: 'base' }
+    ];
+
+    const spaceMap = [
+      // Gap: Ascending (Small -> Large)
+      { name: 'Spacing/Gap/2xs', desktop: '4px', tablet: '2px', mobile: '2px' },
+      { name: 'Spacing/Gap/xs', desktop: '8px', tablet: '4px', mobile: '4px' },
+      { name: 'Spacing/Gap/s', desktop: '16px', tablet: '12px', mobile: '8px' },
+      { name: 'Spacing/Gap/m', desktop: '24px', tablet: '20px', mobile: '16px' },
+      { name: 'Spacing/Gap/l', desktop: '32px', tablet: '24px', mobile: '20px' },
+      { name: 'Spacing/Gap/xl', desktop: '48px', tablet: '32px', mobile: '24px' },
+      { name: 'Spacing/Gap/2xl', desktop: '64px', tablet: '48px', mobile: '32px' },
+      { name: 'Spacing/Gap/container', desktop: '48px', tablet: '32px', mobile: '16px' },
+      { name: 'Spacing/Gap/section', desktop: '96px', tablet: '64px', mobile: '48px' },
+
+      // Universal Padding: Ascending
+      { name: 'Spacing/Padding/3xs', desktop: '4px', tablet: '4px', mobile: '2px' },
+      { name: 'Spacing/Padding/2xs', desktop: '8px', tablet: '4px', mobile: '4px' },
+      { name: 'Spacing/Padding/xs', desktop: '12px', tablet: '8px', mobile: '4px' },
+      { name: 'Spacing/Padding/sm', desktop: '16px', tablet: '12px', mobile: '8px' },
+      { name: 'Spacing/Padding/md', desktop: '24px', tablet: '16px', mobile: '12px' },
+      { name: 'Spacing/Padding/lg', desktop: '32px', tablet: '24px', mobile: '16px' },
+      { name: 'Spacing/Padding/xl', desktop: '48px', tablet: '32px', mobile: '24px' },
+      { name: 'Spacing/Padding/2xl', desktop: '64px', tablet: '48px', mobile: '32px' }
+    ];
+
+    const radiusMap = [
+      // Radius: Ascending
+      { name: 'Spacing/Radius/s', desktop: '4px', tablet: '4px', mobile: '2px' },
+      { name: 'Spacing/Radius/m', desktop: '8px', tablet: '8px', mobile: '4px' },
+      { name: 'Spacing/Radius/l', desktop: '12px', tablet: '12px', mobile: '8px' },
+      { name: 'Spacing/Radius/xl', desktop: '16px', tablet: '16px', mobile: '12px' },
+      { name: 'Spacing/Radius/2xl', desktop: '24px', tablet: '20px', mobile: '16px' }
+    ];
+
+    // Helper to generate vars from a map using a specific group source
+    const generateFromMap = (map, sourceGroupId, type = 'FLOAT') => {
+      for (const item of map) {
+        let variable = allVars.find(v => v.variableCollectionId === targetCollection.id && v.name === item.name);
+        if (!variable) {
+          variable = figma.variables.createVariable(item.name, targetCollection, type);
+        }
+
+        const setAlias = (mode, leaf) => {
+          const source = findSource(sourceGroupId, leaf);
+          if (source) {
+            variable.setValueForMode(mode, { type: 'VARIABLE_ALIAS', id: source.id });
+          } else {
+            // Try to find if leaf is just a number string? No, assume "4px" etc from map.
+            // Warn but don't break.
+            // console.warn(`Missing source: ${leaf} for ${item.name}`);
+          }
+        };
+
+        setAlias(desktopId, item.desktop);
+        setAlias(tabletId, item.tablet);
+        setAlias(mobileId, item.mobile);
+      }
+    };
+
+    // Execute Generation
+    generateFromMap(textMap, typoGroup);
+    generateFromMap(componentTextMap, typoGroup); // reuse typo group
+    // generateFromMap(weightMap, typoGroup); // Removed: Weights handled via Styles later
+    generateFromMap(spaceMap, measureGroup);
+    generateFromMap(radiusMap, measureGroup);    // reuse measure group for radius
+
+
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.ui.postMessage({ type: 'aliases-created' }); // Unlock Button
+    figma.notify(`Generated tokens in collection "${targetName}" with 3 modes!`);
+
+  } catch (err) {
+    console.error(err);
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify("Error: " + err.message);
+  }
+}
+
+async function createTextStyles(config) {
+  // Matrix Generator: Size x Weight
+  try {
+    const { sourceCollectionId, measureGroup, typoGroup, targetName } = config;
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Generating Text Styles Matrix...' });
+
+    // 1. Get Primitives (Weights & Letter Spacing)
+    const allVars = await figma.variables.getLocalVariablesAsync();
+    const findPrimitive = (subfolder, name) => {
+      // name might be "Bold" or "400" or "-1"
+      // Path: "Primitivos/Font Weight/Bold"
+      let path = `${typoGroup}/${subfolder}/${name}`;
+      return allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === path);
+    };
+
+    const findSemanticSize = (name) => {
+      // Path: "Tokens/Typography/Display/h1"
+      // We need to find the variable in the "Tokens" collection (which we don't have ID for easily here? 
+      // Wait, targetName is passed. We can find the collection by name.)
+      const collections = figma.variables.getLocalVariableCollections();
+      const targetColl = collections.find(c => c.name === targetName);
+      if (!targetColl) return null;
+      return allVars.find(v => v.variableCollectionId === targetColl.id && v.name === name);
+    };
+
+    // Need target collection to find semantic vars
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const targetColl = collections.find(c => c.name === targetName);
+    if (!targetColl) throw new Error(`Collection "${targetName}" not found. Run Step 1 first.`);
+
+    // Primitive Weights to iterate - CORRECTED FOR INTER (Spaces)
+    // We iterate the Font Styles (what Figma expects for Inter)
+    const weightNames = ["Thin", "Extra Light", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"];
+
+    // Map to Variable Names (created in Step 1, likely no spaces if keys were "ExtraLight")
+    const weightVarMap = {
+      "Extra Light": "ExtraLight",
+      "Semi Bold": "SemiBold",
+      "Extra Bold": "ExtraBold"
+    };
+
+    // Semantic Sizes to iterate (from code logic)
+    // ... (sizes array is fine) ...
+    const sizes = [
+      'Typography/Display/h1', 'Typography/Display/h2',
+      'Typography/Heading/h1', 'Typography/Heading/h2', 'Typography/Heading/h3', 'Typography/Heading/h4',
+      'Typography/Body/l', 'Typography/Body/m', 'Typography/Body/s',
+      'Typography/Caption'
+    ];
+
+    // 2. Loop Matrix
+    let createdCount = 0;
+
+    // Pre-load a base font (Inter Regular) to ensure we can create/reset styles
+    await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+
+    // Fetch existing styles once
+    const existingStyles = await figma.getLocalTextStylesAsync();
+
+    for (const sizeName of sizes) {
+      const sizeVar = allVars.find(v => v.variableCollectionId === targetColl.id && v.name === sizeName);
+      // if (!sizeVar) continue; // Don't skip, lets debug. 
+      if (!sizeVar) {
+        console.warn(`Size Variable not found: ${sizeName}`);
+        continue;
+      }
+
+      // ... (Logic for Family, LS is fine) ...
+      // Determine Font Family Binding (Heading vs Body)
+      let familyVar = null;
+      if (sizeName.includes('Display') || sizeName.includes('Heading')) {
+        familyVar = findPrimitive('Font Family', 'Heading');
+      } else if (sizeName.includes('Code')) {
+        familyVar = findPrimitive('Font Family', 'Code');
+      } else {
+        familyVar = findPrimitive('Font Family', 'Body');
+      }
+
+      let lsName = "0";
+      if (sizeName.includes('Display')) lsName = "-0_04";
+      else if (sizeName.includes('Heading')) lsName = "-0_02";
+      else if (sizeName.includes('Body/l')) lsName = "-0_01";
+      else if (sizeName.includes('Caption')) lsName = "0_01";
+
+      let lsVar = findPrimitive('Letter Spacing', lsName);
+      if (!lsVar) lsVar = findPrimitive('Letter Spacing', '0');
+
+      for (const w of weightNames) {
+        try {
+          // Resolve Variable Name: "Extra Light" -> "ExtraLight"
+          const varName = weightVarMap[w] || w;
+          const wVar = findPrimitive('Font Weight', varName);
+
+          if (!wVar) {
+            // console.warn(`Weight variable not found for ${varName}`);
+            continue;
+          }
+
+          // 1. Prepare Style Name "Display/h1 - Black"
+          const shortSize = sizeName.split('/').pop();
+          const groupContext = sizeName.includes('Display') ? 'Display' : (sizeName.includes('Heading') ? 'Heading' : 'Body');
+          const styleName = `${groupContext}/${shortSize} - ${w}`;
+
+          // 2. Find or Create Style
+          let style = existingStyles.find(s => s.name === styleName);
+          if (!style) {
+            style = figma.createTextStyle();
+            style.name = styleName;
+          }
+
+          // 3. Ensure base font is loaded to allow editing
+          // We don't need to manually set "Inter Bold". Binding the variables will do it.
+          await figma.loadFontAsync(style.fontName);
+
+          // 4. Bind Variables
+          const tryBind = (prop, variable) => {
+            if (!variable) return;
+            try {
+              // FIX: Pass the Variable OBJECT, not the ID string
+              // Error "Expected node, got string" confirms this API expects the Variable Node.
+              style.setBoundVariable(prop, variable);
+            } catch (e) {
+              console.error(`Failed to bind ${prop} to ${styleName}: ${e.message}`);
+            }
+          };
+          if (familyVar) tryBind('fontFamily', familyVar);
+          if (sizeVar) tryBind('fontSize', sizeVar);
+          if (wVar) tryBind('fontWeight', wVar);
+          if (lsVar) tryBind('letterSpacing', lsVar);
+
+          createdCount++;
+        } catch (innerErr) {
+          console.error(`Failed to process style ${sizeName} / ${w}:`, innerErr);
+        }
+      }
+    }
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify(`Created ${createdCount} Text Styles successfully! ✅`);
+
+  } catch (err) {
+    console.error(err);
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify("Error creating styles: " + err.message);
   }
 }
 
@@ -479,6 +837,29 @@ async function getGroups(collectionId, mode = 'tab1') {
     }
   } catch (error) {
     console.error('Error loading groups:', error);
+  }
+}
+
+// Logic: Get Groups Custom (Filtered)
+async function getGroupsCustom(collectionId, returnEventType) {
+  try {
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    // Get unique groups
+    const vars = await figma.variables.getLocalVariablesAsync();
+    const groupNames = new Set();
+    vars.filter(v => v.variableCollectionId === collectionId).forEach(v => {
+      if (v.name.includes('/')) {
+        const group = v.name.split('/')[0];
+        groupNames.add(group);
+      }
+    });
+
+    figma.ui.postMessage({ type: returnEventType, payload: Array.from(groupNames).sort() });
+  } catch (err) {
+    console.error(err);
   }
 }
 

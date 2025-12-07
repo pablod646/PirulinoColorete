@@ -119,6 +119,74 @@
             background: #fce8e6;
             color: #d93025;
         }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .description {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .separator {
+            height: 1px;
+            background-color: #eee;
+            margin: 24px 0;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #444;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 13px;
+            box-sizing: border-box;
+            /* Fix width overflow */
+        }
+
+        button.primary {
+            background-color: #18A0FB;
+        }
+
+        button.primary:hover {
+            background-color: #0D8DE3;
+        }
+
+        button.secondary {
+            background-color: #f0f0f0;
+            color: #888;
+            border: 1px solid #ddd;
+            cursor: not-allowed;
+        }
+
+        button.primary:disabled,
+        button.secondary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #eee;
+            color: #aaa;
+            border-color: #eee;
+        }
+
+        /* Override generic button? No, use classes */
     </style>
 </head>
 
@@ -128,6 +196,7 @@
         <div class="tab" data-tab="scale">Scale</div>
         <div class="tab" data-tab="measures">Measures</div>
         <div class="tab" data-tab="typography">Typography</div>
+        <div class="tab" data-tab="aliases">Aliases</div>
     </div>
 
     <!-- Tab 1: Collections -->
@@ -314,14 +383,22 @@
                 <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Font Weights
                     (Numeric)</label>
                 <textarea id="typo-weights"
-                    style="width: 100%; height: 60px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">100, 200, 300, 400, 500, 600, 700, 800, 900</textarea>
+                    style="width: 100%; height: 50px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">100, 200, 300, 400, 500, 600, 700, 800, 900</textarea>
             </div>
 
             <div style="margin-bottom: 16px;">
                 <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Letter Spacing
                     (%)</label>
                 <textarea id="typo-spacing"
-                    style="width: 100%; height: 60px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">-2, -1, 0, 1, 2, 4, 8, 10</textarea>
+                    style="width: 100%; height: 50px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">-2, -1, 0, 1, 2, 4, 8, 10</textarea>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Font Sizes (px)</label>
+                <textarea id="typo-sizes"
+                    style="width: 100%; height: 50px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">8, 10, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72</textarea>
+                <p style="font-size: 10px; color: #888; margin-top: 4px;">Will define generic sizes (3xs, 2xs, xs, sm,
+                    base, lg...).</p>
             </div>
         </div>
 
@@ -349,6 +426,67 @@
 
             <button id="create-typo-btn" style="background-color: #18A0FB;">Create Typography Variables</button>
         </div>
+    </div>
+
+    <!-- Tab 4 Content: Aliases (New) -->
+    <div id="tab-aliases" class="tab-content">
+        <div class="section-title">Responsive Semantics 📱💻</div>
+        <p class="section-desc">Generate semantic tokens (H1, Body, Spacers) that adapt to viewport size using Variable
+            Modes.</p>
+
+        <!-- Source Config -->
+        <div
+            style="margin-bottom: 24px; background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
+            <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 12px; color: #555;">1.
+                Source Primitives</label>
+
+            <!-- Collection Selection -->
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Collection with
+                    Primitives</label>
+                <select id="alias-source-collection"
+                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                    <option value="" disabled selected>Select Collection...</option>
+                </select>
+            </div>
+
+            <!-- Measures Group -->
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Measures Group (e.g.
+                    Primitives)</label>
+                <select id="alias-measures-group"
+                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;"
+                    disabled>
+                    <option value="">(Loading...)</option>
+                </select>
+            </div>
+
+            <!-- Typography Group -->
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Typography
+                    Group</label>
+                <select id="alias-typo-group"
+                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;"
+                    disabled>
+                    <option value="">(Loading...)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Target Config -->
+        <div class="input-group">
+            <label>Target Collection Name</label>
+            <input type="text" id="alias-target-name" value="Tokens" placeholder="e.g. Tokens">
+        </div>
+
+        <button id="create-aliases-btn" class="primary">Generate Responsive Tokens</button>
+
+        <div class="separator"></div>
+
+        <div class="section-title">Step 2: Text Styles (Atomic Matrix)</div>
+        <p class="description">Creates Figma Text Styles (e.g. "H1 / Bold", "H1 / Light") derived from your responsive
+            tokens.</p>
+        <button id="create-styles-btn" class="secondary" disabled>Generate Text Styles</button>
     </div>
 
     <!-- Progress Overlay -->
@@ -427,6 +565,16 @@
                     select.appendChild(option);
                 });
                 select.disabled = false;
+                // Populate Tab 4 Source
+                const aliasSelect = document.getElementById('alias-source-collection');
+                aliasSelect.innerHTML = '<option value="" disabled selected>Select Source Collection...</option>';
+                payload.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = c.name;
+                    aliasSelect.appendChild(option);
+                });
+
             } else if (type === 'load-groups') {
                 const groupSelect = document.getElementById('group-select');
                 groupSelect.innerHTML = '<option value="">All Groups</option>';
@@ -592,7 +740,7 @@
             } else if (type === 'load-fonts') {
                 const selects = document.querySelectorAll('.font-select');
                 selects.forEach(sel => {
-                    sel.innerHTML = '<option value="" disabled selected>Select Font...</option>';
+                    sel.innerHTML = '<option value="" disabled>Select Font...</option>'; // Removed selected from placeholder
                     payload.forEach(f => {
                         const op = document.createElement('option');
                         op.value = f;
@@ -601,6 +749,15 @@
                     });
                     sel.disabled = false;
                 });
+
+                // Set Defaults
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (payload.includes(val)) el.value = val;
+                };
+                setVal('font-heading', 'Inter');
+                setVal('font-body', 'Inter');
+                setVal('font-code', 'DM Mono');
             } else if (type === 'load-groups-typo') {
                 const groupSelect = document.getElementById('typo-group-select');
                 groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
@@ -610,6 +767,28 @@
                     option.textContent = g;
                     groupSelect.appendChild(option);
                 });
+            } else if (type === 'load-groups-typo-source') {
+                const groupSelect = document.getElementById('typo-source-group-select');
+                // Don't overwrite default "None" option, just append
+                groupSelect.innerHTML = '<option value="" selected>(None - Use Raw Values)</option>';
+                payload.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g;
+                    option.textContent = g;
+                    groupSelect.appendChild(option);
+                });
+            } else if (type === 'load-groups-alias') {
+                const mkOptions = (arr) => '<option value="" disabled selected>Select Group...</option>' + arr.map(g => `<option value="${g}">${g}</option>`).join('');
+                const opts = mkOptions(payload);
+
+                const mSelect = document.getElementById('alias-measures-group');
+                mSelect.innerHTML = opts;
+                mSelect.disabled = false;
+
+                const tSelect = document.getElementById('alias-typo-group');
+                tSelect.innerHTML = opts;
+                tSelect.disabled = false;
+
             } else if (type === 'progress-start') {
                 document.getElementById('progress-overlay').style.display = 'flex';
                 document.getElementById('progress-message').innerText = payload;
@@ -617,6 +796,10 @@
                 document.getElementById('progress-message').innerText = payload;
             } else if (type === 'progress-end') {
                 document.getElementById('progress-overlay').style.display = 'none';
+            } else if (type === 'aliases-created') {
+                document.getElementById('create-styles-btn').disabled = false;
+                document.getElementById('create-styles-btn').classList.remove('secondary');
+                document.getElementById('create-styles-btn').classList.add('primary');
             }
         };
 
@@ -865,6 +1048,7 @@
         // Typo Collection Change
         document.getElementById('typo-collection-select').onchange = (e) => {
             const collectionId = e.target.value;
+            // Load groups for target dropdown
             parent.postMessage({ pluginMessage: { type: 'get-groups-for-typo', collectionId } }, '*');
         };
 
@@ -888,8 +1072,10 @@
 
             const weightsRaw = document.getElementById('typo-weights').value;
             const spacingRaw = document.getElementById('typo-spacing').value;
+            const sizesRaw = document.getElementById('typo-sizes').value;
 
             const collectionId = document.getElementById('typo-collection-select').value;
+
             // Group Logic
             const selectVal = document.getElementById('typo-group-select').value;
             let groupName = selectVal;
@@ -905,6 +1091,7 @@
             // Parse lists
             const weights = weightsRaw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
             const spacing = spacingRaw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+            const sizes = sizesRaw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
 
             parent.postMessage({
                 pluginMessage: {
@@ -912,7 +1099,60 @@
                     families: { heading, body, code },
                     weights,
                     spacing,
+                    sizes, // New: Font Sizes
                     config: { collectionId, groupName }
+                }
+            }, '*');
+        };
+
+        // --- Tab 4: Aliases Logic ---
+
+        document.getElementById('alias-source-collection').onchange = (e) => {
+            const collectionId = e.target.value;
+            document.getElementById('alias-measures-group').disabled = true;
+            document.getElementById('alias-typo-group').disabled = true;
+            document.getElementById('alias-measures-group').innerHTML = '<option>(Loading...)</option>';
+            document.getElementById('alias-typo-group').innerHTML = '<option>(Loading...)</option>';
+
+            parent.postMessage({ pluginMessage: { type: 'get-groups-for-alias', collectionId } }, '*');
+        };
+
+        document.getElementById('create-aliases-btn').onclick = () => {
+            const sourceCollectionId = document.getElementById('alias-source-collection').value;
+            const measureGroup = document.getElementById('alias-measures-group').value;
+            const typoGroup = document.getElementById('alias-typo-group').value;
+            const targetName = document.getElementById('alias-target-name').value;
+
+            if (!sourceCollectionId || !measureGroup || !typoGroup) {
+                alert("Please select the source collection and both groups.");
+                return;
+            }
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-aliases',
+                    config: { sourceCollectionId, measureGroup, typoGroup, targetName }
+                }
+            }, '*');
+        };
+
+        // Text Styles Generator
+        document.getElementById('create-styles-btn').onclick = () => {
+            const sourceCollectionId = document.getElementById('alias-source-collection').value;
+            const targetName = document.getElementById('alias-target-name').value;
+            // Re-fetch groups just in case
+            const measureGroup = document.getElementById('alias-measures-group').value;
+            const typoGroup = document.getElementById('alias-typo-group').value;
+
+            if (!sourceCollectionId || !typoGroup) {
+                alert("Please select Source Collection and Typography Group first.");
+                return;
+            }
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-text-styles',
+                    config: { sourceCollectionId, measureGroup, typoGroup, targetName }
                 }
             }, '*');
         };

@@ -768,8 +768,62 @@ async function createSemanticTokens(config) {
       }];
     }
 
+    // 6. Blurs (Layer & Background)
+    const blurMap = [
+      { name: 'Blur/sm', radius: 4 },
+      { name: 'Blur/md', radius: 8 },
+      { name: 'Blur/lg', radius: 16 },
+      { name: 'Blur/xl', radius: 24 },
+      { name: 'Blur/2xl', radius: 40 },
+      { name: 'Blur/3xl', radius: 64 }
+    ];
+
+    for (const blur of blurMap) {
+      // Create Variable
+      const path = `Elevation/${blur.name}`;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+      // Responsive capability: Currently constant, but ready for future logic (e.g. smaller blurs on mobile)
+      v.setValueForMode(desktopId, blur.radius);
+      v.setValueForMode(tabletId, blur.radius);
+      v.setValueForMode(mobileId, blur.radius * 0.8); // Example: Tighter blurs on mobile slightly
+
+      // Create Effect Style: Layer Blur
+      const layerName = blur.name.replace('Blur/', 'Blur/Layer/');
+      let layerStyle = figma.getLocalEffectStyles().find(s => s.name === layerName);
+      if (!layerStyle) {
+        layerStyle = figma.createEffectStyle();
+        layerStyle.name = layerName;
+      }
+      layerStyle.effects = [{
+        type: 'LAYER_BLUR',
+        radius: blur.radius,
+        visible: true,
+        boundVariables: {
+          radius: { type: 'VARIABLE_ALIAS', id: v.id }
+        }
+      }];
+
+      // Create Effect Style: Background Blur
+      const bgName = blur.name.replace('Blur/', 'Blur/Background/');
+      let bgStyle = figma.getLocalEffectStyles().find(s => s.name === bgName);
+      if (!bgStyle) {
+        bgStyle = figma.createEffectStyle();
+        bgStyle.name = bgName;
+      }
+      bgStyle.effects = [{
+        type: 'BACKGROUND_BLUR',
+        radius: blur.radius,
+        visible: true,
+        boundVariables: {
+          radius: { type: 'VARIABLE_ALIAS', id: v.id }
+        }
+      }];
+    }
+
     figma.ui.postMessage({ type: 'progress-end' });
-    figma.notify("Responsive Tokens + Shadows created successfully!");
+    figma.notify("Responsive Tokens + Shadows + Blurs created successfully!");
     figma.ui.postMessage({ type: 'aliases-created' }); // Enable tab button
 
   } catch (err) {

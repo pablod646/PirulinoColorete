@@ -679,42 +679,98 @@ async function createSemanticTokens(config) {
       { name: 'Spacing/Radius/2xl', desktop: '24px', tablet: '20px', mobile: '16px' }
     ];
 
-    // Helper to generate vars from a map using a specific group source
-    const generateFromMap = (map, sourceGroupId, type = 'FLOAT') => {
-      for (const item of map) {
-        let variable = allVars.find(v => v.variableCollectionId === targetCollection.id && v.name === item.name);
-        if (!variable) {
-          variable = figma.variables.createVariable(item.name, targetCollection, type);
-        }
+    // 5. Shadows / Elevation System
+    // Standard Tailwind Shadows
+    const shadowMap = [
+      { name: 'Elevation/sm', y: 1, blur: 2, spread: 0, opacity: 0.05 },
+      { name: 'Elevation/md', y: 4, blur: 6, spread: -1, opacity: 0.1 },
+      { name: 'Elevation/lg', y: 10, blur: 15, spread: -3, opacity: 0.1 },
+      { name: 'Elevation/xl', y: 20, blur: 25, spread: -5, opacity: 0.1 }
+    ];
 
-        const setAlias = (mode, leaf) => {
-          const source = findSource(sourceGroupId, leaf);
-          if (source) {
-            variable.setValueForMode(mode, { type: 'VARIABLE_ALIAS', id: source.id });
-          } else {
-            // Try to find if leaf is just a number string? No, assume "4px" etc from map.
-            // Warn but don't break.
-            // console.warn(`Missing source: ${leaf} for ${item.name}`);
-          }
-        };
+    // Create Base Shadow Color Variable
+    // Color: Black (Native Color Variable)
+    const baseShadowColorPath = "Elevation/Color/shadow-base";
+    let shadowColorVar = allVars.find(v => v.variableCollectionId === targetCollection.id && v.name === baseShadowColorPath);
+    if (!shadowColorVar) {
+      shadowColorVar = figma.variables.createVariable(baseShadowColorPath, targetCollection, "COLOR");
+    }
+    // Set default (black) for all modes
+    // Note: We create opacity variations by binding this color but strictly Figma vars don't support alpha override easily in Effects via number? 
+    // Actually, in Effects, we bind the Color. The variable ITSELF has opacity.
+    // So we need specific shadow color variables per opacity if we want strict binding?
+    // Tailwind uses rgba(0,0,0, 0.1).
+    // Strategy: Create "Elevation/Color/soft" (10%), "Elevation/Color/subtle" (5%).
 
-        setAlias(desktopId, item.desktop);
-        setAlias(tabletId, item.tablet);
-        setAlias(mobileId, item.mobile);
-      }
+    // Let's create specific color vars for readability
+    const shadowColors = {
+      'soft': { r: 0, g: 0, b: 0, a: 0.05 },
+      'medium': { r: 0, g: 0, b: 0, a: 0.1 }
     };
 
-    // Execute Generation
-    generateFromMap(textMap, typoGroup);
-    generateFromMap(componentTextMap, typoGroup); // reuse typo group
-    // generateFromMap(weightMap, typoGroup); // Removed: Weights handled via Styles later
-    generateFromMap(spaceMap, measureGroup);
-    generateFromMap(radiusMap, measureGroup);    // reuse measure group for radius
+    const shadowColorVars = {};
+    for (const [key, val] of Object.entries(shadowColors)) {
+      const path = `Elevation/Color/${key}`;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "COLOR");
+      v.setValueForMode(desktopId, val);
+      v.setValueForMode(tabletId, val);
+      v.setValueForMode(mobileId, val); // Dark mode TODO: Invert to white glow or keep black? Standard is black.
+      shadowColorVars[key] = v;
+    }
 
+    // Process Shadows
+    for (const shadow of shadowMap) {
+      // Create Number Variables for properties
+      const createNumVar = (leaf, val) => {
+        const path = `${shadow.name}/${leaf}`;
+        let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+        if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+        v.setValueForMode(desktopId, val); // Single mode for geometry usually
+        v.setValueForMode(tabletId, val);
+        v.setValueForMode(mobileId, val);
+        return v;
+      };
+
+      const varY = createNumVar('Y', shadow.y);
+      const varBlur = createNumVar('Blur', shadow.blur);
+      const varSpread = createNumVar('Spread', shadow.spread);
+
+      // Select logic for color var
+      const colorVar = shadow.opacity <= 0.05 ? shadowColorVars['soft'] : shadowColorVars['medium'];
+
+      // Create Effect Style
+      const styleName = shadow.name;
+      let effectStyle = figma.getLocalEffectStyles().find(s => s.name === styleName);
+      if (!effectStyle) {
+        effectStyle = figma.createEffectStyle();
+        effectStyle.name = styleName;
+      }
+
+      // Apply with Bindings
+      effectStyle.effects = [{
+        type: 'DROP_SHADOW',
+        color: { r: 0, g: 0, b: 0, a: shadow.opacity }, // Fallback visual
+        offset: { x: 0, y: shadow.y },
+        radius: shadow.blur,
+        spread: shadow.spread,
+        visible: true,
+        blendMode: 'NORMAL',
+        boundVariables: {
+          color: { type: 'VARIABLE_ALIAS', id: colorVar.id },
+          offset: {
+            y: { type: 'VARIABLE_ALIAS', id: varY.id }
+            // x is 0
+          },
+          radius: { type: 'VARIABLE_ALIAS', id: varBlur.id },
+          spread: { type: 'VARIABLE_ALIAS', id: varSpread.id }
+        }
+      }];
+    }
 
     figma.ui.postMessage({ type: 'progress-end' });
-    figma.ui.postMessage({ type: 'aliases-created' }); // Unlock Button
-    figma.notify(`Generated tokens in collection "${targetName}" with 3 modes!`);
+    figma.notify("Responsive Tokens + Shadows created successfully!");
+    figma.ui.postMessage({ type: 'aliases-created' }); // Enable tab button
 
   } catch (err) {
     console.error(err);

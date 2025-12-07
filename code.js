@@ -50,6 +50,55 @@ figma.ui.onmessage = async (msg) => {
       const scale = calculateScale(color);
       await createVariables(scale, config);
     }
+  } else if (msg.type === 'preview-scale-batch') {
+    const batchData = msg.colors; // [{ name: "Red", hex: "#f00" }]
+    const results = [];
+
+    for (const item of batchData) {
+      const color = parseColor(item.hex);
+      if (color) {
+        const scale = calculateScale(color);
+        const steps = {};
+        for (const [k, v] of Object.entries(scale)) {
+          steps[k] = {
+            hex: rgbToHex(v.r, v.g, v.b).toUpperCase(),
+            r: v.r, g: v.g, b: v.b
+          };
+        }
+        results.push({ name: item.name, steps: steps });
+      }
+    }
+    figma.ui.postMessage({ type: 'preview-scale-batch-result', payload: results });
+
+  } else if (msg.type === 'create-variables-batch') {
+    const { colors, config } = msg; // colors: [{name, hex}], config: { collectionId, groupName }
+
+    try {
+      figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Color Variables...' });
+
+      let createdCount = 0;
+      for (const item of colors) {
+        const color = parseColor(item.hex);
+        if (color) {
+          const scale = calculateScale(color);
+          // Override name in config for this specific iteration
+          const itemConfig = { ...config, colorName: item.name };
+          // Ensure we await each creation to avoid race conditions in variable lookup
+          await createVariables(scale, itemConfig);
+          createdCount++;
+        }
+      }
+
+      figma.ui.postMessage({ type: 'progress-end' });
+      figma.notify(`Created ${createdCount} Color Palettes successfully!`);
+      figma.ui.postMessage({ type: 'variables-created-success' });
+
+    } catch (err) {
+      console.error(err);
+      figma.ui.postMessage({ type: 'progress-end' });
+      figma.notify("Error creating batch variables: " + err.message);
+    }
+
   } else if (msg.type === 'get-selection-color') {
     // Force a re-check of current selection
     handleSelectionChange();

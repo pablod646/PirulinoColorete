@@ -193,7 +193,7 @@
 <body>
     <div class="tabs">
         <div class="tab active" data-tab="collections">Collections</div>
-        <div class="tab" data-tab="scale">Scale</div>
+        <div class="tab" data-tab="scale">Colors</div>
         <div class="tab" data-tab="measures">Measures</div>
         <div class="tab" data-tab="typography">Typography</div>
         <div class="tab" data-tab="aliases">Aliases</div>
@@ -221,46 +221,62 @@
         </div>
     </div>
 
-    <!-- Tab 2: Scale Generator -->
+    <!-- Tab 2: Colors Generator (formerly Scale) -->
     <div id="tab-scale" class="tab-content">
-        <h2>Scale Generator</h2>
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 8px; color: #444;">1. Base
+        <h2>Color Palettes</h2>
+        <p class="section-desc" style="margin-bottom: 20px;">Add multiple base colors to generate consistent scales.</p>
+
+        <!-- 1. Add Color Form -->
+        <div
+            style="margin-bottom: 20px; background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
+            <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 8px; color: #555;">Add New
                 Color</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="scale-input" placeholder="#18A0FB"
-                    style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace;">
-                <div id="scale-preview-swatch"
-                    style="width: 38px; height: 38px; border-radius: 6px; background: #eee; border: 1px solid #ccc;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div>
+                    <input type="text" id="new-color-name" placeholder="Name (e.g. Primary)"
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 13px;">
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    <input type="text" id="new-color-hex" placeholder="#Hex"
+                        style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ddd; font-family: monospace; font-size: 13px;">
+                    <div id="new-color-swatch"
+                        style="width: 34px; height: 34px; border-radius: 4px; background: #eee; border: 1px solid #ddd;">
+                    </div>
                 </div>
             </div>
-            <p id="input-error" style="color: #d93025; font-size: 11px; margin-top: 4px; display: none;">Invalid Hex
-                Color</p>
+
+            <button id="add-color-btn" class="secondary" style="width: 100%; padding: 6px;">+ Add to List</button>
+            <p id="add-error" style="color: #d93025; font-size: 11px; margin-top: 4px; display: none;">Invalid Input</p>
         </div>
 
-        <button id="preview-scale-btn" disabled style="background-color: #2C2C2C; margin-bottom: 20px;">Preview
-            Scale</button>
+        <!-- 2. Color Queue List -->
+        <div id="color-queue-container" style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 8px; color: #444;">Colors to
+                Generate (<span id="queue-count">0</span>)</label>
+            <div id="color-queue"
+                style="display: flex; flex-direction: column; gap: 8px; min-height: 40px; margin-bottom: 12px;">
+                <!-- Queue Items -->
+                <p id="empty-queue-msg" style="font-size: 11px; color: #999; font-style: italic;">No colors added yet.
+                </p>
+            </div>
+            <button id="preview-scale-btn" disabled style="background-color: #2C2C2C; width: 100%;">Preview
+                Palettes</button>
+        </div>
 
         <!-- Preview Section (Hidden Initially) -->
         <div id="scale-preview-container" style="display: none; border-top: 1px solid #eee; padding-top: 20px;">
 
             <!-- List of generated colors -->
-            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">2.
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">Palettes
                 Preview</label>
-            <div id="scale-list" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px;">
-                <!-- Items injected here via JS -->
+            <div id="scale-list" style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px;">
+                <!-- Setup for Multiple Palettes -->
             </div>
 
             <!-- Configuration Form -->
-            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">3.
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">Output
                 Configuration</label>
-
-            <div style="margin-bottom: 12px;">
-                <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Color Name (e.g.
-                    Slate)</label>
-                <input type="text" id="var-name" placeholder="Slate"
-                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
-            </div>
 
             <div style="margin-bottom: 12px;">
                 <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Target
@@ -279,12 +295,11 @@
                     <option value="">(Root / No Group)</option>
                     <option value="NEW_GROUP">+ New Group...</option>
                 </select>
-                <!-- Hidden input for custom group name if needed -->
                 <input type="text" id="var-group-custom" placeholder="Enter new group name"
                     style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; margin-top: 8px; display: none;">
             </div>
 
-            <button id="create-vars-btn" style="background-color: #18A0FB;">Create Variables</button>
+            <button id="create-vars-btn" style="background-color: #18A0FB;">Create All Variables</button>
         </div>
     </div>
 
@@ -654,30 +669,36 @@
                 document.getElementById('measure-preview-container').style.display = 'none';
                 document.getElementById('measure-list').innerHTML = '';
                 // Keep collection/group selected for workflow speed
-            } else if (type === 'preview-scale-result') {
-                // Render preview list
+            } else if (type === 'preview-scale-batch-result') {
+                // Render Batch Preview
                 const list = document.getElementById('scale-list');
                 list.innerHTML = '';
-                const steps = payload;
 
-                // Sort keys numerically
-                const keys = Object.keys(steps).map(Number).sort((a, b) => a - b);
+                payload.forEach(result => {
+                    // result: { name: "Slate", steps: { 50: {...} } }
 
-                keys.forEach(k => {
-                    const color = steps[k];
-                    const hex = color.hex;
-                    const row = document.createElement('div');
-                    row.style.display = 'flex';
-                    row.style.alignItems = 'center';
-                    row.style.gap = '8px';
-                    row.style.fontSize = '12px';
+                    const card = document.createElement('div');
+                    card.style.cssText = "background: #fdfdfd; border: 1px solid #eee; padding: 12px; border-radius: 6px;";
 
-                    row.innerHTML = `
-                        <div style="width: 24px; height: 24px; border-radius: 4px; background: ${hex}; border: 1px solid #ddd;"></div>
-                        <span style="font-weight: 600; min-width: 30px;">${k}</span>
-                        <span style="color: #666; font-family: monospace;">${hex}</span>
-                    `;
-                    list.appendChild(row);
+                    const title = document.createElement('div');
+                    title.style.cssText = "font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: flex; align-items: center; gap: 6px;";
+                    title.innerHTML = `<span style="width: 12px; height: 12px; border-radius: 50%; background: ${result.steps[500].hex}; display: inline-block;"></span> ${result.name}`;
+                    card.appendChild(title);
+
+                    const grid = document.createElement('div');
+                    grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 4px;";
+
+                    const keys = Object.keys(result.steps).map(Number).sort((a, b) => a - b);
+                    keys.forEach(k => {
+                        const s = result.steps[k];
+                        const chip = document.createElement('div');
+                        chip.style.cssText = `height: 24px; background: ${s.hex}; border-radius: 3px; font-size: 9px; color: ${k > 500 ? '#fff' : '#000'}; display: flex; align-items: center; justify-content: center; opacity: 0.9;`;
+                        chip.innerText = k;
+                        grid.appendChild(chip);
+                    });
+
+                    card.appendChild(grid);
+                    list.appendChild(card);
                 });
 
                 document.getElementById('scale-preview-container').style.display = 'block';
@@ -685,25 +706,21 @@
                 // Populate Collection Select in Tab 2 if empty
                 const tab1Select = document.getElementById('collection-select');
                 const tab2Select = document.getElementById('var-collection-select');
-
                 if (tab2Select.children.length <= 1 && tab1Select.children.length > 1) {
                     tab2Select.innerHTML = tab1Select.innerHTML;
                 }
             } else if (type === 'variables-created-success') {
-                // Reset Form
-                document.getElementById('scale-input').value = '';
-                document.getElementById('scale-preview-swatch').style.backgroundColor = '#eee';
-                document.getElementById('preview-scale-btn').disabled = true;
+                // Reset Multi-Color Form
+                colorQueue = []; // Clear state
+                renderQueue();   // Update UI
 
                 document.getElementById('scale-preview-container').style.display = 'none';
                 document.getElementById('scale-list').innerHTML = '';
 
-                document.getElementById('var-name').value = '';
-                // Optional: Reset Group? Maybe keep collection/group as user might add more colors to same place.
-                // User said "blanquear el formulario". Let's clear Name but keep Context (Collection/Group) as it's efficient?
-                // Or clear everything? "Blanquear" usually means reset. I'll clear Name. 
-                // Creating multiple colors in same group is common workflow.
-                // I will clear Name and Input, but leave Collection/Group selected for speed.
+                // Clear inputs
+                document.getElementById('new-color-name').value = '';
+                document.getElementById('new-color-hex').value = '';
+                document.getElementById('new-color-swatch').style.backgroundColor = '#eee';
 
             } else if (type === 'load-groups-tab2') {
                 // Populate Tab 2 Group Select (Reusing logic but specifically for tab 2)
@@ -846,85 +863,148 @@
             }
         };
 
-        // New Scale Logic - Manual Input
-        const scaleInput = document.getElementById('scale-input');
-        const scalePreview = document.getElementById('scale-preview-swatch');
+        // New Multi-Color Logic
+        let colorQueue = [];
+        const scaleList = document.getElementById('scale-list'); // Container for results
+
+        // Inputs
+        const nameInput = document.getElementById('new-color-name');
+        const hexInput = document.getElementById('new-color-hex');
+        const swatch = document.getElementById('new-color-swatch');
+        const addBtn = document.getElementById('add-color-btn');
+        const addError = document.getElementById('add-error');
+
         const previewBtn = document.getElementById('preview-scale-btn');
-        const errorMsg = document.getElementById('input-error');
+        const queueCount = document.getElementById('queue-count');
+        const queueList = document.getElementById('color-queue');
+        const emptyMsg = document.getElementById('empty-queue-msg');
 
-        scaleInput.addEventListener('input', (e) => {
+        // Hex Input Live Preview
+        hexInput.addEventListener('input', (e) => {
             const val = e.target.value.trim();
-            // Hex Regex
-            const hexRegex = /^#?([0-9A-F]{3}){1,2}$/i;
-            // OKLCH Regex (simple check for "oklch(" start and ")") end
-            const oklchRegex = /^oklch\(.+\)$/i;
-            // RGB/RGBA Regex
-            const rgbRegex = /^rgba?\(.+\)$/i;
-
-            if (hexRegex.test(val)) {
-                let color = val;
-                if (!color.startsWith('#')) color = '#' + color;
-                scalePreview.style.backgroundColor = color;
-                previewBtn.disabled = false;
-                errorMsg.style.display = 'none';
-            } else if (oklchRegex.test(val) || rgbRegex.test(val)) {
-                // For OKLCH/RGB, the browser supports it natively
-                if (CSS.supports('color', val)) {
-                    scalePreview.style.backgroundColor = val;
-                    previewBtn.disabled = false;
-                    errorMsg.style.display = 'none';
-                } else {
-                    // Fallback validation: Try to set the style anyway, modern browsers usually handle it.
-                    scalePreview.style.backgroundColor = val; // Try anyway
-                    previewBtn.disabled = false;
-                    errorMsg.style.display = 'none';
-                }
+            if (CSS.supports('color', val) || /^#([0-9A-F]{3}){1,2}$/i.test(val)) {
+                swatch.style.backgroundColor = val;
             } else {
-                scalePreview.style.backgroundColor = '#eee';
-                previewBtn.disabled = true;
-                if (val.length > 0) errorMsg.style.display = 'block';
-                else errorMsg.style.display = 'none';
+                swatch.style.backgroundColor = '#eee';
             }
         });
 
-        // Generate Preview
-        previewBtn.onclick = () => {
-            // Pass raw value, backend parses it
-            const color = scaleInput.value.trim();
-            parent.postMessage({ pluginMessage: { type: 'preview-scale', color } }, '*');
+        // Add to Queue
+        addBtn.onclick = () => {
+            const name = nameInput.value.trim();
+            let hex = hexInput.value.trim();
+
+            // Basic Validation
+            if (!name) {
+                addError.textContent = "Name is required.";
+                addError.style.display = 'block';
+                return;
+            }
+            // Normalize Hex
+            if (!hex.startsWith('#') && /^[0-9A-F]{3,6}$/i.test(hex)) hex = '#' + hex;
+
+            if (!CSS.supports('color', hex) && !/^#([0-9A-F]{3}){1,2}$/i.test(hex)) {
+                addError.textContent = "Invalid Hex Color.";
+                addError.style.display = 'block';
+                return;
+            }
+
+            // Check Duplicate Name
+            if (colorQueue.find(c => c.name === name)) {
+                addError.textContent = "Name already exists in list.";
+                addError.style.display = 'block';
+                return;
+            }
+
+            addError.style.display = 'none';
+
+            // Add to State
+            colorQueue.push({ name, hex });
+            renderQueue();
+
+            // Perform Visual Reset
+            nameInput.value = '';
+            hexInput.value = '';
+            swatch.style.backgroundColor = '#eee';
+            nameInput.focus();
         };
 
-        // Create Variables
-        document.getElementById('create-vars-btn').onclick = () => {
-            const colorName = document.getElementById('var-name').value.trim();
-            const collectionId = document.getElementById('var-collection-select').value;
+        // Render Queue UI
+        const renderQueue = () => {
+            queueList.innerHTML = '';
 
-            // Logic to determine group name
+            if (colorQueue.length === 0) {
+                queueList.appendChild(emptyMsg);
+                previewBtn.disabled = true;
+                queueCount.innerText = '0';
+                return;
+            }
+
+            colorQueue.forEach((c, idx) => {
+                const row = document.createElement('div');
+                row.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 6px; background: #fff; border: 1px solid #eee; border-radius: 4px;";
+
+                const left = document.createElement('div');
+                left.style.cssText = "display: flex; align-items: center; gap: 8px;";
+
+                const dot = document.createElement('div');
+                dot.style.cssText = `width: 16px; height: 16px; border-radius: 50%; background-color: ${c.hex}; border: 1px solid rgba(0,0,0,0.1);`;
+
+                const txt = document.createElement('span');
+                txt.style.cssText = "font-size: 12px; font-weight: 500; color: #333;";
+                txt.innerText = `${c.name} (${c.hex})`;
+
+                left.appendChild(dot);
+                left.appendChild(txt);
+
+                const delBtn = document.createElement('button');
+                delBtn.innerText = "×";
+                delBtn.style.cssText = "background: none; border: none; color: #999; font-weight: bold; cursor: pointer; font-size: 16px; padding: 0 4px;";
+                delBtn.onclick = () => {
+                    colorQueue.splice(idx, 1);
+                    renderQueue();
+                };
+
+                row.appendChild(left);
+                row.appendChild(delBtn);
+                queueList.appendChild(row);
+            });
+
+            queueCount.innerText = colorQueue.length;
+            previewBtn.disabled = false;
+        };
+
+        // Generate Preview (Batch)
+        previewBtn.onclick = () => {
+            if (colorQueue.length === 0) return;
+            parent.postMessage({ pluginMessage: { type: 'preview-scale-batch', colors: colorQueue } }, '*');
+        };
+
+        // Create Variables (Batch)
+        document.getElementById('create-vars-btn').onclick = () => {
+            const collectionId = document.getElementById('var-collection-select').value;
+            // Group Logic
             const selectVal = document.getElementById('var-group-select').value;
             let groupName = selectVal;
             if (selectVal === 'NEW_GROUP') {
                 groupName = document.getElementById('var-group-custom').value.trim();
             }
 
-            if (!colorName || !collectionId) {
-                // Highlight errors? Simple alert for now.
-                // We can use the existing Notification mechanism via backend? Or simple alert? Using backend notify is better UI.
-                // But cannot send notify from UI directly.
-                console.error("Missing fields");
-                // Maybe show a small red text
-                // For now, let's assume validation in backend or simple JS check
+            if (!collectionId) {
+                alert("Please select a target collection.");
                 return;
             }
 
-            // We need the scale data again? Or backend state?
-            // Safer to re-send the base color and let backend regenerate-and-save.
-            const baseColor = scaleInput.value.trim();
+            if (colorQueue.length === 0) {
+                alert("No colors in queue.");
+                return;
+            }
 
             parent.postMessage({
                 pluginMessage: {
-                    type: 'create-variables',
-                    baseColorHex: baseColor,
-                    config: { colorName, collectionId, groupName }
+                    type: 'create-variables-batch',
+                    colors: colorQueue,
+                    config: { collectionId, groupName }
                 }
             }, '*');
         };

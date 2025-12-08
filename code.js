@@ -164,10 +164,12 @@ figma.ui.onmessage = async (msg) => {
     await loadPalettes(msg.collectionId, msg.groupName);
 
   } else if (msg.type === 'generate-theme') {
-    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.themeName, false);
+    // Correct Signature: (accent, neutral, status, themeName, isRegenerate, tokenOverrides)
+    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.statusPalettes, msg.themeName, false, msg.tokenOverrides);
 
   } else if (msg.type === 'regenerate-theme') {
-    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.themeName, true);
+    // Correct Signature: (accent, neutral, status, themeName, isRegenerate, tokenOverrides)
+    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.statusPalettes, msg.themeName, true, msg.tokenOverrides);
 
   } else if (msg.type === 'create-theme') {
     await createThemeCollection(msg.themeData);
@@ -1748,23 +1750,93 @@ async function loadPalettes(collectionId, groupName) {
   }
 }
 
+// Helper: Extract palette colors for UI Picker
+function extractPaletteColors(vars, allVarsMap) {
+  const result = {};
+  console.log(`Extracting colors from ${vars.length} variables...`);
+
+  // Helper to resolve alias to hex
+  const resolveValue = (val) => {
+    if (!val) return null;
+    if (val.r !== undefined) return rgbToHex(val).toUpperCase();
+    if (val.type === 'VARIABLE_ALIAS' && allVarsMap) {
+      const target = allVarsMap[val.id];
+      if (target) {
+        // Get value from target (using first mode as fallback if we don't know mode)
+        // Ideally we recursively find the mode but often Primitives have 1 mode.
+        const targetModeId = Object.keys(target.valuesByMode)[0];
+        return resolveValue(target.valuesByMode[targetModeId]);
+      }
+    }
+    return null;
+  };
+
+  let loggedCount = 0;
+  vars.forEach(v => {
+    const safeName = v.name.trim();
+
+    // 1. Divider match: / - space
+    let match = safeName.match(/[\/\-\s]([0-9]+)$/);
+
+    // 2. Direct number match (e.g. "50")
+    if (!match) match = safeName.match(/^([0-9]+)$/);
+
+    // 3. Combined match (e.g. "Red50") - risky but maybe needed?
+    if (!match) match = safeName.match(/([0-9]+)$/);
+
+    if (match) {
+      const scale = match[1];
+      const modeId = Object.keys(v.valuesByMode)[0];
+      const value = v.valuesByMode[modeId];
+
+      const hex = resolveValue(value);
+      if (hex) {
+        result[scale] = hex;
+        if (loggedCount < 5) console.log(`[Success] Processed variable: ${safeName} -> Scale: ${scale}, Hex: ${hex}`);
+      } else {
+        if (loggedCount < 5) console.log(`[Fail] Could not resolve value for ${safeName}`);
+      }
+    } else {
+      if (loggedCount < 5) console.log(`[Fail] Regex no match for ${safeName}`);
+    }
+    loggedCount++;
+  });
+
+  console.log(`Extracted keys: ${Object.keys(result).join(', ')}`);
+  return result;
+}
+
 // Generate theme with intelligent mapping
-async function generateTheme(accentPalette, neutralPalette, statusPalettes, themeName, isRegenerate) {
+async function generateTheme(accentPalette, neutralPalette, statusPalettes, themeName, isRegenerate, tokenOverrides) {
   try {
     // Use getLocalVariablesAsync directly
     const allVariables = await figma.variables.getLocalVariablesAsync();
 
+    // Create Map for Alias Resolution
+    const allVarsMap = {};
+    allVariables.forEach(v => allVarsMap[v.id] = v);
+
     // Filter variables by palette
-    const prefix = (p) => p ? p + '/' : null;
+    // Fix: Don't force '/', allow other separators
+    const filterByPalette = (paletteName) => {
+      if (!paletteName) return [];
+      return allVariables.filter(v =>
+        v.resolvedType === 'COLOR' && (
+          v.name.startsWith(paletteName + '/') ||
+          v.name.startsWith(paletteName + '-') ||
+          v.name.startsWith(paletteName + ' ') ||
+          v.name === paletteName // Exact match? Unlikely for a palette root but possible
+        )
+      );
+    };
 
-    const accentVars = allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(accentPalette)));
-    const neutralVars = allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(neutralPalette)));
+    const accentVars = filterByPalette(accentPalette);
+    const neutralVars = filterByPalette(neutralPalette);
 
     // Status vars (optional but recommended)
-    // Status vars (optional but recommended)
-    const successVars = (statusPalettes && statusPalettes.success) ? allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(statusPalettes.success))) : [];
-    const warningVars = (statusPalettes && statusPalettes.warning) ? allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(statusPalettes.warning))) : [];
-    const errorVars = (statusPalettes && statusPalettes.error) ? allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(statusPalettes.error))) : [];
+    const successVars = (statusPalettes && statusPalettes.success) ? filterByPalette(statusPalettes.success) : [];
+    const warningVars = (statusPalettes && statusPalettes.warning) ? filterByPalette(statusPalettes.warning) : [];
+    const errorVars = (statusPalettes && statusPalettes.error) ? filterByPalette(statusPalettes.error) : [];
 
     console.log(`Generating Theme '${themeName}'...`);
     console.log(`Accent: ${accentPalette} (${accentVars.length})`);
@@ -1793,18 +1865,49 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
     };
 
     // Get variation index
-    const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0;
+    // Improvement: Ensure we cycle or pick a different one if regenerating
+    // For now, random is fine providing the mapping logic is distinct enough.
+    // Let's add more distinct variations.
+    const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0; // 0 is default "Standard"
 
     const mappings = {
-      0: { bgLight: '50', bgDark: '900', textLight: '900', textDark: '50', actionLight: '600', actionDark: '400' },
-      1: { bgLight: '0', bgDark: '950', textLight: '950', textDark: '0', actionLight: '700', actionDark: '300' },
-      2: { bgLight: '100', bgDark: '800', textLight: '800', textDark: '100', actionLight: '500', actionDark: '500' }
+      // 0: Standard Modern (Clean, high contrast text)
+      0: { bgLight: '50', bgDark: '950', textLight: '900', textDark: '50', actionLight: '600', actionDark: '500' },
+
+      // 1: High Contrast / Stark (Pure white/black extremes)
+      1: { bgLight: '0', bgDark: '950', textLight: '950', textDark: '0', actionLight: '700', actionDark: '400' },
+
+      // 2: Soft / Muted (Softer backgrounds, less harsh blacks)
+      2: { bgLight: '100', bgDark: '900', textLight: '800', textDark: '100', actionLight: '500', actionDark: '400' }
     };
 
     const map = mappings[variation];
     const tokens = {};
 
     const createToken = (name, lightVar, darkVar) => {
+      // Check Overrides first
+      if (tokenOverrides && tokenOverrides[name]) {
+        const override = tokenOverrides[name];
+        // Expect override format: { light: '100', dark: '900' }
+        // We need to resolve these scale values to actual variables
+        // Find variable list based on token type (approximate)
+        let targetVars = neutralVars;
+        if (name.includes('Action') || name.includes('Accent')) targetVars = accentVars;
+        else if (name.includes('Status/success')) targetVars = successVars;
+        else if (name.includes('Status/warning')) targetVars = warningVars;
+        else if (name.includes('Status/error')) targetVars = errorVars;
+
+        // If specific override var exists, use it
+        if (override.light) {
+          const found = findVar(targetVars, override.light);
+          if (found) lightVar = found;
+        }
+        if (override.dark) {
+          const found = findVar(targetVars, override.dark);
+          if (found) darkVar = found;
+        }
+      }
+
       if (!lightVar || !darkVar) return;
       const lightColor = lightVar.valuesByMode[Object.keys(lightVar.valuesByMode)[0]];
       const darkColor = darkVar.valuesByMode[Object.keys(darkVar.valuesByMode)[0]];
@@ -1841,9 +1944,36 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
     createToken('Status/error', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '400'));
     createToken('Status/warning', getStatusVar(warningVars, '600'), getStatusVar(warningVars, '400'));
 
+    // New Subtle Background Tokens (using same lightness level as theme background)
+    createToken('Status/successSubtle', getStatusVar(successVars, map.bgLight), getStatusVar(successVars, map.bgDark));
+    createToken('Status/errorSubtle', getStatusVar(errorVars, map.bgLight), getStatusVar(errorVars, map.bgDark));
+    createToken('Status/warningSubtle', getStatusVar(warningVars, map.bgLight), getStatusVar(warningVars, map.bgDark));
+
     const validation = { passed: Object.keys(tokens).length, warnings: [] };
+
+    // Extract full palette data for UI Picker
+    const paletteData = {
+      accent: extractPaletteColors(accentVars, allVarsMap),
+      neutral: extractPaletteColors(neutralVars, allVarsMap),
+      success: extractPaletteColors(successVars, allVarsMap),
+      warning: extractPaletteColors(warningVars, allVarsMap),
+      error: extractPaletteColors(errorVars, allVarsMap)
+    };
+
+    console.log(`Sending paletteData: ${Object.keys(paletteData).map(k => `${k}(${Object.keys(paletteData[k]).length})`).join(', ')}`);
+
     const messageType = isRegenerate ? 'theme-regenerated' : 'theme-generated';
-    figma.ui.postMessage({ type: messageType, payload: { themeName, tokens, validation, accentPalette, neutralPalette } });
+    figma.ui.postMessage({
+      type: messageType,
+      payload: {
+        themeName,
+        tokens,
+        validation,
+        accentPalette,
+        neutralPalette,
+        paletteData // Send full palette data for picker
+      }
+    });
 
   } catch (error) {
     console.error("Generate Theme Error:", error);

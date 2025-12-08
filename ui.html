@@ -232,6 +232,84 @@
         }
 
         /* Override generic button? No, use classes */
+        /* Tone Editor Modal */
+        #token-editor-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .editor-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .editor-row {
+            margin-bottom: 16px;
+        }
+
+        .editor-label {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4b5563;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .swatch-picker {
+            display: flex;
+            gap: 4px;
+        }
+
+        .picker-chip {
+            flex: 1;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s;
+        }
+
+        .picker-chip:hover {
+            transform: scale(1.1);
+            z-index: 2;
+        }
+
+        .picker-chip.selected {
+            border-color: #18A0FB;
+            transform: scale(1.1);
+        }
+
+        /* Interactive Preview Elements */
+        [data-token] {
+            cursor: pointer;
+            position: relative;
+        }
+
+        [data-token]:hover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px dashed #18A0FB;
+            border-radius: inherit;
+            pointer-events: none;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 
@@ -684,16 +762,19 @@
                     <!-- Status Messages -->
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <div id="preview-success"
-                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
-                            <span>✅</span> Success message
+                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <span>✅</span> <span id="preview-success-text"
+                                style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Success message</span>
                         </div>
                         <div id="preview-warning"
-                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
-                            <span>⚠️</span> Warning message
+                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <span>⚠️</span> <span id="preview-warning-text"
+                                style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Warning message</span>
                         </div>
                         <div id="preview-error"
-                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
-                            <span>❌</span> Error message
+                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <span>❌</span> <span id="preview-error-text"
+                                style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Error message</span>
                         </div>
                     </div>
                 </div>
@@ -776,7 +857,41 @@
         }
     </style>
 
+    <!-- Tone Editor Modal -->
+    <div id="token-editor-modal">
+        <div class="editor-content">
+            <h3 id="editor-title" style="margin: 0 0 16px 0; font-size: 16px;">Edit Token</h3>
+
+            <div class="editor-row">
+                <div class="editor-label">
+                    Light Mode
+                    <span id="light-val-display" style="color:#666; font-weight:400;"></span>
+                </div>
+                <div id="light-swatches" class="swatch-picker"></div>
+            </div>
+
+            <div class="editor-row">
+                <div class="editor-label">
+                    Dark Mode
+                    <span id="dark-val-display" style="color:#666; font-weight:400;"></span>
+                </div>
+                <div id="dark-swatches" class="swatch-picker"></div>
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px;">
+                <button id="editor-reset" style="background: #f3f4f6; color: #374151; width: auto;">Reset
+                    Default</button>
+                <button id="editor-close" style="width: auto;">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Global State
+        let currentThemeData = null;
+        let paletteCache = {}; // Start empty, filled by theme-generated
+        let tokenOverrides = {}; // { 'Status/error': { light: '50', dark: '900' } }
+
         // Tabs Logic
         document.querySelectorAll('.tab').forEach(t => {
             t.addEventListener('click', () => {
@@ -1042,6 +1157,15 @@
             } else if (type === 'theme-generated' || type === 'theme-regenerated') {
                 // Theme generation complete
                 currentThemeData = payload;
+                console.log('Received theme data:', payload);
+
+                // Cache palette data for Tone Editor Picker
+                if (payload.paletteData) {
+                    paletteCache = payload.paletteData;
+                    console.log('Updated paletteCache:', Object.keys(paletteCache));
+                } else {
+                    console.error('Missing paletteData in payload!');
+                }
 
                 // Show preview section
                 themePreviewSection.style.display = 'block';
@@ -1060,7 +1184,9 @@
                 themePreviewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
             } else if (type === 'theme-created-success') {
-                figma.notify(payload || 'Theme created successfully! ✅');
+                // Backend handles notification
+                // figma.notify(payload); // Removed illegal call
+                console.log(payload);
 
                 // Reset form
                 themePreviewSection.style.display = 'none';
@@ -1251,6 +1377,30 @@
                 const tSelect = document.getElementById('alias-typo-group');
                 tSelect.innerHTML = opts;
                 tSelect.disabled = false;
+
+            } else if (type === 'theme-generated' || type === 'theme-regenerated') {
+                currentThemeData = payload;
+                console.log('Received theme data:', payload);
+
+                // Cache palette data for Tone Editor Picker
+                if (payload.paletteData) {
+                    paletteCache = payload.paletteData;
+                    console.log('Updated paletteCache:', Object.keys(paletteCache));
+                } else {
+                    console.error('Missing paletteData in payload!');
+                }
+
+                renderThemePreview(currentThemeData, document.getElementById('theme-preview-mode').value);
+                renderTokenList(currentThemeData.tokens);
+                renderValidation(currentThemeData.validation);
+
+                document.getElementById('generate-theme-btn').textContent = 'Generate Theme';
+                document.getElementById('generate-theme-btn').disabled = false;
+
+                // Show Result
+                document.getElementById('theme-preview-section').style.display = 'block';
+                // Scroll
+                document.getElementById('theme-preview-section').scrollIntoView({ behavior: 'smooth' });
 
             } else if (type === 'progress-start') {
                 document.getElementById('progress-overlay').style.display = 'flex';
@@ -1560,7 +1710,10 @@
         };
 
         // === THEME TAB LOGIC ===
-        let currentThemeData = null;
+        // Removed duplicate declarations of currentThemeData and paletteCache
+        // They are now at the top of the script
+
+
 
         const themeAccentSelect = document.getElementById('theme-accent-palette');
         const themeNeutralSelect = document.getElementById('theme-neutral-palette');
@@ -1642,6 +1795,10 @@
             generateThemeBtn.disabled = true;
             generateThemeBtn.textContent = 'Generating...';
 
+            // Disable button
+            generateThemeBtn.disabled = true;
+            generateThemeBtn.textContent = 'Generating...';
+
             parent.postMessage({
                 pluginMessage: {
                     type: 'generate-theme',
@@ -1652,7 +1809,8 @@
                         warning: warningPalette,
                         error: errorPalette
                     },
-                    themeName
+                    themeName,
+                    tokenOverrides // Send overrides
                 }
             }, '*');
         };
@@ -1663,12 +1821,23 @@
             const neutralPalette = themeNeutralSelect.value;
             const themeName = themeNameInput.value.trim() || 'Theme';
 
+            // Fix: Include status palettes so they aren't lost on regeneration
+            const successPalette = document.getElementById('theme-success-palette').value;
+            const warningPalette = document.getElementById('theme-warning-palette').value;
+            const errorPalette = document.getElementById('theme-error-palette').value;
+
             parent.postMessage({
                 pluginMessage: {
                     type: 'regenerate-theme',
                     accentPalette,
                     neutralPalette,
-                    themeName
+                    statusPalettes: {
+                        success: successPalette,
+                        warning: warningPalette,
+                        error: errorPalette
+                    },
+                    themeName,
+                    tokenOverrides // Send overrides
                 }
             }, '*');
         };
@@ -1712,9 +1881,15 @@
             const cardText = document.getElementById('preview-card-text');
             const btnPrimary = document.getElementById('preview-btn-primary');
             const btnSecondary = document.getElementById('preview-btn-secondary');
+
             const successMsg = document.getElementById('preview-success');
+            const successText = document.getElementById('preview-success-text');
+
             const warningMsg = document.getElementById('preview-warning');
+            const warningText = document.getElementById('preview-warning-text');
+
             const errorMsg = document.getElementById('preview-error');
+            const errorText = document.getElementById('preview-error-text');
 
             // Apply colors
             mockup.style.background = modeTokens['Background/primary']?.hex || '#fff';
@@ -1729,14 +1904,41 @@
             btnSecondary.style.borderColor = modeTokens['Action/primary']?.hex || '#3b82f6';
             btnSecondary.style.color = modeTokens['Action/primary']?.hex || '#3b82f6';
 
-            successMsg.style.background = modeTokens['Status/success']?.hex ? modeTokens['Status/success'].hex + '20' : '#f0fdf4';
-            successMsg.style.color = modeTokens['Status/success']?.hex || '#16a34a';
+            successMsg.style.background = modeTokens['Status/successSubtle']?.hex || '#f0fdf4';
+            successText.style.color = modeTokens['Status/success']?.hex || '#16a34a';
 
-            warningMsg.style.background = modeTokens['Status/warning']?.hex ? modeTokens['Status/warning'].hex + '20' : '#fef3c7';
-            warningMsg.style.color = modeTokens['Status/warning']?.hex || '#ca8a04';
+            warningMsg.style.background = modeTokens['Status/warningSubtle']?.hex || '#fef3c7';
+            warningText.style.color = modeTokens['Status/warning']?.hex || '#ca8a04';
 
-            errorMsg.style.background = modeTokens['Status/error']?.hex ? modeTokens['Status/error'].hex + '20' : '#fee2e2';
-            errorMsg.style.color = modeTokens['Status/error']?.hex || '#dc2626';
+            errorMsg.style.background = modeTokens['Status/errorSubtle']?.hex || '#fee2e2';
+            errorText.style.color = modeTokens['Status/error']?.hex || '#dc2626';
+
+            // Add interactivity
+            const addClick = (el, tokenName) => {
+                if (!el) return;
+                el.dataset.token = tokenName;
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    openToneEditor(tokenName);
+                };
+            };
+
+            addClick(mockup, 'Background/primary');
+            addClick(card, 'Surface/default');
+            addClick(cardTitle, 'Text/primary');
+            addClick(cardText, 'Text/secondary');
+            addClick(btnPrimary, 'Action/primary');
+            addClick(btnSecondary, 'Action/primary');
+
+            // Status: Background vs Text
+            addClick(successMsg, 'Status/successSubtle');
+            addClick(successText, 'Status/success');
+
+            addClick(warningMsg, 'Status/warningSubtle');
+            addClick(warningText, 'Status/warning');
+
+            addClick(errorMsg, 'Status/errorSubtle');
+            addClick(errorText, 'Status/error');
         }
 
         // Render token list
@@ -2013,6 +2215,117 @@
                     config: { sourceCollectionId, measureGroup, typoGroup, targetName }
                 }
             }, '*');
+        };
+
+        // === TONE EDITOR LOGIC ===
+        let activeTokenEditing = null;
+
+        function openToneEditor(tokenName) {
+            console.log('openToneEditor called for:', tokenName);
+            console.log('Current paletteCache state:', paletteCache);
+            console.log('Keys in cache:', Object.keys(paletteCache));
+
+            activeTokenEditing = tokenName;
+            document.getElementById('editor-title').innerText = `Edit: ${tokenName}`;
+
+            // Determine Palette Source
+            let paletteType = 'neutral';
+            if (tokenName.includes('Action') || tokenName.includes('Accent')) paletteType = 'accent';
+            else if (tokenName.includes('Status/success')) paletteType = 'success';
+            else if (tokenName.includes('Status/warning')) paletteType = 'warning';
+            else if (tokenName.includes('Status/error')) paletteType = 'error';
+
+            let palette = paletteCache[paletteType];
+
+            // Fallback: If status palette is empty, use Accent (default behavior of generator)
+            if ((!palette || Object.keys(palette).length === 0) && ['success', 'warning', 'error'].includes(paletteType)) {
+                // Check if we actually have an accent palette
+                if (paletteCache['accent'] && Object.keys(paletteCache['accent']).length > 0) {
+                    palette = paletteCache['accent'];
+                    console.log(`Fallback: Using accent palette for ${paletteType}`);
+                }
+            }
+
+            if (!palette || Object.keys(palette).length === 0) {
+                // Debug Info
+                const keys = Object.keys(paletteCache).map(k => `${k}:${Object.keys(paletteCache[k] || {}).length}`);
+                alert(`Cannot edit this token. Palette '${paletteType}' is empty.\nLoaded: ${keys.join(', ')}`);
+                return;
+            }
+
+            // Render Swatches
+            const renderSwatches = (containerId, currentVal, mode) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                const displayId = mode === 'light' ? 'light-val-display' : 'dark-val-display';
+
+                // Find current scale value from currentThemeData or Override
+                let currentScale = '500'; // Default
+                // Check override first
+                if (tokenOverrides[tokenName] && tokenOverrides[tokenName][mode]) {
+                    currentScale = tokenOverrides[tokenName][mode];
+                } else if (currentThemeData && currentThemeData.tokens[tokenName]) {
+                    // Try to deduce scale from name (e.g. "Emerald 500")
+                    const fullName = currentThemeData.tokens[tokenName][mode].name;
+                    const match = fullName.match(/[0-9]+/);
+                    if (match) currentScale = match[0];
+                }
+
+                document.getElementById(displayId).innerText = `(Current: ${currentScale})`;
+
+                ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'].forEach(step => {
+                    const hex = palette[step];
+                    if (!hex) return;
+
+                    const chip = document.createElement('div');
+                    chip.className = 'picker-chip';
+                    chip.style.backgroundColor = hex;
+                    chip.title = step;
+
+                    if (step === currentScale) chip.classList.add('selected');
+
+                    chip.onclick = () => {
+                        // Set Override
+                        if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
+                        tokenOverrides[tokenName][mode] = step;
+
+                        // Update UI immediately (optimistic)
+                        document.querySelectorAll(`#${containerId} .picker-chip`).forEach(c => c.classList.remove('selected'));
+                        chip.classList.add('selected');
+                        document.getElementById(displayId).innerText = `(Current: ${step})`;
+                    };
+
+                    container.appendChild(chip);
+                });
+            };
+
+            renderSwatches('light-swatches', null, 'light');
+            renderSwatches('dark-swatches', null, 'dark');
+
+            document.getElementById('token-editor-modal').style.display = 'flex';
+        }
+
+        document.getElementById('editor-close').onclick = () => {
+            document.getElementById('token-editor-modal').style.display = 'none';
+            // Trigger Regenerate to apply changes
+            // Use regenerate logic but preserve current inputs
+            regenerateThemeBtn.click();
+        };
+
+        document.getElementById('editor-reset').onclick = () => {
+            if (activeTokenEditing && tokenOverrides[activeTokenEditing]) {
+                delete tokenOverrides[activeTokenEditing];
+                document.getElementById('token-editor-modal').style.display = 'none';
+                regenerateThemeBtn.click();
+            }
+        };
+
+        // Close on outside click
+        document.getElementById('token-editor-modal').onclick = (e) => {
+            if (e.target.id === 'token-editor-modal') {
+                document.getElementById('token-editor-modal').style.display = 'none';
+                regenerateThemeBtn.click(); // Apply changes on close
+            }
         };
     </script>
 </body>

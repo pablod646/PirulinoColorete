@@ -355,10 +355,185 @@
         <div class="tab" data-tab="typography">3. Typography</div>
         <div class="tab" data-tab="aliases">4. Aliases</div>
         <div class="tab" data-tab="theme">5. Theme</div>
-        <div class="tab" data-tab="collections">6. Documentation</div>
+        <div class="tab" data-tab="components">6. Components</div>
+        <div class="tab" data-tab="collections">7. Documentation</div>
     </div>
 
-    <!-- Tab 5: Documentation (formerly Collections) -->
+    <!-- Tab 6: Components (Atomic Design) -->
+    <div id="tab-components" class="tab-content">
+        <h2>🧬 Atomic Component System</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 24px;">
+            Create visual components using your existing tokens and variables.
+        </p>
+
+        <!-- Foundation Check -->
+        <div
+            style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #334155;">
+                📊 Foundation Status
+            </div>
+            <div id="foundation-status"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="status-colors">⏳</span>
+                    <span>Color Tokens</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="status-theme">⏳</span>
+                    <span>Theme Tokens</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="status-typography">⏳</span>
+                    <span>Typography</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="status-alias">⏳</span>
+                    <span>Aliases</span>
+                </div>
+            </div>
+            <button id="check-foundation-btn" style="width: 100%; margin-top: 12px; background: #64748b;">
+                🔍 Check Foundation
+            </button>
+        </div>
+
+        <!-- Atomic Level Selection -->
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">
+                Select Atomic Level
+            </label>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <button class="atomic-level-btn" data-level="atoms"
+                    style="padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
+                    <div style="font-size: 24px; margin-bottom: 4px;">⚛️</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937;">Atoms</div>
+                    <div style="font-size: 11px; color: #6b7280;">Basic elements</div>
+                </button>
+
+                <button class="atomic-level-btn" data-level="molecules"
+                    style="padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s; opacity: 0.5;"
+                    disabled>
+                    <div style="font-size: 24px; margin-bottom: 4px;">🧬</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937;">Molecules</div>
+                    <div style="font-size: 11px; color: #6b7280;">Combined</div>
+                </button>
+
+                <button class="atomic-level-btn" data-level="organisms"
+                    style="padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s; opacity: 0.5;"
+                    disabled>
+                    <div style="font-size: 24px; margin-bottom: 4px;">🏛️</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937;">Organisms</div>
+                    <div style="font-size: 11px; color: #6b7280;">Complex</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Atoms Selection (Initially visible) -->
+        <div id="atoms-section" style="display: none;">
+            <div
+                style="background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">
+                    ⚛️ Select Atoms to Create
+                </div>
+
+                <div style="display: grid; gap: 12px;">
+
+                    <label
+                        style="display: flex; align-items: start; gap: 12px; padding: 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                        <input type="checkbox" class="atom-checkbox" data-atom="icon" style="margin-top: 2px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">
+                                🎨 Icon Component
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280;">
+                                Uses Icon tokens • ~20 variants
+                            </div>
+                        </div>
+                    </label>
+
+                    <label
+                        style="display: flex; align-items: start; gap: 12px; padding: 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                        <input type="checkbox" class="atom-checkbox" data-atom="divider" style="margin-top: 2px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">
+                                ━━ Divider
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280;">
+                                Uses Border tokens • ~4 variants
+                            </div>
+                        </div>
+                    </label>
+
+                    <label
+                        style="display: flex; align-items: start; gap: 12px; padding: 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                        <input type="checkbox" class="atom-checkbox" data-atom="spacer" style="margin-top: 2px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">
+                                ↔️ Spacer
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280;">
+                                For layouts • ~8 variants
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div
+                style="background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">
+                    ⚙️ Configuration
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Target Page</label>
+                    <select id="atoms-target-page"
+                        style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                        <option value="NEW_PAGE">+ Create New Page (Atoms)</option>
+                        <option value="CURRENT_PAGE">Current Page</option>
+                    </select>
+                </div>
+
+                <div style="font-size: 11px; color: #6b7280; padding: 12px; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">💡 Tip:</div>
+                    Components will be organized by type and automatically linked to your tokens.
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button id="generate-atoms-btn"
+                style="width: 100%; background: #18A0FB; padding: 14px; font-size: 14px; font-weight: 600;" disabled>
+                ✨ Generate Atoms
+            </button>
+
+            <div id="atoms-progress"
+                style="display: none; margin-top: 12px; padding: 12px; background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 6px; font-size: 12px; color: #0c4a6e;">
+                <div style="font-weight: 600; margin-bottom: 4px;">⏳ Generating components...</div>
+                <div id="atoms-progress-text">Preparing...</div>
+            </div>
+        </div>
+
+        <!-- Molecules Section (Hidden initially) -->
+        <div id="molecules-section" style="display: none;">
+            <div style="padding: 40px; text-align: center; color: #6b7280;">
+                <div style="font-size: 48px; margin-bottom: 12px;">🧬</div>
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Molecules Coming Soon</div>
+                <div style="font-size: 12px;">Create atoms first to unlock molecules</div>
+            </div>
+        </div>
+
+        <!-- Organisms Section (Hidden initially) -->
+        <div id="organisms-section" style="display: none;">
+            <div style="padding: 40px; text-align: center; color: #6b7280;">
+                <div style="font-size: 48px; margin-bottom: 12px;">🏛️</div>
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Organisms Coming Soon</div>
+                <div style="font-size: 12px;">Create molecules first to unlock organisms</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 7: Documentation (formerly Collections) -->
     <div id="tab-collections" class="tab-content">
         <h2>Select Collection</h2>
         <select id="collection-select">
@@ -1640,6 +1815,37 @@
                 document.getElementById('create-styles-btn').disabled = false;
                 document.getElementById('create-styles-btn').classList.remove('secondary');
                 document.getElementById('create-styles-btn').classList.add('primary');
+
+            } else if (type === 'foundation-status') {
+                console.log('📥 Frontend received foundation-status:', payload);
+                const status = payload;
+
+                // Update status indicators
+                document.getElementById('status-colors').textContent = status.colors ? '✅' : '❌';
+                document.getElementById('status-theme').textContent = status.theme ? '✅' : '❌';
+                document.getElementById('status-typography').textContent = status.typography ? '✅' : '❌';
+                document.getElementById('status-alias').textContent = status.alias ? '✅' : '❌';
+
+                // Update button
+                const btn = document.getElementById('check-foundation-btn');
+                btn.disabled = false;
+                btn.textContent = '🔍 Check Foundation';
+                console.log('✅ UI updated successfully');
+
+            } else if (type === 'atoms-progress') {
+                document.getElementById('atoms-progress-text').textContent = payload;
+
+            } else if (type === 'atoms-complete') {
+                document.getElementById('atoms-progress').style.display = 'none';
+                document.getElementById('generate-atoms-btn').disabled = false;
+
+                // Uncheck all
+                document.querySelectorAll('.atom-checkbox').forEach(cb => cb.checked = false);
+
+            } else if (type === 'atoms-error') {
+                document.getElementById('atoms-progress').style.display = 'none';
+                document.getElementById('generate-atoms-btn').disabled = false;
+                alert(`Error: ${payload}`);
             }
         };
 
@@ -3362,6 +3568,87 @@
                 document.getElementById('token-editor-modal').style.display = 'none';
             }
         };
+
+        // ========================================
+        // TAB 6: COMPONENTS (ATOMIC DESIGN)
+        // ========================================
+
+        // Foundation Check
+        document.getElementById('check-foundation-btn').onclick = async () => {
+            console.log('🔍 Check Foundation button clicked');
+            const btn = document.getElementById('check-foundation-btn');
+            btn.disabled = true;
+            btn.textContent = '🔍 Checking...';
+
+            // Request foundation status from backend
+            console.log('📤 Sending check-foundation message to backend');
+            parent.postMessage({
+                pluginMessage: { type: 'check-foundation' }
+            }, '*');
+        };
+
+        // Atomic Level Selection
+        document.querySelectorAll('.atomic-level-btn').forEach(btn => {
+            btn.onclick = () => {
+                if (btn.disabled) return;
+
+                const level = btn.dataset.level;
+
+                // Hide all sections
+                document.getElementById('atoms-section').style.display = 'none';
+                document.getElementById('molecules-section').style.display = 'none';
+                document.getElementById('organisms-section').style.display = 'none';
+
+                // Show selected section
+                document.getElementById(`${level}-section`).style.display = 'block';
+
+                // Update button styles
+                document.querySelectorAll('.atomic-level-btn').forEach(b => {
+                    b.style.borderColor = '#e5e7eb';
+                    b.style.background = 'white';
+                });
+                btn.style.borderColor = '#18A0FB';
+                btn.style.background = '#eff6ff';
+            };
+        });
+
+        // Atom Checkboxes - Enable/Disable Generate Button
+        document.querySelectorAll('.atom-checkbox').forEach(checkbox => {
+            checkbox.onchange = () => {
+                const anyChecked = Array.from(document.querySelectorAll('.atom-checkbox'))
+                    .some(cb => cb.checked);
+                document.getElementById('generate-atoms-btn').disabled = !anyChecked;
+            };
+        });
+
+        // Generate Atoms Button
+        document.getElementById('generate-atoms-btn').onclick = async () => {
+            const selectedAtoms = Array.from(document.querySelectorAll('.atom-checkbox'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.dataset.atom);
+
+            if (selectedAtoms.length === 0) {
+                alert('Please select at least one atom to create');
+                return;
+            }
+
+            const targetPage = document.getElementById('atoms-target-page').value;
+
+            // Show progress
+            document.getElementById('atoms-progress').style.display = 'block';
+            document.getElementById('atoms-progress-text').textContent = 'Preparing to generate atoms...';
+            document.getElementById('generate-atoms-btn').disabled = true;
+
+            // Send to backend
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'generate-atoms',
+                    atoms: selectedAtoms,
+                    targetPage: targetPage
+                }
+            }, '*');
+        };
+
     </script>
 </body>
 

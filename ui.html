@@ -738,6 +738,11 @@
                 // Add active
                 t.classList.add('active');
                 document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+
+                // Load palettes when Theme tab is opened
+                if (t.dataset.tab === 'theme') {
+                    parent.postMessage({ pluginMessage: { type: 'load-palettes' } }, '*');
+                }
             });
         });
 
@@ -895,6 +900,55 @@
                 document.getElementById('new-color-name').value = '';
                 document.getElementById('new-color-hex').value = '';
                 document.getElementById('new-color-swatch').style.backgroundColor = '#eee';
+
+            } else if (type === 'theme-generated' || type === 'theme-regenerated') {
+                // Theme generation complete
+                currentThemeData = payload;
+
+                // Show preview section
+                themePreviewSection.style.display = 'block';
+
+                // Render preview (default to light mode)
+                themePreviewMode.value = 'light';
+                renderThemePreview(currentThemeData, 'light');
+
+                // Render token list
+                renderTokenList(currentThemeData.tokens);
+
+                // Render validation
+                renderValidation(currentThemeData.validation);
+
+                // Scroll to preview
+                themePreviewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            } else if (type === 'theme-created-success') {
+                figma.notify(payload || 'Theme created successfully! ✅');
+
+                // Reset form
+                themePreviewSection.style.display = 'none';
+                currentThemeData = null;
+
+                // Reload collections
+                parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
+
+            } else if (type === 'load-palettes') {
+                // Populate theme palette dropdowns
+                const palettes = payload || [];
+
+                themeAccentSelect.innerHTML = '<option value="" disabled selected>Select accent palette...</option>';
+                themeNeutralSelect.innerHTML = '<option value="" disabled selected>Select neutral palette...</option>';
+
+                palettes.forEach(p => {
+                    const optAccent = document.createElement('option');
+                    optAccent.value = p.name;
+                    optAccent.textContent = p.name;
+                    themeAccentSelect.appendChild(optAccent);
+
+                    const optNeutral = document.createElement('option');
+                    optNeutral.value = p.name;
+                    optNeutral.textContent = p.name;
+                    themeNeutralSelect.appendChild(optNeutral);
+                });
 
             } else if (type === 'load-groups-tab2') {
                 // Populate Tab 2 Group Select (Reusing logic but specifically for tab 2)
@@ -1206,6 +1260,174 @@
                 }
             }, '*');
         };
+
+        // === THEME TAB LOGIC ===
+        let currentThemeData = null;
+
+        const themeAccentSelect = document.getElementById('theme-accent-palette');
+        const themeNeutralSelect = document.getElementById('theme-neutral-palette');
+        const themeNameInput = document.getElementById('theme-name');
+        const generateThemeBtn = document.getElementById('generate-theme-btn');
+        const themePreviewSection = document.getElementById('theme-preview-section');
+        const themePreviewMode = document.getElementById('theme-preview-mode');
+        const regenerateThemeBtn = document.getElementById('regenerate-theme-btn');
+        const createThemeBtn = document.getElementById('create-theme-btn');
+
+        // Enable generate button when both palettes selected
+        function checkThemePalettes() {
+            const accentSelected = themeAccentSelect.value !== '';
+            const neutralSelected = themeNeutralSelect.value !== '';
+            generateThemeBtn.disabled = !(accentSelected && neutralSelected);
+        }
+
+        themeAccentSelect.addEventListener('change', checkThemePalettes);
+        themeNeutralSelect.addEventListener('change', checkThemePalettes);
+
+        // Generate Theme
+        generateThemeBtn.onclick = () => {
+            const accentPalette = themeAccentSelect.value;
+            const neutralPalette = themeNeutralSelect.value;
+            const themeName = themeNameInput.value.trim() || 'Theme';
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'generate-theme',
+                    accentPalette,
+                    neutralPalette,
+                    themeName
+                }
+            }, '*');
+        };
+
+        // Regenerate Theme
+        regenerateThemeBtn.onclick = () => {
+            const accentPalette = themeAccentSelect.value;
+            const neutralPalette = themeNeutralSelect.value;
+            const themeName = themeNameInput.value.trim() || 'Theme';
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'regenerate-theme',
+                    accentPalette,
+                    neutralPalette,
+                    themeName
+                }
+            }, '*');
+        };
+
+        // Create Theme
+        createThemeBtn.onclick = () => {
+            if (!currentThemeData) {
+                alert('Please generate a theme first.');
+                return;
+            }
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-theme',
+                    themeData: currentThemeData
+                }
+            }, '*');
+        };
+
+        // Preview mode toggle
+        themePreviewMode.addEventListener('change', () => {
+            if (currentThemeData) {
+                renderThemePreview(currentThemeData, themePreviewMode.value);
+            }
+        });
+
+        // Render theme preview
+        function renderThemePreview(themeData, mode) {
+            const tokens = themeData.tokens;
+            const modeTokens = {};
+
+            // Extract tokens for current mode
+            for (const [key, value] of Object.entries(tokens)) {
+                modeTokens[key] = mode === 'light' ? value.light : value.dark;
+            }
+
+            // Apply to preview components
+            const mockup = document.getElementById('theme-preview-mockup');
+            const card = document.getElementById('preview-card');
+            const cardTitle = document.getElementById('preview-card-title');
+            const cardText = document.getElementById('preview-card-text');
+            const btnPrimary = document.getElementById('preview-btn-primary');
+            const btnSecondary = document.getElementById('preview-btn-secondary');
+            const successMsg = document.getElementById('preview-success');
+            const warningMsg = document.getElementById('preview-warning');
+            const errorMsg = document.getElementById('preview-error');
+
+            // Apply colors
+            mockup.style.background = modeTokens['Background/primary']?.hex || '#fff';
+            card.style.background = modeTokens['Surface/default']?.hex || '#fff';
+            card.style.borderColor = modeTokens['Border/default']?.hex || '#e5e7eb';
+            cardTitle.style.color = modeTokens['Text/primary']?.hex || '#000';
+            cardText.style.color = modeTokens['Text/secondary']?.hex || '#666';
+
+            btnPrimary.style.background = modeTokens['Action/primary']?.hex || '#3b82f6';
+            btnPrimary.style.color = '#fff';
+
+            btnSecondary.style.borderColor = modeTokens['Action/primary']?.hex || '#3b82f6';
+            btnSecondary.style.color = modeTokens['Action/primary']?.hex || '#3b82f6';
+
+            successMsg.style.background = modeTokens['Status/success']?.hex ? modeTokens['Status/success'].hex + '20' : '#f0fdf4';
+            successMsg.style.color = modeTokens['Status/success']?.hex || '#16a34a';
+
+            warningMsg.style.background = modeTokens['Status/warning']?.hex ? modeTokens['Status/warning'].hex + '20' : '#fef3c7';
+            warningMsg.style.color = modeTokens['Status/warning']?.hex || '#ca8a04';
+
+            errorMsg.style.background = modeTokens['Status/error']?.hex ? modeTokens['Status/error'].hex + '20' : '#fee2e2';
+            errorMsg.style.color = modeTokens['Status/error']?.hex || '#dc2626';
+        }
+
+        // Render token list
+        function renderTokenList(tokens) {
+            const tokenList = document.getElementById('theme-token-list');
+            let html = '';
+
+            for (const [key, value] of Object.entries(tokens)) {
+                html += `<div style="margin-bottom: 8px;">`;
+                html += `<strong>${key}:</strong><br>`;
+                html += `  Light: ${value.light.name} <span style="display: inline-block; width: 16px; height: 16px; background: ${value.light.hex}; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle;"></span><br>`;
+                html += `  Dark:  ${value.dark.name} <span style="display: inline-block; width: 16px; height: 16px; background: ${value.dark.hex}; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle;"></span>`;
+                html += `</div>`;
+            }
+
+            tokenList.innerHTML = html;
+        }
+
+        // Render validation summary
+        function renderValidation(validation) {
+            const summary = document.getElementById('theme-validation-summary');
+            const passCount = validation.passed || 0;
+            const warnCount = validation.warnings?.length || 0;
+
+            let html = `<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">`;
+            html += `✅ ${passCount} tokens passed WCAG AA`;
+            if (warnCount > 0) {
+                html += ` • ⚠️ ${warnCount} warnings`;
+            }
+            html += `</div>`;
+
+            if (warnCount > 0) {
+                html += `<div style="font-size: 12px; color: #666;">`;
+                validation.warnings.forEach(w => {
+                    html += `<div>⚠️ ${w}</div>`;
+                });
+                html += `</div>`;
+            }
+
+            summary.innerHTML = html;
+
+            if (warnCount > 0) {
+                summary.style.background = '#fef3c7';
+                summary.style.borderColor = '#fbbf24';
+            } else {
+                summary.style.background = '#f0fdf4';
+                summary.style.borderColor = '#86efac';
+            }
+        }
 
         // --- MEASURES TAB LOGIC ---
 

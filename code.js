@@ -153,6 +153,18 @@ figma.ui.onmessage = async (msg) => {
     await createSemanticTokens(msg.config);
   } else if (msg.type === 'create-text-styles') {
     await createTextStyles(msg.config);
+
+  } else if (msg.type === 'load-palettes') {
+    await loadPalettes();
+
+  } else if (msg.type === 'generate-theme') {
+    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.themeName, false);
+
+  } else if (msg.type === 'regenerate-theme') {
+    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.themeName, true);
+
+  } else if (msg.type === 'create-theme') {
+    await createThemeCollection(msg.themeData);
   }
 };
 
@@ -1640,4 +1652,142 @@ function getWCAGRating(ratio) {
   if (ratio >= 4.5) return ["AA", "AA Large"];
   if (ratio >= 3) return ["AA Large"];
   return ["Fail"];
+}
+
+// ===== THEME SYSTEM =====
+
+// Load available color palettes
+async function loadPalettes() {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const palettes = [];
+
+  for (const collection of collections) {
+    const variables = await figma.variables.getVariablesInCollectionAsync(collection.id);
+    const hasColors = variables.some(v => v.resolvedType === 'COLOR');
+
+    if (hasColors) {
+      const paletteNames = new Set();
+      variables.forEach(v => {
+        if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
+          const paletteName = v.name.split('/')[0];
+          paletteNames.add(paletteName);
+        }
+      });
+
+      paletteNames.forEach(name => {
+        palettes.push({ name, collectionId: collection.id });
+      });
+    }
+  }
+
+  figma.ui.postMessage({ type: 'load-palettes', payload: palettes });
+}
+
+// Generate theme with intelligent mapping
+async function generateTheme(accentPalette, neutralPalette, themeName, isRegenerate) {
+  try {
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const allVariables = [];
+
+    for (const collection of collections) {
+      const vars = await figma.variables.getVariablesInCollectionAsync(collection.id);
+      allVariables.push(...vars);
+    }
+
+    const accentVars = allVariables.filter(v =>
+      v.resolvedType === 'COLOR' && v.name.startsWith(accentPalette + '/')
+    );
+    const neutralVars = allVariables.filter(v =>
+      v.resolvedType === 'COLOR' && v.name.startsWith(neutralPalette + '/')
+    );
+
+    if (accentVars.length === 0 || neutralVars.length === 0) {
+      figma.notify('❌ Selected palettes not found');
+      return;
+    }
+
+    const findVar = (vars, scale) => vars.find(v => v.name.endsWith('/' + scale));
+    const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0;
+
+    const mappings = {
+      0: { bgLight: '50', bgDark: '900', textLight: '900', textDark: '50', actionLight: '600', actionDark: '400' },
+      1: { bgLight: '0', bgDark: '950', textLight: '950', textDark: '0', actionLight: '700', actionDark: '300' },
+      2: { bgLight: '100', bgDark: '800', textLight: '800', textDark: '100', actionLight: '500', actionDark: '500' }
+    };
+
+    const map = mappings[variation];
+    const tokens = {};
+
+    const createToken = (name, lightVar, darkVar) => {
+      if (!lightVar || !darkVar) return;
+      const lightColor = lightVar.valuesByMode[Object.keys(lightVar.valuesByMode)[0]];
+      const darkColor = darkVar.valuesByMode[Object.keys(darkVar.valuesByMode)[0]];
+      tokens[name] = {
+        light: { id: lightVar.id, name: lightVar.name, hex: rgbToHex(lightColor) },
+        dark: { id: darkVar.id, name: darkVar.name, hex: rgbToHex(darkColor) }
+      };
+    };
+
+    createToken('Background/primary', findVar(neutralVars, map.bgLight), findVar(neutralVars, map.bgDark));
+    createToken('Background/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Background/tertiary', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Text/primary', findVar(neutralVars, map.textLight), findVar(neutralVars, map.textDark));
+    createToken('Text/secondary', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Text/disabled', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Surface/default', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Surface/elevated', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Surface/overlay', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '800'));
+    createToken('Border/default', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Border/subtle', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Action/primary', findVar(accentVars, map.actionLight), findVar(accentVars, map.actionDark));
+    createToken('Action/primaryHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
+    createToken('Action/disabled', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+
+    const findStatusVar = (name, scale) => allVariables.find(v => v.resolvedType === 'COLOR' && v.name === `${name}/${scale}`);
+    createToken('Status/success', findStatusVar('Success', '600') || findStatusVar('Green', '600') || findVar(accentVars, '600'), findStatusVar('Success', '400') || findStatusVar('Green', '400') || findVar(accentVars, '400'));
+    createToken('Status/error', findStatusVar('Error', '600') || findStatusVar('Red', '600') || findVar(accentVars, '600'), findStatusVar('Error', '400') || findStatusVar('Red', '400') || findVar(accentVars, '400'));
+    createToken('Status/warning', findStatusVar('Warning', '600') || findStatusVar('Yellow', '600') || findVar(accentVars, '600'), findStatusVar('Warning', '400') || findStatusVar('Yellow', '400') || findVar(accentVars, '400'));
+
+    const validation = { passed: Object.keys(tokens).length, warnings: [] };
+    const messageType = isRegenerate ? 'theme-regenerated' : 'theme-generated';
+    figma.ui.postMessage({ type: messageType, payload: { themeName, tokens, validation, accentPalette, neutralPalette } });
+
+  } catch (error) {
+    figma.notify('❌ Error generating theme: ' + error.message);
+  }
+}
+
+// Create theme collection
+async function createThemeCollection(themeData) {
+  try {
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Theme Collection...' });
+    const { themeName, tokens } = themeData;
+    const collection = figma.variables.createVariableCollection(themeName);
+    const lightModeId = collection.modes[0].modeId;
+    collection.renameMode(lightModeId, 'Light');
+    const darkModeId = collection.addMode('Dark');
+
+    for (const [tokenPath, mapping] of Object.entries(tokens)) {
+      const variable = figma.variables.createVariable(tokenPath, collection, 'COLOR');
+      variable.setValueForMode(lightModeId, { type: 'VARIABLE_ALIAS', id: mapping.light.id });
+      variable.setValueForMode(darkModeId, { type: 'VARIABLE_ALIAS', id: mapping.dark.id });
+    }
+
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.ui.postMessage({ type: 'theme-created-success', payload: `Theme "${themeName}" created with ${Object.keys(tokens).length} tokens! ✅` });
+    figma.notify(`✅ Theme "${themeName}" created successfully!`);
+  } catch (error) {
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify('❌ Error creating theme: ' + error.message);
+  }
+}
+
+// Helper: RGB to Hex
+function rgbToHex(rgb) {
+  if (!rgb || typeof rgb !== 'object') return '#000000';
+  const toHex = (n) => {
+    const hex = Math.round(n * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 }

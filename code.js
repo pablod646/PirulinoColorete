@@ -1673,17 +1673,23 @@ async function loadPalettes(collectionId, groupName) {
 
   variables.forEach(v => {
     if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
-      // Filter by group if specified
-      if (groupName) {
+      // If group is specified and not empty
+      if (groupName && groupName !== '') {
+        // Variable format: Group/Palette/Scale (e.g., "Colors/Primary/500")
         if (v.name.startsWith(groupName + '/')) {
-          const parts = v.name.substring(groupName.length + 1).split('/');
+          const afterGroup = v.name.substring(groupName.length + 1);
+          const parts = afterGroup.split('/');
           if (parts.length >= 2) {
-            paletteNames.add(parts[0]);
+            paletteNames.add(parts[0]); // Palette name
           }
         }
       } else {
-        const paletteName = v.name.split('/')[0];
-        paletteNames.add(paletteName);
+        // No group filter - get first part as palette name
+        // Variable format: Palette/Scale (e.g., "Primary/500")
+        const parts = v.name.split('/');
+        if (parts.length >= 2) {
+          paletteNames.add(parts[0]); // Palette name
+        }
       }
     }
   });
@@ -1692,6 +1698,7 @@ async function loadPalettes(collectionId, groupName) {
     palettes.push({ name, collectionId });
   });
 
+  console.log('Palettes found:', palettes); // Debug
   figma.ui.postMessage({ type: 'load-palettes', payload: palettes });
 }
 

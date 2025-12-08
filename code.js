@@ -1661,45 +1661,78 @@ function getWCAGRating(ratio) {
 
 // Load available color palettes
 async function loadPalettes(collectionId, groupName) {
-  const palettes = [];
+  try {
+    const palettes = [];
 
-  if (!collectionId) {
-    figma.ui.postMessage({ type: 'load-palettes', payload: [] });
-    return;
-  }
+    if (!collectionId) {
+      figma.ui.postMessage({ type: 'load-palettes', payload: [] });
+      return;
+    }
 
-  const variables = await figma.variables.getVariablesInCollectionAsync(collectionId);
-  const paletteNames = new Set();
+    // Use getLocalVariablesAsync and filter manually as getVariablesInCollectionAsync doesn't exist
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+    const variables = allVariables.filter(v => v.variableCollectionId === collectionId);
 
-  variables.forEach(v => {
-    if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
-      // If group is specified and not empty
-      if (groupName && groupName !== '') {
-        // Variable format: Group/Palette/Scale (e.g., "Colors/Primary/500")
-        if (v.name.startsWith(groupName + '/')) {
-          const afterGroup = v.name.substring(groupName.length + 1);
-          const parts = afterGroup.split('/');
+    // const variables = await figma.variables.getVariablesInCollectionAsync(collectionId);
+
+    const paletteNames = new Set();
+
+    // Debug info
+    const safeGroupName = groupName ? groupName.trim() : '';
+    console.log(`Scanning ${variables.length} vars. Filter Group: "${safeGroupName}"`);
+
+    variables.forEach(v => {
+      // Only process COLOR variables
+      if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
+        const name = v.name;
+
+        if (safeGroupName) {
+          // Check if variable is inside this group
+          const prefix = safeGroupName + '/';
+          if (name.startsWith(prefix)) {
+            // It is inside. Now we need to find the "Palette Name".
+            // Logic: The Palette Name is the full path to the collection of shades.
+            // e.g. "Colors/Esmerald/50" -> Palette is "Colors/Esmerald"
+            // e.g. "Colors/Actions/Primary/500" -> Palette is "Colors/Actions/Primary"
+
+            // We strip the last segment (Scale)
+            const parts = name.split('/');
+            // Safety check: must have at least prefix parts + 1 (palette) + 1 (scale)
+            // Actually just need enough parts to be inside group + has a shade
+
+            if (parts.length >= 2) {
+              // Full logic: take everything except the last part
+              const palettePath = parts.slice(0, -1).join('/');
+              paletteNames.add(palettePath);
+            }
+          }
+        } else {
+          // No group filter: Add all palettes (path minus last segment)
+          const parts = name.split('/');
           if (parts.length >= 2) {
-            paletteNames.add(parts[0]); // Palette name
+            paletteNames.add(parts.slice(0, -1).join('/'));
           }
         }
-      } else {
-        // No group filter - get first part as palette name
-        // Variable format: Palette/Scale (e.g., "Primary/500")
-        const parts = v.name.split('/');
-        if (parts.length >= 2) {
-          paletteNames.add(parts[0]); // Palette name
-        }
       }
+    });
+
+    paletteNames.forEach(name => {
+      palettes.push({ name, collectionId });
+    });
+
+    console.log('Palettes found:', palettes);
+
+    if (palettes.length === 0) {
+      figma.notify(`⚠️ No palettes found in ${groupName ? 'group' : 'collection'}. Scanned ${variables.length} variables.`);
     }
-  });
 
-  paletteNames.forEach(name => {
-    palettes.push({ name, collectionId });
-  });
+    figma.ui.postMessage({ type: 'load-palettes', payload: palettes });
 
-  console.log('Palettes found:', palettes); // Debug
-  figma.ui.postMessage({ type: 'load-palettes', payload: palettes });
+  } catch (error) {
+    console.error('Error loading palettes:', error);
+    figma.notify('❌ Error loading palettes: ' + error.message);
+    figma.ui.postMessage({ type: 'load-palettes', payload: [] });
+  }
 }
 
 // Generate theme with intelligent mapping

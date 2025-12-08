@@ -157,6 +157,9 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'get-groups-for-theme') {
     await getGroupsCustom(msg.collectionId, 'load-groups-theme');
 
+  } else if (msg.type === 'get-groups-for-tab1') {
+    await getGroupsCustom(msg.collectionId, 'load-groups-tab1');
+
   } else if (msg.type === 'load-palettes') {
     await loadPalettes(msg.collectionId, msg.groupName);
 
@@ -1591,8 +1594,18 @@ async function convertCollection(collectionId, groupFilter) {
 // --- Color Conversion Helpers ---
 
 function rgbToHex(r, g, b) {
+  // Handle object input {r,g,b}
+  if (typeof r === 'object' && r !== null) {
+    const color = r;
+    r = color.r;
+    g = color.g;
+    b = color.b;
+  }
+
   const toHex = (n) => {
-    const hex = Math.round(n * 255).toString(16);
+    // Clamp values 0-1
+    const val = Math.max(0, Math.min(1, n));
+    const hex = Math.round(val * 255).toString(16);
     return hex.length === 1 ? '0' + hex : hex;
   };
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
@@ -1861,14 +1874,4 @@ async function createThemeCollection(themeData) {
     figma.ui.postMessage({ type: 'progress-end' });
     figma.notify('❌ Error creating theme: ' + error.message);
   }
-}
-
-// Helper: RGB to Hex
-function rgbToHex(rgb) {
-  if (!rgb || typeof rgb !== 'object') return '#000000';
-  const toHex = (n) => {
-    const hex = Math.round(n * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 }

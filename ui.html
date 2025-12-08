@@ -953,33 +953,64 @@
                 results.forEach(res => {
                     const row = document.createElement('div');
                     row.className = 'scale-row';
+                    row.dataset.name = res.name; // For sync deletion
+                    row.style.cssText = "margin-bottom: 24px; animation: fadeIn 0.3s ease;";
 
-                    const title = document.createElement('div');
-                    title.className = 'scale-name';
-                    title.style.cssText = "display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 8px;";
-                    // Use res.steps not res.scale
-                    title.innerHTML = `<span style="width: 12px; height: 12px; border-radius: 50%; background-color: ${res.steps['500'].hex}; display: inline-block;"></span> ${res.name}`;
-                    row.appendChild(title);
+                    // Header
+                    const header = document.createElement('div');
+                    header.style.cssText = "display: flex; align-items: center; gap: 8px; margin-bottom: 12px;";
 
+                    const dot = document.createElement('div');
+                    dot.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background-color: ${res.steps['500'].hex};`;
+
+                    const title = document.createElement('span');
+                    title.style.cssText = "font-size: 14px; font-weight: 600; color: #111827;";
+                    title.innerText = res.name;
+
+                    header.appendChild(dot);
+                    header.appendChild(title);
+                    row.appendChild(header);
+
+                    // Swatches Container
                     const swatches = document.createElement('div');
-                    swatches.className = 'scale-swatches';
+                    swatches.style.cssText = "display: flex; height: 48px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);";
 
                     // Order: 50, 100, ... 950
                     const steps = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
+                    const stepWidth = 100 / steps.length;
 
                     steps.forEach(step => {
                         if (!res.steps[step]) return;
 
                         const colorData = res.steps[step];
-                        const hex = colorData.hex; // Extract hex from object
-                        const isDark = step >= 500; // rough guess for text color
+                        const hex = colorData.hex;
+                        const isDark = step >= 500;
 
                         const chip = document.createElement('div');
-                        chip.className = 'swatch-chip';
-                        chip.style.backgroundColor = hex;
-                        chip.style.color = isDark ? '#fff' : '#000';
-                        chip.textContent = step;
-                        chip.title = `${step}: ${hex}`;
+                        chip.title = `${res.name}-${step}: ${hex}`;
+                        chip.style.cssText = `
+                            flex: 1;
+                            background-color: ${hex};
+                            display: flex;
+                            align-items: flex-end;
+                            justify-content: center;
+                            padding-bottom: 6px;
+                            cursor: default;
+                            transition: transform 0.1s;
+                        `;
+
+                        // Font color based on background
+                        const textColor = isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.6)';
+
+                        chip.innerHTML = `<span style="font-size: 9px; font-family: monospace; color: ${textColor}; padding: 0 2px; pointer-events: none;">${step}</span>`;
+
+                        chip.onmouseenter = () => {
+                            // chip.style.transform = 'scaleY(1.1)'; // simple hover effect
+                            // Optional: Show Tooltip
+                        };
+                        chip.onmouseleave = () => {
+                            // chip.style.transform = 'none';
+                        };
 
                         swatches.appendChild(chip);
                     });
@@ -1383,25 +1414,67 @@
 
             colorQueue.forEach((c, idx) => {
                 const row = document.createElement('div');
-                row.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 6px; background: #fff; border: 1px solid #eee; border-radius: 4px;";
+                row.className = 'queue-item';
+                // Inline styles moved to CSS class ideally, but inline for now with upgrades
+                row.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; transition: all 0.2s; margin-bottom: 8px;";
+
+                // Hover effect
+                row.onmouseenter = () => row.style.borderColor = '#d1d5db';
+                row.onmouseleave = () => row.style.borderColor = '#e5e7eb';
 
                 const left = document.createElement('div');
-                left.style.cssText = "display: flex; align-items: center; gap: 8px;";
+                left.style.cssText = "display: flex; align-items: center; gap: 12px;";
 
+                // Color Preview Dot (Clean Circle)
                 const dot = document.createElement('div');
-                dot.style.cssText = `width: 16px; height: 16px; border-radius: 50%; background-color: ${c.hex}; border: 1px solid rgba(0,0,0,0.1);`;
+                dot.style.cssText = `width: 24px; height: 24px; border-radius: 50%; background-color: ${c.hex}; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);`;
 
-                const txt = document.createElement('span');
-                txt.style.cssText = "font-size: 12px; font-weight: 500; color: #333;";
-                txt.innerText = `${c.name} (${c.hex})`;
+                // Text Info
+                const info = document.createElement('div');
+                info.style.display = 'flex';
+                info.style.flexDirection = 'column';
+
+                const nameEl = document.createElement('span');
+                nameEl.style.cssText = "font-size: 13px; font-weight: 600; color: #1f2937; line-height: 1.2;";
+                nameEl.innerText = c.name;
+
+                const hexEl = document.createElement('span');
+                hexEl.style.cssText = "font-size: 11px; font-weight: 400; color: #6b7280; font-family: monospace;";
+                hexEl.innerText = c.hex;
+
+                info.appendChild(nameEl);
+                info.appendChild(hexEl);
 
                 left.appendChild(dot);
-                left.appendChild(txt);
+                left.appendChild(info);
 
+                // Trash Button
                 const delBtn = document.createElement('button');
-                delBtn.innerText = "×";
-                delBtn.style.cssText = "background: none; border: none; color: #999; font-weight: bold; cursor: pointer; font-size: 16px; padding: 0 4px;";
-                delBtn.onclick = () => {
+                delBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                `;
+                // Fix: Override global button width: 100%
+                delBtn.style.cssText = "width: 32px; height: 32px; background: none; border: none; color: #9ca3af; cursor: pointer; padding: 0; border-radius: 6px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 8px;";
+
+                delBtn.onmouseenter = () => {
+                    delBtn.style.color = '#ef4444';
+                    delBtn.style.backgroundColor = '#fee2e2';
+                };
+                delBtn.onmouseleave = () => {
+                    delBtn.style.color = '#9ca3af';
+                    delBtn.style.backgroundColor = 'transparent';
+                };
+
+                delBtn.onclick = (e) => {
+                    e.stopPropagation(); // Prevent row click
+                    // sync: Remove from preview if exists
+                    const nameToRemove = colorQueue[idx].name;
+                    removePreviewCard(nameToRemove);
+
                     colorQueue.splice(idx, 1);
                     renderQueue();
                 };
@@ -1415,10 +1488,34 @@
             previewBtn.disabled = false;
         };
 
+        // Helper: Remove preview card by name
+        const removePreviewCard = (name) => {
+            const scaleList = document.getElementById('scale-list');
+            // Find element with data-name attribute
+            const existingCard = Array.from(scaleList.children).find(el => el.dataset.name === name);
+            if (existingCard) {
+                existingCard.remove();
+            }
+            // Hide container if empty
+            if (scaleList.children.length === 0) {
+                document.getElementById('scale-preview-container').style.display = 'none';
+            }
+        };
+
         // Generate Preview (Batch)
         previewBtn.onclick = () => {
             if (colorQueue.length === 0) return;
+            // Show loading state on button?
+            previewBtn.innerText = "Generating Preview...";
+            previewBtn.disabled = true;
+
             parent.postMessage({ pluginMessage: { type: 'preview-scale-batch', colors: colorQueue } }, '*');
+
+            // Re-enable button after slight delay or waiting for response (handled in message listener)
+            setTimeout(() => {
+                previewBtn.innerText = "Preview Palettes";
+                previewBtn.disabled = false;
+            }, 1000);
         };
 
         // Create Variables (Batch)

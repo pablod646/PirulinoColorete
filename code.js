@@ -1874,12 +1874,52 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
         const override = tokenOverrides[name];
         // Expect override format: { light: '100', dark: '900' }
         // We need to resolve these scale values to actual variables
-        // Find variable list based on token type (approximate)
-        let targetVars = neutralVars;
-        if (name.includes('Action') || name.includes('Accent')) targetVars = accentVars;
-        else if (name.includes('Status/success')) targetVars = successVars;
-        else if (name.includes('Status/warning')) targetVars = warningVars;
-        else if (name.includes('Status/error')) targetVars = errorVars;
+
+        // Determine target vars based on token type - IMPROVED to match frontend logic
+        let targetVars = neutralVars; // Default
+
+        // Status tokens - most specific first
+        if (name.startsWith('Status/success')) {
+          targetVars = successVars.length > 0 ? successVars : accentVars;
+        } else if (name.startsWith('Status/warning')) {
+          targetVars = warningVars.length > 0 ? warningVars : accentVars;
+        } else if (name.startsWith('Status/error')) {
+          targetVars = errorVars.length > 0 ? errorVars : accentVars;
+        } else if (name.startsWith('Status/info')) {
+          targetVars = accentVars; // Info uses accent
+        }
+        // Action/Button tokens
+        else if (name.startsWith('Action/') || name.startsWith('Button/')) {
+          targetVars = accentVars;
+        }
+        // Background tokens
+        else if (name.startsWith('Background/brand') || name.startsWith('Background/accent')) {
+          targetVars = accentVars;
+        }
+        // Text tokens
+        else if (name.startsWith('Text/brand') || name.startsWith('Text/link')) {
+          targetVars = accentVars;
+        }
+        // Badge tokens
+        else if (name.startsWith('Badge/brand')) {
+          targetVars = accentVars;
+        }
+        // Nav tokens
+        else if (name.startsWith('Nav/')) {
+          targetVars = accentVars;
+        }
+        // Icon tokens
+        else if (name.startsWith('Icon/brand')) {
+          targetVars = accentVars;
+        }
+        // Border tokens
+        else if (name.startsWith('Border/brand') || name.startsWith('Border/focus')) {
+          targetVars = accentVars;
+        }
+        // Everything else uses neutral
+        else {
+          targetVars = neutralVars;
+        }
 
         // If specific override var exists, use it
         if (override.light) {
@@ -1905,33 +1945,154 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
       };
     };
 
-    // ... Background/Text/Surface/Border/Action tokens (Same as before) ...
+    // ========================================
+    // 🔥 GOD-TIER TOKEN SYSTEM 🔥
+    // ========================================
+
+    // Status tokens helper (uses specific palettes or fallbacks to accent)
+    const getStatusVar = (vars, scale) => vars.length > 0 ? findVar(vars, scale) : findVar(accentVars, scale);
+
+    // ===== 1. FOUNDATION TOKENS =====
+    // Background Hierarchy (6 levels)
     createToken('Background/primary', findVar(neutralVars, map.bgLight), findVar(neutralVars, map.bgDark));
     createToken('Background/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
     createToken('Background/tertiary', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Background/inverse', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+    createToken('Background/brand', findVar(accentVars, '50'), findVar(accentVars, '950'));
+    createToken('Background/accent', findVar(accentVars, '100'), findVar(accentVars, '900'));
+
+    // Text Hierarchy (7 levels)
     createToken('Text/primary', findVar(neutralVars, map.textLight), findVar(neutralVars, map.textDark));
     createToken('Text/secondary', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Text/tertiary', findVar(neutralVars, '600'), findVar(neutralVars, '400'));
     createToken('Text/disabled', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
-    createToken('Surface/default', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
-    createToken('Surface/elevated', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Text/inverse', findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Text/brand', findVar(accentVars, '700'), findVar(accentVars, '300'));
+    createToken('Text/link', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Text/linkHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
+
+    // Surface System (8 levels for elevation)
+    createToken('Surface/level0', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Surface/level1', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Surface/level2', findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Surface/level3', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Surface/level4', findVar(neutralVars, '100'), findVar(neutralVars, '750') || findVar(neutralVars, '700'));
     createToken('Surface/overlay', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '800'));
+    createToken('Surface/modal', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Surface/tooltip', findVar(neutralVars, '900'), findVar(neutralVars, '700'));
+
+    // Border System (6 levels)
     createToken('Border/default', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
     createToken('Border/subtle', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Border/strong', findVar(neutralVars, '300'), findVar(neutralVars, '600'));
+    createToken('Border/brand', findVar(accentVars, '300'), findVar(accentVars, '700'));
+    createToken('Border/focus', findVar(accentVars, '500'), findVar(accentVars, '400'));
+    createToken('Border/error', getStatusVar(errorVars, '500'), getStatusVar(errorVars, '400'));
+
+    // ===== 2. INTERACTIVE TOKENS =====
+    // Primary Actions (Complete State Machine)
     createToken('Action/primary', findVar(accentVars, map.actionLight), findVar(accentVars, map.actionDark));
     createToken('Action/primaryHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
-    createToken('Action/disabled', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+    createToken('Action/primaryActive', findVar(accentVars, '800'), findVar(accentVars, '200'));
+    createToken('Action/primaryDisabled', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+    createToken('Action/primarySubtle', findVar(accentVars, '100'), findVar(accentVars, '900'));
+    createToken('Action/primarySubtleHover', findVar(accentVars, '200'), findVar(accentVars, '800'));
 
-    // Status tokens uses specific palettes or fallbacks to accent if not provided
-    const getStatusVar = (vars, scale) => vars.length > 0 ? findVar(vars, scale) : findVar(accentVars, scale);
+    // Secondary Actions
+    createToken('Action/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Action/secondaryHover', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Action/secondaryActive', findVar(neutralVars, '300'), findVar(neutralVars, '600'));
 
+    // Ghost/Tertiary Actions
+    createToken('Action/ghost', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Action/ghostHover', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Action/ghostActive', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+
+    // Destructive Actions
+    createToken('Action/destructive', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '500'));
+    createToken('Action/destructiveHover', getStatusVar(errorVars, '700'), getStatusVar(errorVars, '400'));
+    createToken('Action/destructiveActive', getStatusVar(errorVars, '800'), getStatusVar(errorVars, '300'));
+
+    // ===== 3. COMPONENT-SPECIFIC TOKENS =====
+    // Input Fields
+    createToken('Input/background', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Input/backgroundHover', findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Input/backgroundFocus', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Input/backgroundDisabled', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Input/border', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+    createToken('Input/borderHover', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Input/borderFocus', findVar(accentVars, '500'), findVar(accentVars, '400'));
+    createToken('Input/borderError', getStatusVar(errorVars, '500'), getStatusVar(errorVars, '400'));
+    createToken('Input/placeholder', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Input/text', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+
+    // Cards
+    createToken('Card/background', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Card/backgroundHover', findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Card/border', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Card/borderHover', findVar(neutralVars, '300'), findVar(neutralVars, '600'));
+
+    // Buttons (Text on Button)
+    createToken('Button/primaryText', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Button/secondaryText', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+    createToken('Button/ghostText', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+
+    // Badges & Tags
+    createToken('Badge/background', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Badge/text', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Badge/brandBackground', findVar(accentVars, '100'), findVar(accentVars, '900'));
+    createToken('Badge/brandText', findVar(accentVars, '700'), findVar(accentVars, '300'));
+
+    // Navigation
+    createToken('Nav/background', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Nav/itemDefault', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Nav/itemHover', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+    createToken('Nav/itemActive', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Nav/itemActiveBackground', findVar(accentVars, '100'), findVar(accentVars, '900'));
+
+    // ===== 4. STATUS & FEEDBACK TOKENS =====
+    // Success
     createToken('Status/success', getStatusVar(successVars, '600'), getStatusVar(successVars, '400'));
-    createToken('Status/error', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '400'));
-    createToken('Status/warning', getStatusVar(warningVars, '600'), getStatusVar(warningVars, '400'));
+    createToken('Status/successSubtle', getStatusVar(successVars, '100'), getStatusVar(successVars, '900'));
+    createToken('Status/successBorder', getStatusVar(successVars, '300'), getStatusVar(successVars, '700'));
+    createToken('Status/successText', getStatusVar(successVars, '700'), getStatusVar(successVars, '300'));
 
-    // New Subtle Background Tokens (using same lightness level as theme background)
-    createToken('Status/successSubtle', getStatusVar(successVars, map.bgLight), getStatusVar(successVars, map.bgDark));
-    createToken('Status/errorSubtle', getStatusVar(errorVars, map.bgLight), getStatusVar(errorVars, map.bgDark));
-    createToken('Status/warningSubtle', getStatusVar(warningVars, map.bgLight), getStatusVar(warningVars, map.bgDark));
+    // Warning
+    createToken('Status/warning', getStatusVar(warningVars, '600'), getStatusVar(warningVars, '400'));
+    createToken('Status/warningSubtle', getStatusVar(warningVars, '100'), getStatusVar(warningVars, '900'));
+    createToken('Status/warningBorder', getStatusVar(warningVars, '300'), getStatusVar(warningVars, '700'));
+    createToken('Status/warningText', getStatusVar(warningVars, '700'), getStatusVar(warningVars, '300'));
+
+    // Error
+    createToken('Status/error', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '400'));
+    createToken('Status/errorSubtle', getStatusVar(errorVars, '100'), getStatusVar(errorVars, '900'));
+    createToken('Status/errorBorder', getStatusVar(errorVars, '300'), getStatusVar(errorVars, '700'));
+    createToken('Status/errorText', getStatusVar(errorVars, '700'), getStatusVar(errorVars, '300'));
+
+    // Info (using accent)
+    createToken('Status/info', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Status/infoSubtle', findVar(accentVars, '100'), findVar(accentVars, '900'));
+    createToken('Status/infoBorder', findVar(accentVars, '300'), findVar(accentVars, '700'));
+    createToken('Status/infoText', findVar(accentVars, '700'), findVar(accentVars, '300'));
+
+    // ===== 5. OVERLAY & SCRIM TOKENS =====
+    createToken('Overlay/backdrop', findVar(neutralVars, '900'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Overlay/scrim', findVar(neutralVars, '950') || findVar(neutralVars, '900'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Overlay/skeleton', findVar(neutralVars, '200'), findVar(neutralVars, '800'));
+    createToken('Overlay/loading', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+
+    // ===== 6. ICON TOKENS =====
+    createToken('Icon/default', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Icon/subtle', findVar(neutralVars, '500'), findVar(neutralVars, '500'));
+    createToken('Icon/disabled', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Icon/brand', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Icon/inverse', findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+
+    // ===== 7. ACCESSIBILITY TOKENS =====
+    createToken('A11y/focusRing', findVar(accentVars, '500'), findVar(accentVars, '400'));
+    createToken('A11y/focusRingError', getStatusVar(errorVars, '500'), getStatusVar(errorVars, '400'));
+    createToken('A11y/highContrastText', findVar(neutralVars, '950') || findVar(neutralVars, '900'), findVar(neutralVars, '0') || findVar(neutralVars, '50'));
+    createToken('A11y/highContrastBorder', findVar(neutralVars, '900'), findVar(neutralVars, '100'));
 
     const validation = { passed: Object.keys(tokens).length, warnings: [] };
 

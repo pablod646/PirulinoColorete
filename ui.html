@@ -269,27 +269,62 @@
         }
 
         .swatch-picker {
-            display: flex;
-            gap: 4px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
         }
 
         .picker-chip {
-            flex: 1;
-            height: 24px;
-            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 8px;
+            border-radius: 8px;
             cursor: pointer;
             border: 2px solid transparent;
-            transition: transform 0.1s;
+            background: #f9fafb;
+            transition: all 0.2s ease;
         }
 
         .picker-chip:hover {
-            transform: scale(1.1);
-            z-index: 2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: #d1d5db;
+            background: white;
         }
 
         .picker-chip.selected {
             border-color: #18A0FB;
-            transform: scale(1.1);
+            background: #eff6ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(24, 160, 251, 0.3);
+        }
+
+        .picker-chip-color {
+            width: 100%;
+            height: 40px;
+            border-radius: 6px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .picker-chip-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #374151;
+            text-align: center;
+        }
+
+        .picker-chip-hex {
+            font-size: 9px;
+            font-family: monospace;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .picker-chip.selected .picker-chip-label {
+            color: #18A0FB;
         }
 
         /* Interactive Preview Elements */
@@ -714,6 +749,19 @@
             <button id="generate-theme-btn" class="primary" style="width: 100%;" disabled>
                 Generate Theme
             </button>
+
+            <!-- Helpful message (shown after theme is generated) -->
+            <div id="regenerate-hint"
+                style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border: 1.5px solid #bae6fd; border-radius: 6px; font-size: 13px; color: #0c4a6e;">
+                <div style="display: flex; align-items: start; gap: 8px;">
+                    <span style="font-size: 16px;">💡</span>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Want to try different palettes?</div>
+                        <div style="line-height: 1.5;">Change your palette selections above and click <strong>"Generate
+                                Theme"</strong> again to see a new preview.</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="separator"></div>
@@ -732,49 +780,206 @@
                 </select>
             </div>
 
-            <!-- Component Preview -->
-            <div style="margin-bottom: 24px; padding: 24px; border-radius: 8px; border: 1.5px solid #e5e7eb;"
-                id="theme-preview-container">
-                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 16px;">Component
+            <!-- Component Preview - EXPANDED to show ALL components -->
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px;">Component
                     Preview</label>
+                <div id="theme-preview-mockup"
+                    style="padding: 24px; border-radius: 12px; border: 2px dashed #d1d5db; min-height: 600px;">
 
-                <div id="theme-preview-mockup" style="padding: 20px; border-radius: 8px; transition: all 0.3s ease;">
-                    <!-- Card Example -->
-                    <div id="preview-card"
-                        style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
-                        <h3 id="preview-card-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">Card
-                            Title</h3>
-                        <p id="preview-card-text" style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5;">
-                            This is some body text that demonstrates the text color on background.
-                        </p>
-                        <div style="display: flex; gap: 8px;">
-                            <button id="preview-btn-primary"
-                                style="padding: 8px 16px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer;">
-                                Primary Button
-                            </button>
-                            <button id="preview-btn-secondary"
-                                style="padding: 8px 16px; border-radius: 6px; border: 1px solid; font-size: 14px; font-weight: 500; cursor: pointer; background: transparent;">
-                                Secondary
-                            </button>
-                        </div>
-                    </div>
+                    <!-- Grid Layout for better organization -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
 
-                    <!-- Status Messages -->
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div id="preview-success"
-                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <span>✅</span> <span id="preview-success-text"
-                                style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Success message</span>
+                        <!-- LEFT COLUMN -->
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+                            <!-- Card with Text -->
+                            <div id="preview-card"
+                                style="background: white; padding: 20px; border-radius: 8px; border: 1.5px solid #e5e7eb; cursor: pointer;">
+                                <h3 id="preview-card-title"
+                                    style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer;">
+                                    Card Title
+                                </h3>
+                                <p id="preview-card-text"
+                                    style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; cursor: pointer;">
+                                    This is some body text that demonstrates the text color on background.
+                                </p>
+                                <p id="preview-card-text-tertiary" style="margin: 0; font-size: 12px; cursor: pointer;">
+                                    Tertiary text for captions and metadata
+                                </p>
+                            </div>
+
+                            <!-- Buttons Section -->
+                            <div
+                                style="background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                                    BUTTONS</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; gap: 8px;">
+                                        <button id="preview-btn-primary"
+                                            style="flex: 1; padding: 10px 16px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer;">
+                                            Primary
+                                        </button>
+                                        <button id="preview-btn-secondary"
+                                            style="flex: 1; padding: 10px 16px; border-radius: 6px; border: 1.5px solid; font-size: 14px; font-weight: 500; cursor: pointer; background: transparent;">
+                                            Secondary
+                                        </button>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button id="preview-btn-ghost"
+                                            style="flex: 1; padding: 10px 16px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; background: transparent;">
+                                            Ghost
+                                        </button>
+                                        <button id="preview-btn-destructive"
+                                            style="flex: 1; padding: 10px 16px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer;">
+                                            Destructive
+                                        </button>
+                                    </div>
+                                    <button id="preview-btn-disabled"
+                                        style="padding: 10px 16px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: not-allowed; opacity: 0.5;">
+                                        Disabled
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Input Fields -->
+                            <div
+                                style="background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                                    INPUT FIELDS</div>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <input id="preview-input-normal" type="text" placeholder="Normal input"
+                                        style="padding: 10px 12px; border-radius: 6px; border: 1.5px solid; font-size: 14px; outline: none; cursor: pointer;">
+                                    <input id="preview-input-focus" type="text" placeholder="Focus state (click me)"
+                                        style="padding: 10px 12px; border-radius: 6px; border: 1.5px solid; font-size: 14px; outline: none; cursor: pointer;">
+                                    <input id="preview-input-error" type="text" placeholder="Error state"
+                                        style="padding: 10px 12px; border-radius: 6px; border: 1.5px solid; font-size: 14px; outline: none; cursor: pointer;">
+                                    <input id="preview-input-disabled" type="text" placeholder="Disabled" disabled
+                                        style="padding: 10px 12px; border-radius: 6px; border: 1.5px solid; font-size: 14px; cursor: not-allowed;">
+                                </div>
+                            </div>
+
+                            <!-- Badges & Tags -->
+                            <div
+                                style="background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                                    BADGES & TAGS</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    <span id="preview-badge-neutral"
+                                        style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; cursor: pointer;">
+                                        Neutral
+                                    </span>
+                                    <span id="preview-badge-brand"
+                                        style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; cursor: pointer;">
+                                        Brand
+                                    </span>
+                                    <span id="preview-badge-success"
+                                        style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; cursor: pointer;">
+                                        Success
+                                    </span>
+                                    <span id="preview-badge-warning"
+                                        style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; cursor: pointer;">
+                                        Warning
+                                    </span>
+                                    <span id="preview-badge-error"
+                                        style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; cursor: pointer;">
+                                        Error
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div id="preview-warning"
-                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <span>⚠️</span> <span id="preview-warning-text"
-                                style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Warning message</span>
-                        </div>
-                        <div id="preview-error"
-                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <span>❌</span> <span id="preview-error-text"
-                                style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Error message</span>
+
+                        <!-- RIGHT COLUMN -->
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+                            <!-- Surface Levels (Elevation) -->
+                            <div
+                                style="background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                                    SURFACE ELEVATION</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div id="preview-surface-0"
+                                        style="padding: 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        Level 0 (Base)
+                                    </div>
+                                    <div id="preview-surface-1"
+                                        style="padding: 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        Level 1 (Cards)
+                                    </div>
+                                    <div id="preview-surface-2"
+                                        style="padding: 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        Level 2 (Hover)
+                                    </div>
+                                    <div id="preview-surface-3"
+                                        style="padding: 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        Level 3 (Dropdowns)
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Navigation -->
+                            <div id="preview-nav-container" style="border-radius: 8px; padding: 12px; cursor: pointer;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                                    NAVIGATION</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div id="preview-nav-item-1"
+                                        style="padding: 10px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                                        Dashboard
+                                    </div>
+                                    <div id="preview-nav-item-2"
+                                        style="padding: 10px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                                        Projects (Active)
+                                    </div>
+                                    <div id="preview-nav-item-3"
+                                        style="padding: 10px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                                        Settings
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status Messages -->
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #6b7280;">
+                                    STATUS MESSAGES</div>
+                                <div id="preview-success"
+                                    style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <span>✅</span> <span id="preview-success-text"
+                                        style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Success
+                                        message</span>
+                                </div>
+                                <div id="preview-warning"
+                                    style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <span>⚠️</span> <span id="preview-warning-text"
+                                        style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Warning
+                                        message</span>
+                                </div>
+                                <div id="preview-error"
+                                    style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <span>❌</span> <span id="preview-error-text"
+                                        style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Error
+                                        message</span>
+                                </div>
+                                <div id="preview-info"
+                                    style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <span>ℹ️</span> <span id="preview-info-text"
+                                        style="cursor: pointer; padding: 2px 4px; border-radius: 4px;">Info
+                                        message</span>
+                                </div>
+                            </div>
+
+                            <!-- Icons -->
+                            <div
+                                style="background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+                                <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                                    ICONS</div>
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <span id="preview-icon-default" style="font-size: 20px; cursor: pointer;">🏠</span>
+                                    <span id="preview-icon-subtle" style="font-size: 20px; cursor: pointer;">⚙️</span>
+                                    <span id="preview-icon-brand" style="font-size: 20px; cursor: pointer;">⭐</span>
+                                    <span id="preview-icon-disabled"
+                                        style="font-size: 20px; cursor: pointer; opacity: 0.4;">🔒</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -783,11 +988,10 @@
             <!-- Token Assignments -->
             <div style="margin-bottom: 24px;">
                 <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px;">Token
-                    Assignments</label>
-                <div id="theme-token-list"
-                    style="background: #f9fafb; padding: 16px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.8;">
-                    <!-- Will be populated by JavaScript -->
-                </div>
+                    <div id="theme-token-list"
+                        style="background: #f9fafb; padding: 16px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.8;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
             </div>
 
             <!-- Validation Summary -->
@@ -857,31 +1061,72 @@
         }
     </style>
 
-    <!-- Tone Editor Modal -->
+    <!-- 🔥 ULTRA GOD-TIER Component Editor Modal -->
     <div id="token-editor-modal">
-        <div class="editor-content">
-            <h3 id="editor-title" style="margin: 0 0 16px 0; font-size: 16px;">Edit Token</h3>
-
-            <div class="editor-row">
-                <div class="editor-label">
-                    Light Mode
-                    <span id="light-val-display" style="color:#666; font-weight:400;"></span>
+        <div class="editor-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <!-- Header -->
+            <div
+                style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
+                <div>
+                    <h3 id="editor-title" style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #111;">
+                        Edit Component
+                    </h3>
+                    <div id="editor-component-name" style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                        <!-- Component name will be inserted here -->
+                    </div>
                 </div>
-                <div id="light-swatches" class="swatch-picker"></div>
+                <button id="editor-close-x"
+                    style="width: 32px; height: 32px; padding: 0; background: #f3f4f6; border-radius: 6px; font-size: 18px; line-height: 1;">
+                    ✕
+                </button>
             </div>
 
-            <div class="editor-row">
-                <div class="editor-label">
-                    Dark Mode
-                    <span id="dark-val-display" style="color:#666; font-weight:400;"></span>
+            <!-- Filters -->
+            <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; background: #f9fafb; padding: 16px; border-radius: 8px;">
+                <div>
+                    <label
+                        style="display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        Filter by State
+                    </label>
+                    <select id="editor-state-filter"
+                        style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1.5px solid #d1d5db; font-size: 13px;">
+                        <option value="all">All States</option>
+                        <option value="normal">Normal</option>
+                        <option value="hover">Hover</option>
+                        <option value="active">Active</option>
+                        <option value="disabled">Disabled</option>
+                        <option value="focus">Focus</option>
+                    </select>
                 </div>
-                <div id="dark-swatches" class="swatch-picker"></div>
+                <div>
+                    <label
+                        style="display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        Edit Mode
+                    </label>
+                    <select id="editor-mode-filter"
+                        style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1.5px solid #d1d5db; font-size: 13px;">
+                        <option value="both">Both (Light & Dark)</option>
+                        <option value="light">Light Mode Only</option>
+                        <option value="dark">Dark Mode Only</option>
+                    </select>
+                </div>
             </div>
 
-            <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px;">
-                <button id="editor-reset" style="background: #f3f4f6; color: #374151; width: auto;">Reset
-                    Default</button>
-                <button id="editor-close" style="width: auto;">Done</button>
+            <!-- Tokens List -->
+            <div id="editor-tokens-container" style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Tokens will be dynamically inserted here -->
+            </div>
+
+            <!-- Actions -->
+            <div
+                style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; margin-top: 24px; border-top: 2px solid #e5e7eb;">
+                <button id="editor-reset-all" class="secondary" style="width: auto; padding: 10px 20px;">
+                    🔄 Reset All
+                </button>
+                <button id="editor-apply" class="primary" style="width: auto; padding: 10px 24px;">
+                    ✓ Apply Changes
+                </button>
             </div>
         </div>
     </div>
@@ -1175,6 +1420,16 @@
 
                 // Render validation
                 renderValidation(currentThemeData.validation);
+
+                // Re-enable Generate Theme button so user can regenerate with different palettes
+                generateThemeBtn.disabled = false;
+                generateThemeBtn.textContent = '✨ Generate Theme';
+
+                // Show helpful hint about regenerating
+                const regenerateHint = document.getElementById('regenerate-hint');
+                if (regenerateHint) {
+                    regenerateHint.style.display = 'block';
+                }
 
                 // Scroll to preview
                 themePreviewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1763,9 +2018,11 @@
                 return;
             }
 
-            // Disable button
-            generateThemeBtn.disabled = true;
-            generateThemeBtn.textContent = 'Generating...';
+            // Hide regenerate hint while generating
+            const regenerateHint = document.getElementById('regenerate-hint');
+            if (regenerateHint) {
+                regenerateHint.style.display = 'none';
+            }
 
             // Disable button
             generateThemeBtn.disabled = true;
@@ -1836,7 +2093,7 @@
             }
         });
 
-        // Render theme preview
+        // Render theme preview - FIXED for proper dark mode
         function renderThemePreview(themeData, mode) {
             const tokens = themeData.tokens;
             const modeTokens = {};
@@ -1846,86 +2103,356 @@
                 modeTokens[key] = mode === 'light' ? value.light : value.dark;
             }
 
-            // Apply to preview components
-            const mockup = document.getElementById('theme-preview-mockup');
-            const card = document.getElementById('preview-card');
-            const cardTitle = document.getElementById('preview-card-title');
-            const cardText = document.getElementById('preview-card-text');
-            const btnPrimary = document.getElementById('preview-btn-primary');
-            const btnSecondary = document.getElementById('preview-btn-secondary');
+            // Helper to get element
+            const get = (id) => document.getElementById(id);
 
-            const successMsg = document.getElementById('preview-success');
-            const successText = document.getElementById('preview-success-text');
+            // Apply to ALL preview components
+            const mockup = get('theme-preview-mockup');
+            const card = get('preview-card');
+            const cardTitle = get('preview-card-title');
+            const cardText = get('preview-card-text');
+            const cardTextTertiary = get('preview-card-text-tertiary');
 
-            const warningMsg = document.getElementById('preview-warning');
-            const warningText = document.getElementById('preview-warning-text');
+            // Buttons
+            const btnPrimary = get('preview-btn-primary');
+            const btnSecondary = get('preview-btn-secondary');
+            const btnGhost = get('preview-btn-ghost');
+            const btnDestructive = get('preview-btn-destructive');
+            const btnDisabled = get('preview-btn-disabled');
 
-            const errorMsg = document.getElementById('preview-error');
-            const errorText = document.getElementById('preview-error-text');
+            // Inputs
+            const inputNormal = get('preview-input-normal');
+            const inputFocus = get('preview-input-focus');
+            const inputError = get('preview-input-error');
+            const inputDisabled = get('preview-input-disabled');
 
-            // Apply colors
-            mockup.style.background = modeTokens['Background/primary']?.hex || '#fff';
-            card.style.background = modeTokens['Surface/default']?.hex || '#fff';
-            card.style.borderColor = modeTokens['Border/default']?.hex || '#e5e7eb';
-            cardTitle.style.color = modeTokens['Text/primary']?.hex || '#000';
-            cardText.style.color = modeTokens['Text/secondary']?.hex || '#666';
+            // Badges
+            const badgeNeutral = get('preview-badge-neutral');
+            const badgeBrand = get('preview-badge-brand');
+            const badgeSuccess = get('preview-badge-success');
+            const badgeWarning = get('preview-badge-warning');
+            const badgeError = get('preview-badge-error');
 
-            btnPrimary.style.background = modeTokens['Action/primary']?.hex || '#3b82f6';
-            btnPrimary.style.color = '#fff';
+            // Surface levels
+            const surface0 = get('preview-surface-0');
+            const surface1 = get('preview-surface-1');
+            const surface2 = get('preview-surface-2');
+            const surface3 = get('preview-surface-3');
 
-            btnSecondary.style.borderColor = modeTokens['Action/primary']?.hex || '#3b82f6';
-            btnSecondary.style.color = modeTokens['Action/primary']?.hex || '#3b82f6';
+            // Navigation
+            const navContainer = get('preview-nav-container');
+            const navItem1 = get('preview-nav-item-1');
+            const navItem2 = get('preview-nav-item-2');
+            const navItem3 = get('preview-nav-item-3');
 
-            successMsg.style.background = modeTokens['Status/successSubtle']?.hex || '#f0fdf4';
-            successText.style.color = modeTokens['Status/success']?.hex || '#16a34a';
+            // Status
+            const successMsg = get('preview-success');
+            const successText = get('preview-success-text');
+            const warningMsg = get('preview-warning');
+            const warningText = get('preview-warning-text');
+            const errorMsg = get('preview-error');
+            const errorText = get('preview-error-text');
+            const infoMsg = get('preview-info');
+            const infoText = get('preview-info-text');
 
-            warningMsg.style.background = modeTokens['Status/warningSubtle']?.hex || '#fef3c7';
-            warningText.style.color = modeTokens['Status/warning']?.hex || '#ca8a04';
+            // Icons
+            const iconDefault = get('preview-icon-default');
+            const iconSubtle = get('preview-icon-subtle');
+            const iconBrand = get('preview-icon-brand');
+            const iconDisabled = get('preview-icon-disabled');
 
-            errorMsg.style.background = modeTokens['Status/errorSubtle']?.hex || '#fee2e2';
-            errorText.style.color = modeTokens['Status/error']?.hex || '#dc2626';
+            // === APPLY STYLES ===
 
-            // Add interactivity
-            const addClick = (el, tokenName) => {
+            // Background
+            mockup.style.background = modeTokens['Background/primary']?.hex || (mode === 'dark' ? '#1a1a1a' : '#fff');
+
+            // Card
+            const surfaceToken = modeTokens['Surface/level0'] || modeTokens['Surface/level1'];
+            if (card) {
+                card.style.background = surfaceToken?.hex || (mode === 'dark' ? '#2a2a2a' : '#fff');
+                card.style.borderColor = modeTokens['Border/default']?.hex || (mode === 'dark' ? '#444' : '#e5e7eb');
+            }
+
+            // Text
+            if (cardTitle) cardTitle.style.color = modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            if (cardText) cardText.style.color = modeTokens['Text/secondary']?.hex || (mode === 'dark' ? '#ccc' : '#666');
+            if (cardTextTertiary) cardTextTertiary.style.color = modeTokens['Text/tertiary']?.hex || (mode === 'dark' ? '#999' : '#888');
+
+            // Buttons
+            if (btnPrimary) {
+                btnPrimary.style.background = modeTokens['Action/primary']?.hex || '#3b82f6';
+                btnPrimary.style.color = modeTokens['Button/primaryText']?.hex || '#fff';
+            }
+            if (btnSecondary) {
+                // Use subtle background instead of transparent
+                const secondaryColor = modeTokens['Action/secondary']?.hex || modeTokens['Action/primary']?.hex || '#3b82f6';
+
+                // Try to get a subtle background token, otherwise create one from the secondary color
+                let secondaryBg = modeTokens['Action/secondarySubtle']?.hex || modeTokens['Action/primarySubtle']?.hex;
+
+                // If no subtle token exists, use a very light version of the secondary color
+                if (!secondaryBg) {
+                    // For light mode, use a very light tint; for dark mode, use a dark tint
+                    secondaryBg = mode === 'dark'
+                        ? 'rgba(59, 130, 246, 0.1)'  // Dark mode: subtle blue tint
+                        : 'rgba(59, 130, 246, 0.08)'; // Light mode: very subtle blue tint
+                }
+
+                btnSecondary.style.background = secondaryBg;
+                btnSecondary.style.borderColor = secondaryColor;
+                btnSecondary.style.color = modeTokens['Button/secondaryText']?.hex || secondaryColor;
+            }
+            if (btnGhost) {
+                btnGhost.style.background = modeTokens['Action/ghost']?.hex || 'transparent';
+                btnGhost.style.color = modeTokens['Button/ghostText']?.hex || modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (btnDestructive) {
+                btnDestructive.style.background = modeTokens['Action/destructive']?.hex || '#dc2626';
+                btnDestructive.style.color = '#fff';
+            }
+            if (btnDisabled) {
+                btnDisabled.style.background = modeTokens['Action/primaryDisabled']?.hex || (mode === 'dark' ? '#333' : '#e5e7eb');
+                btnDisabled.style.color = modeTokens['Text/disabled']?.hex || (mode === 'dark' ? '#666' : '#9ca3af');
+            }
+
+            // Inputs
+            if (inputNormal) {
+                inputNormal.style.background = modeTokens['Input/background']?.hex || (mode === 'dark' ? '#2a2a2a' : '#fff');
+                inputNormal.style.borderColor = modeTokens['Input/border']?.hex || (mode === 'dark' ? '#444' : '#d1d5db');
+                inputNormal.style.color = modeTokens['Input/text']?.hex || modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (inputFocus) {
+                inputFocus.style.background = modeTokens['Input/backgroundFocus']?.hex || modeTokens['Input/background']?.hex || (mode === 'dark' ? '#2a2a2a' : '#fff');
+                inputFocus.style.borderColor = modeTokens['Input/borderFocus']?.hex || modeTokens['Action/primary']?.hex || '#3b82f6';
+                inputFocus.style.color = modeTokens['Input/text']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (inputError) {
+                inputError.style.background = modeTokens['Input/background']?.hex || (mode === 'dark' ? '#2a2a2a' : '#fff');
+                inputError.style.borderColor = modeTokens['Input/borderError']?.hex || modeTokens['Status/error']?.hex || '#dc2626';
+                inputError.style.color = modeTokens['Input/text']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (inputDisabled) {
+                inputDisabled.style.background = modeTokens['Input/backgroundDisabled']?.hex || (mode === 'dark' ? '#1a1a1a' : '#f3f4f6');
+                inputDisabled.style.borderColor = modeTokens['Input/border']?.hex || (mode === 'dark' ? '#333' : '#e5e7eb');
+                inputDisabled.style.color = modeTokens['Text/disabled']?.hex || (mode === 'dark' ? '#666' : '#9ca3af');
+            }
+
+            // Badges
+            if (badgeNeutral) {
+                badgeNeutral.style.background = modeTokens['Badge/background']?.hex || (mode === 'dark' ? '#333' : '#f3f4f6');
+                badgeNeutral.style.color = modeTokens['Badge/text']?.hex || modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (badgeBrand) {
+                badgeBrand.style.background = modeTokens['Badge/brandBackground']?.hex || modeTokens['Action/primarySubtle']?.hex || '#dbeafe';
+                badgeBrand.style.color = modeTokens['Badge/brandText']?.hex || modeTokens['Action/primary']?.hex || '#3b82f6';
+            }
+            if (badgeSuccess) {
+                badgeSuccess.style.background = modeTokens['Status/successSubtle']?.hex || (mode === 'dark' ? '#1a3a1a' : '#f0fdf4');
+                badgeSuccess.style.color = modeTokens['Status/successText']?.hex || modeTokens['Status/success']?.hex || '#16a34a';
+            }
+            if (badgeWarning) {
+                badgeWarning.style.background = modeTokens['Status/warningSubtle']?.hex || (mode === 'dark' ? '#3a3a1a' : '#fef3c7');
+                badgeWarning.style.color = modeTokens['Status/warningText']?.hex || modeTokens['Status/warning']?.hex || '#ca8a04';
+            }
+            if (badgeError) {
+                badgeError.style.background = modeTokens['Status/errorSubtle']?.hex || (mode === 'dark' ? '#3a1a1a' : '#fee2e2');
+                badgeError.style.color = modeTokens['Status/errorText']?.hex || modeTokens['Status/error']?.hex || '#dc2626';
+            }
+
+            // Surface Levels
+            if (surface0) {
+                surface0.style.background = modeTokens['Surface/level0']?.hex || (mode === 'dark' ? '#1a1a1a' : '#f9fafb');
+                surface0.style.color = modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (surface1) {
+                surface1.style.background = modeTokens['Surface/level1']?.hex || (mode === 'dark' ? '#2a2a2a' : '#fff');
+                surface1.style.color = modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (surface2) {
+                surface2.style.background = modeTokens['Surface/level2']?.hex || (mode === 'dark' ? '#333' : '#f3f4f6');
+                surface2.style.color = modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+            if (surface3) {
+                surface3.style.background = modeTokens['Surface/level3']?.hex || (mode === 'dark' ? '#3a3a3a' : '#e5e7eb');
+                surface3.style.color = modeTokens['Text/primary']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            }
+
+            // Navigation
+            if (navContainer) {
+                navContainer.style.background = modeTokens['Nav/background']?.hex || (mode === 'dark' ? '#2a2a2a' : '#f9fafb');
+            }
+            if (navItem1) {
+                navItem1.style.color = modeTokens['Nav/itemDefault']?.hex || modeTokens['Text/secondary']?.hex || (mode === 'dark' ? '#ccc' : '#666');
+            }
+            if (navItem2) {
+                // Active state
+                navItem2.style.background = modeTokens['Nav/itemActiveBackground']?.hex || modeTokens['Action/primarySubtle']?.hex || (mode === 'dark' ? '#1e3a5f' : '#dbeafe');
+                navItem2.style.color = modeTokens['Nav/itemActive']?.hex || modeTokens['Action/primary']?.hex || '#3b82f6';
+            }
+            if (navItem3) {
+                navItem3.style.color = modeTokens['Nav/itemDefault']?.hex || modeTokens['Text/secondary']?.hex || (mode === 'dark' ? '#ccc' : '#666');
+            }
+
+            // Status Messages
+            if (successMsg) successMsg.style.background = modeTokens['Status/successSubtle']?.hex || (mode === 'dark' ? '#1a3a1a' : '#f0fdf4');
+            if (successText) successText.style.color = modeTokens['Status/successText']?.hex || modeTokens['Status/success']?.hex || '#16a34a';
+
+            if (warningMsg) warningMsg.style.background = modeTokens['Status/warningSubtle']?.hex || (mode === 'dark' ? '#3a3a1a' : '#fef3c7');
+            if (warningText) warningText.style.color = modeTokens['Status/warningText']?.hex || modeTokens['Status/warning']?.hex || '#ca8a04';
+
+            if (errorMsg) errorMsg.style.background = modeTokens['Status/errorSubtle']?.hex || (mode === 'dark' ? '#3a1a1a' : '#fee2e2');
+            if (errorText) errorText.style.color = modeTokens['Status/errorText']?.hex || modeTokens['Status/error']?.hex || '#dc2626';
+
+            if (infoMsg) infoMsg.style.background = modeTokens['Status/infoSubtle']?.hex || (mode === 'dark' ? '#1a2a3a' : '#eff6ff');
+            if (infoText) infoText.style.color = modeTokens['Status/infoText']?.hex || modeTokens['Status/info']?.hex || '#3b82f6';
+
+            // Icons (using filter to change color)
+            const iconColor = modeTokens['Icon/default']?.hex || (mode === 'dark' ? '#fff' : '#000');
+            const iconSubtleColor = modeTokens['Icon/subtle']?.hex || (mode === 'dark' ? '#999' : '#666');
+            const iconBrandColor = modeTokens['Icon/brand']?.hex || '#3b82f6';
+
+            // Note: Can't change emoji color, but we set the container color
+            if (iconDefault) iconDefault.style.color = iconColor;
+            if (iconSubtle) iconSubtle.style.color = iconSubtleColor;
+            if (iconBrand) iconBrand.style.color = iconBrandColor;
+            if (iconDisabled) iconDisabled.style.color = modeTokens['Icon/disabled']?.hex || (mode === 'dark' ? '#444' : '#d1d5db');
+
+            // === ADD CLICK HANDLERS ===
+            const addClick = (el, componentType, tokenName) => {
                 if (!el) return;
+                el.dataset.component = componentType;
                 el.dataset.token = tokenName;
                 el.onclick = (e) => {
                     e.stopPropagation();
-                    openToneEditor(tokenName);
+                    openComponentEditor(componentType, mode);
                 };
             };
 
-            addClick(mockup, 'Background/primary');
-            addClick(card, 'Surface/default');
-            addClick(cardTitle, 'Text/primary');
-            addClick(cardText, 'Text/secondary');
-            addClick(btnPrimary, 'Action/primary');
-            addClick(btnSecondary, 'Action/primary');
+            // Background & Surface
+            addClick(mockup, 'background', 'Background/primary');
+            addClick(card, 'surface', 'Surface/level0');
 
-            // Status: Background vs Text
-            addClick(successMsg, 'Status/successSubtle');
-            addClick(successText, 'Status/success');
+            // Text
+            addClick(cardTitle, 'text', 'Text/primary');
+            addClick(cardText, 'text', 'Text/secondary');
+            addClick(cardTextTertiary, 'text', 'Text/tertiary');
 
-            addClick(warningMsg, 'Status/warningSubtle');
-            addClick(warningText, 'Status/warning');
+            // Buttons
+            addClick(btnPrimary, 'button-primary', 'Action/primary');
+            addClick(btnSecondary, 'button-secondary', 'Action/secondary');
+            addClick(btnGhost, 'button-ghost', 'Action/ghost');
+            addClick(btnDestructive, 'button-destructive', 'Action/destructive');
+            addClick(btnDisabled, 'button-disabled', 'Action/primaryDisabled');
 
-            addClick(errorMsg, 'Status/errorSubtle');
-            addClick(errorText, 'Status/error');
+            // Inputs
+            addClick(inputNormal, 'input', 'Input/background');
+            addClick(inputFocus, 'input', 'Input/borderFocus');
+            addClick(inputError, 'input', 'Input/borderError');
+            addClick(inputDisabled, 'input', 'Input/backgroundDisabled');
+
+            // Badges
+            addClick(badgeNeutral, 'badge', 'Badge/background');
+            addClick(badgeBrand, 'badge', 'Badge/brandBackground');
+            addClick(badgeSuccess, 'badge-status', 'Status/successSubtle');
+            addClick(badgeWarning, 'badge-status', 'Status/warningSubtle');
+            addClick(badgeError, 'badge-status', 'Status/errorSubtle');
+
+            // Surface Levels
+            addClick(surface0, 'surface', 'Surface/level0');
+            addClick(surface1, 'surface', 'Surface/level1');
+            addClick(surface2, 'surface', 'Surface/level2');
+            addClick(surface3, 'surface', 'Surface/level3');
+
+            // Navigation
+            addClick(navContainer, 'navigation', 'Nav/background');
+            addClick(navItem1, 'navigation', 'Nav/itemDefault');
+            addClick(navItem2, 'navigation', 'Nav/itemActive');
+            addClick(navItem3, 'navigation', 'Nav/itemDefault');
+
+            // Status
+            addClick(successMsg, 'status-success', 'Status/successSubtle');
+            addClick(successText, 'status-success', 'Status/success');
+            addClick(warningMsg, 'status-warning', 'Status/warningSubtle');
+            addClick(warningText, 'status-warning', 'Status/warning');
+            addClick(errorMsg, 'status-error', 'Status/errorSubtle');
+            addClick(errorText, 'status-error', 'Status/error');
+            addClick(infoMsg, 'status-info', 'Status/infoSubtle');
+            addClick(infoText, 'status-info', 'Status/info');
+
+            // Icons
+            addClick(iconDefault, 'icon', 'Icon/default');
+            addClick(iconSubtle, 'icon', 'Icon/subtle');
+            addClick(iconBrand, 'icon', 'Icon/brand');
+            addClick(iconDisabled, 'icon', 'Icon/disabled');
         }
 
-        // Render token list
+        // Render token list with GOD-TIER categorization
         function renderTokenList(tokens) {
             const tokenList = document.getElementById('theme-token-list');
-            let html = '';
 
-            for (const [key, value] of Object.entries(tokens)) {
-                html += `<div style="margin-bottom: 8px;">`;
-                html += `<strong>${key}:</strong><br>`;
-                html += `  Light: ${value.light.name} <span style="display: inline-block; width: 16px; height: 16px; background: ${value.light.hex}; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle;"></span><br>`;
-                html += `  Dark:  ${value.dark.name} <span style="display: inline-block; width: 16px; height: 16px; background: ${value.dark.hex}; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle;"></span>`;
-                html += `</div>`;
+            // Organize tokens by category
+            const categories = {
+                'Foundation': ['Background', 'Text', 'Surface', 'Border'],
+                'Interactive': ['Action'],
+                'Components': ['Input', 'Card', 'Button', 'Badge', 'Nav'],
+                'Status & Feedback': ['Status'],
+                'Overlays': ['Overlay'],
+                'Icons': ['Icon'],
+                'Accessibility': ['A11y']
+            };
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
+
+            for (const [categoryName, prefixes] of Object.entries(categories)) {
+                // Filter tokens for this category
+                const categoryTokens = Object.entries(tokens).filter(([key]) =>
+                    prefixes.some(prefix => key.startsWith(prefix + '/'))
+                );
+
+                if (categoryTokens.length === 0) continue;
+
+                // Category header
+                html += `
+                    <div style="border: 1.5px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                        <div style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); padding: 12px 16px; border-bottom: 1.5px solid #e5e7eb;">
+                            <div style="font-size: 13px; font-weight: 700; color: #374151; letter-spacing: 0.5px;">
+                                ${categoryName} <span style="background: #e5e7eb; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">${categoryTokens.length}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 12px;">
+                `;
+
+                // Tokens in this category
+                categoryTokens.forEach(([key, value]) => {
+                    const tokenName = key.split('/').pop();
+                    html += `
+                        <div style="margin-bottom: 12px; padding: 8px; background: white; border-radius: 6px; border: 1px solid #f3f4f6;">
+                            <div style="font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 6px;">${key}</div>
+                            <div style="display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: center; margin-bottom: 4px;">
+                                <div style="font-size: 10px; color: #9ca3af;">Light:</div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="display: inline-block; width: 20px; height: 20px; background: ${value.light.hex}; border: 1.5px solid #d1d5db; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></span>
+                                    <span style="font-size: 10px; font-family: monospace; color: #4b5563;">${value.light.hex}</span>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: center;">
+                                <div style="font-size: 10px; color: #9ca3af;">Dark:</div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="display: inline-block; width: 20px; height: 20px; background: ${value.dark.hex}; border: 1.5px solid #d1d5db; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></span>
+                                    <span style="font-size: 10px; font-family: monospace; color: #4b5563;">${value.dark.hex}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
             }
 
+            html += '</div>';
             tokenList.innerHTML = html;
         }
 
@@ -1936,14 +2463,19 @@
             const warnCount = validation.warnings?.length || 0;
 
             let html = `<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">`;
-            html += `✅ ${passCount} tokens passed WCAG AA`;
+            html += `🔥 ${passCount} GOD-TIER tokens generated`;
             if (warnCount > 0) {
                 html += ` • ⚠️ ${warnCount} warnings`;
             }
             html += `</div>`;
 
+            // Show breakdown
+            html += `<div style="font-size: 11px; color: #6b7280; margin-top: 8px;">`;
+            html += `Complete coverage: Foundation • Interactive • Components • Status • Overlays • Icons • A11y`;
+            html += `</div>`;
+
             if (warnCount > 0) {
-                html += `<div style="font-size: 12px; color: #666;">`;
+                html += `<div style="font-size: 12px; color: #666; margin-top: 12px;">`;
                 validation.warnings.forEach(w => {
                     html += `<div>⚠️ ${w}</div>`;
                 });
@@ -2189,29 +2721,117 @@
             }, '*');
         };
 
-        // === TONE EDITOR LOGIC ===
+        // === 🔥 GOD-TIER TONE EDITOR LOGIC ===
         let activeTokenEditing = null;
 
+        // Token Metadata Database
+        const tokenMetadata = {
+            'Background/primary': { category: 'Foundation', description: 'Main application background. Used for the base canvas of your app.' },
+            'Background/secondary': { category: 'Foundation', description: 'Secondary background for alternate sections or nested content.' },
+            'Background/tertiary': { category: 'Foundation', description: 'Tertiary background for deeply nested elements.' },
+            'Background/inverse': { category: 'Foundation', description: 'Inverted background (dark in light mode, light in dark mode).' },
+            'Background/brand': { category: 'Foundation', description: 'Subtle brand-colored background for special sections.' },
+            'Background/accent': { category: 'Foundation', description: 'Accent background with more pronounced brand color.' },
+
+            'Text/primary': { category: 'Foundation', description: 'Primary text with maximum contrast. Use for headings and important content.' },
+            'Text/secondary': { category: 'Foundation', description: 'Secondary text with medium contrast. Use for body text and descriptions.' },
+            'Text/tertiary': { category: 'Foundation', description: 'Tertiary text with lower contrast. Use for captions and metadata.' },
+            'Text/disabled': { category: 'Foundation', description: 'Disabled text state for inactive elements.' },
+            'Text/inverse': { category: 'Foundation', description: 'Text on dark/light backgrounds (inverted).' },
+            'Text/brand': { category: 'Foundation', description: 'Brand-colored text for emphasis.' },
+            'Text/link': { category: 'Foundation', description: 'Default link color.' },
+            'Text/linkHover': { category: 'Foundation', description: 'Link hover state.' },
+
+            'Action/primary': { category: 'Interactive', description: 'Primary action buttons and CTAs. Your main brand color for actions.' },
+            'Action/primaryHover': { category: 'Interactive', description: 'Primary button hover state.' },
+            'Action/primaryActive': { category: 'Interactive', description: 'Primary button active/pressed state.' },
+            'Action/primaryDisabled': { category: 'Interactive', description: 'Primary button disabled state.' },
+
+            'Input/background': { category: 'Components', description: 'Input field background color.' },
+            'Input/border': { category: 'Components', description: 'Input field border color.' },
+            'Input/borderFocus': { category: 'Components', description: 'Input field border when focused (accessibility).' },
+            'Input/borderError': { category: 'Components', description: 'Input field border in error state.' },
+
+            'Status/success': { category: 'Status & Feedback', description: 'Success state color for confirmations and positive feedback.' },
+            'Status/successSubtle': { category: 'Status & Feedback', description: 'Subtle success background for alerts and banners.' },
+            'Status/warning': { category: 'Status & Feedback', description: 'Warning state color for cautions and alerts.' },
+            'Status/warningSubtle': { category: 'Status & Feedback', description: 'Subtle warning background for alerts and banners.' },
+            'Status/error': { category: 'Status & Feedback', description: 'Error state color for failures and validation errors.' },
+            'Status/errorSubtle': { category: 'Status & Feedback', description: 'Subtle error background for alerts and banners.' },
+            'Status/info': { category: 'Status & Feedback', description: 'Info state color for informational messages.' },
+            'Status/infoSubtle': { category: 'Status & Feedback', description: 'Subtle info background for alerts and banners.' },
+
+            'A11y/focusRing': { category: 'Accessibility', description: 'Focus ring color for keyboard navigation (WCAG compliance).' },
+            'A11y/focusRingError': { category: 'Accessibility', description: 'Focus ring color for error states.' }
+        };
+
         function openToneEditor(tokenName) {
-            console.log('openToneEditor called for:', tokenName);
-            console.log('Current paletteCache state:', paletteCache);
-            console.log('Keys in cache:', Object.keys(paletteCache));
+            console.log('🔥 GOD-TIER Editor opened for:', tokenName);
 
             activeTokenEditing = tokenName;
-            document.getElementById('editor-title').innerText = `Edit: ${tokenName}`;
 
-            // Determine Palette Source
-            let paletteType = 'neutral';
-            if (tokenName.includes('Action') || tokenName.includes('Accent')) paletteType = 'accent';
-            else if (tokenName.includes('Status/success')) paletteType = 'success';
-            else if (tokenName.includes('Status/warning')) paletteType = 'warning';
-            else if (tokenName.includes('Status/error')) paletteType = 'error';
+            // Set Title and Path
+            document.getElementById('editor-title').innerText = 'Edit Token';
+            document.getElementById('editor-token-path').innerText = tokenName;
+
+            // Set Metadata
+            const metadata = tokenMetadata[tokenName] || {
+                category: 'Custom',
+                description: 'Custom token. Modify light and dark mode values below.'
+            };
+            document.getElementById('editor-category').innerText = metadata.category;
+            document.getElementById('editor-description').innerText = metadata.description;
+
+            // Determine Palette Source - IMPROVED to prevent mixing
+            let paletteType = 'neutral'; // Default
+
+            // Status tokens - most specific first
+            if (tokenName.startsWith('Status/success')) {
+                paletteType = 'success';
+            } else if (tokenName.startsWith('Status/warning')) {
+                paletteType = 'warning';
+            } else if (tokenName.startsWith('Status/error')) {
+                paletteType = 'error';
+            } else if (tokenName.startsWith('Status/info')) {
+                paletteType = 'accent'; // Info uses accent
+            }
+            // Action/Button tokens
+            else if (tokenName.startsWith('Action/') || tokenName.startsWith('Button/')) {
+                paletteType = 'accent';
+            }
+            // Background tokens
+            else if (tokenName.startsWith('Background/brand') || tokenName.startsWith('Background/accent')) {
+                paletteType = 'accent';
+            }
+            // Text tokens
+            else if (tokenName.startsWith('Text/brand') || tokenName.startsWith('Text/link')) {
+                paletteType = 'accent';
+            }
+            // Badge tokens
+            else if (tokenName.startsWith('Badge/brand')) {
+                paletteType = 'accent';
+            }
+            // Nav tokens
+            else if (tokenName.startsWith('Nav/')) {
+                paletteType = 'accent';
+            }
+            // Icon tokens
+            else if (tokenName.startsWith('Icon/brand')) {
+                paletteType = 'accent';
+            }
+            // Border tokens
+            else if (tokenName.startsWith('Border/brand') || tokenName.startsWith('Border/focus')) {
+                paletteType = 'accent';
+            }
+            // Everything else uses neutral
+            else {
+                paletteType = 'neutral';
+            }
 
             let palette = paletteCache[paletteType];
 
-            // Fallback: If status palette is empty, use Accent (default behavior of generator)
+            // Fallback: If status palette is empty, use Accent
             if ((!palette || Object.keys(palette).length === 0) && ['success', 'warning', 'error'].includes(paletteType)) {
-                // Check if we actually have an accent palette
                 if (paletteCache['accent'] && Object.keys(paletteCache['accent']).length > 0) {
                     palette = paletteCache['accent'];
                     console.log(`Fallback: Using accent palette for ${paletteType}`);
@@ -2219,31 +2839,50 @@
             }
 
             if (!palette || Object.keys(palette).length === 0) {
-                // Debug Info
-                const keys = Object.keys(paletteCache).map(k => `${k}:${Object.keys(paletteCache[k] || {}).length}`);
-                alert(`Cannot edit this token. Palette '${paletteType}' is empty.\nLoaded: ${keys.join(', ')}`);
+                alert(`Cannot edit this token. Palette '${paletteType}' is not loaded.`);
                 return;
             }
 
-            // Render Swatches
-            const renderSwatches = (containerId, currentVal, mode) => {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                const displayId = mode === 'light' ? 'light-val-display' : 'dark-val-display';
+            // Get current values - FIXED to use correct palette
+            const getCurrentValue = (mode) => {
+                let scale = '500'; // Default
 
-                // Find current scale value from currentThemeData or Override
-                let currentScale = '500'; // Default
                 // Check override first
                 if (tokenOverrides[tokenName] && tokenOverrides[tokenName][mode]) {
-                    currentScale = tokenOverrides[tokenName][mode];
-                } else if (currentThemeData && currentThemeData.tokens[tokenName]) {
-                    // Try to deduce scale from name (e.g. "Emerald 500")
-                    const fullName = currentThemeData.tokens[tokenName][mode].name;
-                    const match = fullName.match(/[0-9]+/);
-                    if (match) currentScale = match[0];
+                    scale = tokenOverrides[tokenName][mode];
+                }
+                // Get from theme data
+                else if (currentThemeData && currentThemeData.tokens[tokenName]) {
+                    const token = currentThemeData.tokens[tokenName][mode];
+                    const match = token.name.match(/[0-9]+/);
+                    scale = match ? match[0] : '500';
                 }
 
-                document.getElementById(displayId).innerText = `(Current: ${currentScale})`;
+                // IMPORTANT: Always get hex from the CURRENT palette, not from stored data
+                // This ensures the displayed color matches the palette we're showing
+                const hex = palette[scale] || palette['500'] || '#808080';
+
+                return { scale, hex };
+            };
+
+            const lightCurrent = getCurrentValue('light');
+            const darkCurrent = getCurrentValue('dark');
+
+            // Update current value displays
+            document.getElementById('light-current-swatch').style.background = lightCurrent.hex;
+            document.getElementById('light-current-scale').innerText = lightCurrent.scale;
+            document.getElementById('light-current-hex').innerText = lightCurrent.hex;
+
+            document.getElementById('dark-current-swatch').style.background = darkCurrent.hex;
+            document.getElementById('dark-current-scale').innerText = darkCurrent.scale;
+            document.getElementById('dark-current-hex').innerText = darkCurrent.hex;
+
+            // Render Swatches with GOD-TIER design
+            const renderSwatches = (containerId, mode) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+
+                const currentValue = mode === 'light' ? lightCurrent : darkCurrent;
 
                 ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'].forEach(step => {
                     const hex = palette[step];
@@ -2251,42 +2890,467 @@
 
                     const chip = document.createElement('div');
                     chip.className = 'picker-chip';
-                    chip.style.backgroundColor = hex;
-                    chip.title = step;
+                    if (step === currentValue.scale) chip.classList.add('selected');
 
-                    if (step === currentScale) chip.classList.add('selected');
+                    // Color preview
+                    const colorDiv = document.createElement('div');
+                    colorDiv.className = 'picker-chip-color';
+                    colorDiv.style.background = hex;
+                    chip.appendChild(colorDiv);
+
+                    // Label (scale value)
+                    const label = document.createElement('div');
+                    label.className = 'picker-chip-label';
+                    label.innerText = step;
+                    chip.appendChild(label);
+
+                    // Hex value
+                    const hexLabel = document.createElement('div');
+                    hexLabel.className = 'picker-chip-hex';
+                    hexLabel.innerText = hex.toUpperCase();
+                    chip.appendChild(hexLabel);
 
                     chip.onclick = () => {
                         // Set Override
                         if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
                         tokenOverrides[tokenName][mode] = step;
 
-                        // Update UI immediately (optimistic)
+                        // Update current display
+                        const swatchEl = document.getElementById(`${mode}-current-swatch`);
+                        const scaleEl = document.getElementById(`${mode}-current-scale`);
+                        const hexEl = document.getElementById(`${mode}-current-hex`);
+
+                        swatchEl.style.background = hex;
+                        scaleEl.innerText = step;
+                        hexEl.innerText = hex.toUpperCase();
+
+                        // Update selection
                         document.querySelectorAll(`#${containerId} .picker-chip`).forEach(c => c.classList.remove('selected'));
                         chip.classList.add('selected');
-                        document.getElementById(displayId).innerText = `(Current: ${step})`;
                     };
 
                     container.appendChild(chip);
                 });
             };
 
-            renderSwatches('light-swatches', null, 'light');
-            renderSwatches('dark-swatches', null, 'dark');
+            renderSwatches('light-swatches', 'light');
+            renderSwatches('dark-swatches', 'dark');
 
             document.getElementById('token-editor-modal').style.display = 'flex';
         }
 
-        document.getElementById('editor-close').onclick = () => {
+        // === 🔥 ULTRA GOD-TIER COMPONENT EDITOR ===
+        function openComponentEditor(componentType, currentMode) {
+            console.log('🔥 ULTRA GOD-TIER Component Editor opened for:', componentType);
+
+            // Component token mappings - EXPANDED for ALL components
+            const componentTokens = {
+                'button-primary': {
+                    name: 'Primary Button',
+                    tokens: {
+                        normal: ['Action/primary', 'Button/primaryText'],
+                        hover: ['Action/primaryHover'],
+                        active: ['Action/primaryActive'],
+                        disabled: ['Action/primaryDisabled']
+                    }
+                },
+                'button-secondary': {
+                    name: 'Secondary Button',
+                    tokens: {
+                        normal: ['Action/secondary', 'Button/secondaryText'],
+                        hover: ['Action/secondaryHover'],
+                        active: ['Action/secondaryActive']
+                    }
+                },
+                'button-ghost': {
+                    name: 'Ghost Button',
+                    tokens: {
+                        normal: ['Action/ghost', 'Button/ghostText'],
+                        hover: ['Action/ghostHover'],
+                        active: ['Action/ghostActive']
+                    }
+                },
+                'button-destructive': {
+                    name: 'Destructive Button',
+                    tokens: {
+                        normal: ['Action/destructive'],
+                        hover: ['Action/destructiveHover'],
+                        active: ['Action/destructiveActive']
+                    }
+                },
+                'button-disabled': {
+                    name: 'Disabled Button',
+                    tokens: {
+                        disabled: ['Action/primaryDisabled', 'Text/disabled']
+                    }
+                },
+                'input': {
+                    name: 'Input Fields',
+                    tokens: {
+                        normal: ['Input/background', 'Input/border', 'Input/text', 'Input/placeholder'],
+                        hover: ['Input/backgroundHover', 'Input/borderHover'],
+                        focus: ['Input/backgroundFocus', 'Input/borderFocus'],
+                        disabled: ['Input/backgroundDisabled'],
+                        normal: ['Input/borderError']
+                    }
+                },
+                'badge': {
+                    name: 'Badges & Tags',
+                    tokens: {
+                        normal: ['Badge/background', 'Badge/text', 'Badge/brandBackground', 'Badge/brandText']
+                    }
+                },
+                'badge-status': {
+                    name: 'Status Badges',
+                    tokens: {
+                        normal: ['Status/successSubtle', 'Status/successText', 'Status/warningSubtle', 'Status/warningText', 'Status/errorSubtle', 'Status/errorText']
+                    }
+                },
+                'navigation': {
+                    name: 'Navigation',
+                    tokens: {
+                        normal: ['Nav/background', 'Nav/itemDefault'],
+                        hover: ['Nav/itemHover'],
+                        active: ['Nav/itemActive', 'Nav/itemActiveBackground']
+                    }
+                },
+                'icon': {
+                    name: 'Icons',
+                    tokens: {
+                        normal: ['Icon/default', 'Icon/subtle', 'Icon/brand'],
+                        disabled: ['Icon/disabled'],
+                        normal: ['Icon/inverse']
+                    }
+                },
+                'background': {
+                    name: 'Background',
+                    tokens: {
+                        normal: ['Background/primary', 'Background/secondary', 'Background/tertiary', 'Background/inverse', 'Background/brand', 'Background/accent']
+                    }
+                },
+                'surface': {
+                    name: 'Surface / Card',
+                    tokens: {
+                        normal: ['Surface/level0', 'Surface/level1', 'Surface/level2', 'Surface/level3', 'Surface/level4', 'Card/background', 'Border/default'],
+                        hover: ['Card/backgroundHover', 'Card/borderHover']
+                    }
+                },
+                'text': {
+                    name: 'Text',
+                    tokens: {
+                        normal: ['Text/primary', 'Text/secondary', 'Text/tertiary', 'Text/brand', 'Text/link'],
+                        hover: ['Text/linkHover'],
+                        disabled: ['Text/disabled'],
+                        normal: ['Text/inverse']
+                    }
+                },
+                'status-success': {
+                    name: 'Success Status',
+                    tokens: {
+                        normal: ['Status/success', 'Status/successSubtle', 'Status/successText', 'Status/successBorder']
+                    }
+                },
+                'status-warning': {
+                    name: 'Warning Status',
+                    tokens: {
+                        normal: ['Status/warning', 'Status/warningSubtle', 'Status/warningText', 'Status/warningBorder']
+                    }
+                },
+                'status-error': {
+                    name: 'Error Status',
+                    tokens: {
+                        normal: ['Status/error', 'Status/errorSubtle', 'Status/errorText', 'Status/errorBorder']
+                    }
+                },
+                'status-info': {
+                    name: 'Info Status',
+                    tokens: {
+                        normal: ['Status/info', 'Status/infoSubtle', 'Status/infoText', 'Status/infoBorder']
+                    }
+                }
+            };
+
+            const component = componentTokens[componentType];
+            if (!component) {
+                console.error('Unknown component type:', componentType);
+                return;
+            }
+
+            // Set component name
+            document.getElementById('editor-component-name').innerText = component.name;
+
+            // Get all tokens for this component
+            const allTokens = [];
+            for (const [state, tokens] of Object.entries(component.tokens)) {
+                tokens.forEach(tokenName => {
+                    if (currentThemeData && currentThemeData.tokens[tokenName]) {
+                        allTokens.push({ tokenName, state });
+                    }
+                });
+            }
+
+            // Render tokens function
+            const renderTokens = (stateFilter, modeFilter) => {
+                const container = document.getElementById('editor-tokens-container');
+                container.innerHTML = '';
+
+                // Filter tokens
+                const filteredTokens = allTokens.filter(({ state }) => {
+                    if (stateFilter === 'all') return true;
+                    return state === stateFilter;
+                });
+
+                if (filteredTokens.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #9ca3af;">No tokens match the current filters</div>';
+                    return;
+                }
+
+                // Render each token
+                filteredTokens.forEach(({ tokenName, state }) => {
+                    const tokenData = currentThemeData.tokens[tokenName];
+                    if (!tokenData) return;
+
+                    // Determine palette type - IMPROVED logic to prevent mixing
+                    let paletteType = 'neutral'; // Default
+
+                    // Status tokens - check first (most specific)
+                    if (tokenName.startsWith('Status/success')) {
+                        paletteType = 'success';
+                    } else if (tokenName.startsWith('Status/warning')) {
+                        paletteType = 'warning';
+                    } else if (tokenName.startsWith('Status/error')) {
+                        paletteType = 'error';
+                    } else if (tokenName.startsWith('Status/info')) {
+                        paletteType = 'accent'; // Info uses accent palette
+                    }
+                    // Action/Button tokens
+                    else if (tokenName.startsWith('Action/') || tokenName.startsWith('Button/')) {
+                        paletteType = 'accent';
+                    }
+                    // Background tokens
+                    else if (tokenName.startsWith('Background/brand') || tokenName.startsWith('Background/accent')) {
+                        paletteType = 'accent';
+                    }
+                    // Text tokens
+                    else if (tokenName.startsWith('Text/brand') || tokenName.startsWith('Text/link')) {
+                        paletteType = 'accent';
+                    }
+                    // Badge tokens
+                    else if (tokenName.startsWith('Badge/brand')) {
+                        paletteType = 'accent';
+                    }
+                    // Nav tokens
+                    else if (tokenName.startsWith('Nav/')) {
+                        paletteType = 'accent';
+                    }
+                    // Icon tokens
+                    else if (tokenName.startsWith('Icon/brand')) {
+                        paletteType = 'accent';
+                    }
+                    // Border tokens
+                    else if (tokenName.startsWith('Border/brand') || tokenName.startsWith('Border/focus')) {
+                        paletteType = 'accent';
+                    }
+                    // Everything else uses neutral
+                    else {
+                        paletteType = 'neutral';
+                    }
+
+                    let palette = paletteCache[paletteType];
+
+                    // Fallback logic - only if palette doesn't exist
+                    if (!palette || Object.keys(palette).length === 0) {
+                        console.warn(`Palette '${paletteType}' not found for token '${tokenName}', falling back to accent`);
+                        palette = paletteCache['accent'];
+                    }
+
+                    // Last resort fallback
+                    if (!palette || Object.keys(palette).length === 0) {
+                        console.error(`No palette available for token '${tokenName}'`);
+                        return;
+                    }
+
+                    // Token card
+                    const tokenCard = document.createElement('div');
+                    tokenCard.style.cssText = 'background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 16px;';
+
+                    // Token header
+                    const header = document.createElement('div');
+                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
+                    header.innerHTML = `
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: #111;">${tokenName}</div>
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">State: ${state}</div>
+                        </div>
+                    `;
+                    tokenCard.appendChild(header);
+
+                    // Mode selection (both, light only, dark only)
+                    const showLight = modeFilter === 'both' || modeFilter === 'light';
+                    const showDark = modeFilter === 'both' || modeFilter === 'dark';
+
+                    // Create mode sections
+                    const modesContainer = document.createElement('div');
+                    modesContainer.style.cssText = 'display: grid; grid-template-columns: ' + (showLight && showDark ? '1fr 1fr' : '1fr') + '; gap: 12px;';
+
+                    const renderModeSection = (mode, emoji, bgColor, borderColor) => {
+                        if ((mode === 'light' && !showLight) || (mode === 'dark' && !showDark)) return;
+
+                        const section = document.createElement('div');
+                        section.style.cssText = `background: ${bgColor}; padding: 12px; border-radius: 6px; border: 1.5px solid ${borderColor};`;
+
+                        // Current value - FIXED to use correct palette
+                        const getCurrentValue = () => {
+                            let scale = '500'; // Default
+
+                            // Check override first
+                            if (tokenOverrides[tokenName] && tokenOverrides[tokenName][mode]) {
+                                scale = tokenOverrides[tokenName][mode];
+                            }
+                            // Get from theme data
+                            else {
+                                const token = tokenData[mode];
+                                const match = token.name.match(/[0-9]+/);
+                                scale = match ? match[0] : '500';
+                            }
+
+                            // IMPORTANT: Always get hex from the CURRENT palette, not from stored data
+                            const hex = palette[scale] || palette['500'] || '#808080';
+
+                            return { scale, hex };
+                        };
+
+                        const currentValue = getCurrentValue();
+
+                        section.innerHTML = `
+                            <div style="font-size: 11px; font-weight: 600; margin-bottom: 8px;">${emoji} ${mode.toUpperCase()}</div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <div style="width: 24px; height: 24px; border-radius: 4px; background: ${currentValue.hex}; border: 2px solid rgba(0,0,0,0.2);"></div>
+                                <div>
+                                    <div style="font-size: 12px; font-weight: 600;">${currentValue.scale}</div>
+                                    <div style="font-size: 10px; font-family: monospace; color: #6b7280;">${currentValue.hex}</div>
+                                </div>
+                            </div>
+                        `;
+
+                        // Swatches (compact)
+                        const swatchesContainer = document.createElement('div');
+                        swatchesContainer.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px;';
+
+                        ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'].forEach(step => {
+                            const hex = palette[step];
+                            if (!hex) return;
+
+                            const chip = document.createElement('div');
+                            chip.className = 'picker-chip';
+                            chip.style.cssText = 'padding: 6px; cursor: pointer; border-radius: 6px; border: 2px solid transparent; transition: all 0.2s;';
+                            if (step === currentValue.scale) {
+                                chip.style.borderColor = '#18A0FB';
+                                chip.style.background = '#eff6ff';
+                            }
+
+                            chip.innerHTML = `
+                                <div style="width: 100%; height: 30px; background: ${hex}; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1);"></div>
+                                <div style="font-size: 10px; font-weight: 600; text-align: center; margin-top: 4px;">${step}</div>
+                            `;
+
+                            chip.onclick = () => {
+                                if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
+                                tokenOverrides[tokenName][mode] = step;
+                                // Re-render to update
+                                renderTokens(stateFilter, modeFilter);
+                            };
+
+                            swatchesContainer.appendChild(chip);
+                        });
+
+                        section.appendChild(swatchesContainer);
+                        modesContainer.appendChild(section);
+                    };
+
+                    renderModeSection('light', '☀️', '#fefce8', '#fde047');
+                    renderModeSection('dark', '🌙', '#f3f4f6', '#9ca3af');
+
+                    tokenCard.appendChild(modesContainer);
+                    container.appendChild(tokenCard);
+                });
+            };
+
+            // Initial render
+            renderTokens('all', 'both');
+
+            // Filter change handlers
+            document.getElementById('editor-state-filter').onchange = (e) => {
+                const modeFilter = document.getElementById('editor-mode-filter').value;
+                renderTokens(e.target.value, modeFilter);
+            };
+
+            document.getElementById('editor-mode-filter').onchange = (e) => {
+                const stateFilter = document.getElementById('editor-state-filter').value;
+                renderTokens(stateFilter, e.target.value);
+            };
+
+            // Show modal
+            document.getElementById('token-editor-modal').style.display = 'flex';
+        }
+
+        // Close button (X)
+        document.getElementById('editor-close-x').onclick = () => {
             document.getElementById('token-editor-modal').style.display = 'none';
-            // Trigger Regenerate to apply changes
-            // Use regenerate logic but preserve current inputs
+        };
+
+        // Apply button - IMPROVED to update preview immediately
+        document.getElementById('editor-apply').onclick = () => {
+            document.getElementById('token-editor-modal').style.display = 'none';
+
+            // Update preview immediately with overrides before regenerating
+            if (currentThemeData) {
+                const currentMode = themePreviewMode.value || 'light';
+
+                // Apply overrides to currentThemeData temporarily for preview
+                const updatedThemeData = JSON.parse(JSON.stringify(currentThemeData)); // Deep copy
+
+                for (const [tokenName, modeOverrides] of Object.entries(tokenOverrides)) {
+                    if (updatedThemeData.tokens[tokenName]) {
+                        for (const [overrideMode, scale] of Object.entries(modeOverrides)) {
+                            // Determine palette type for this token
+                            let paletteType = 'neutral';
+                            if (tokenName.startsWith('Status/success')) paletteType = 'success';
+                            else if (tokenName.startsWith('Status/warning')) paletteType = 'warning';
+                            else if (tokenName.startsWith('Status/error')) paletteType = 'error';
+                            else if (tokenName.startsWith('Status/info')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Action/') || tokenName.startsWith('Button/')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Background/brand') || tokenName.startsWith('Background/accent')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Text/brand') || tokenName.startsWith('Text/link')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Badge/brand')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Nav/')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Icon/brand')) paletteType = 'accent';
+                            else if (tokenName.startsWith('Border/brand') || tokenName.startsWith('Border/focus')) paletteType = 'accent';
+
+                            const palette = paletteCache[paletteType] || paletteCache['accent'] || paletteCache['neutral'];
+                            if (palette && palette[scale]) {
+                                updatedThemeData.tokens[tokenName][overrideMode] = {
+                                    name: `${paletteType}-${scale}`,
+                                    hex: palette[scale]
+                                };
+                            }
+                        }
+                    }
+                }
+
+                // Update preview with modified data
+                renderThemePreview(updatedThemeData, currentMode);
+            }
+
+            // Trigger Regenerate to apply changes permanently
             regenerateThemeBtn.click();
         };
 
-        document.getElementById('editor-reset').onclick = () => {
-            if (activeTokenEditing && tokenOverrides[activeTokenEditing]) {
-                delete tokenOverrides[activeTokenEditing];
+        // Reset All button (for component editor)
+        document.getElementById('editor-reset-all').onclick = () => {
+            // Clear all overrides
+            if (confirm('Reset all changes? This will restore all tokens to their default values.')) {
+                tokenOverrides = {};
                 document.getElementById('token-editor-modal').style.display = 'none';
                 regenerateThemeBtn.click();
             }
@@ -2296,7 +3360,6 @@
         document.getElementById('token-editor-modal').onclick = (e) => {
             if (e.target.id === 'token-editor-modal') {
                 document.getElementById('token-editor-modal').style.display = 'none';
-                regenerateThemeBtn.click(); // Apply changes on close
             }
         };
     </script>

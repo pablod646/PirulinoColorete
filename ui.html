@@ -576,6 +576,10 @@
                 </select>
             </div>
 
+            <button id="load-palettes-btn" class="secondary" style="width: 100%; margin-bottom: 16px;">
+                Load Palettes
+            </button>
+
             <div class="separator"></div>
 
             <div class="section-title">Step 2: Select Palettes</div>
@@ -597,6 +601,32 @@
                     <option value="" disabled selected>Select neutral palette...</option>
                 </select>
             </div>
+
+            <div class="separator"></div>
+            <div class="section-title">Step 3: Status Palettes</div>
+
+            <div class="input-group">
+                <label>Success Palette</label>
+                <select id="theme-success-palette" disabled>
+                    <option value="" disabled selected>Select success palette (e.g. Green)...</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Warning Palette</label>
+                <select id="theme-warning-palette" disabled>
+                    <option value="" disabled selected>Select warning palette (e.g. Yellow)...</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Error Palette</label>
+                <select id="theme-error-palette" disabled>
+                    <option value="" disabled selected>Select error palette (e.g. Red)...</option>
+                </select>
+            </div>
+
+            <div class="separator"></div>
 
             <div class="input-group">
                 <label>Theme Name</label>
@@ -966,20 +996,42 @@
                 // Populate theme palette dropdowns
                 const palettes = payload || [];
 
-                themeAccentSelect.innerHTML = '<option value="" disabled selected>Select accent palette...</option>';
-                themeNeutralSelect.innerHTML = '<option value="" disabled selected>Select neutral palette...</option>';
+                if (palettes.length === 0) {
+                    themeAccentSelect.innerHTML = '<option value="" disabled selected>No palettes found in collection</option>';
+                    themeNeutralSelect.innerHTML = '<option value="" disabled selected>No palettes found</option>';
+                } else {
+                    themeAccentSelect.innerHTML = '<option value="" disabled selected>Select accent palette...</option>';
+                    themeNeutralSelect.innerHTML = '<option value="" disabled selected>Select neutral palette...</option>';
 
-                palettes.forEach(p => {
-                    const optAccent = document.createElement('option');
-                    optAccent.value = p.name;
-                    optAccent.textContent = p.name;
-                    themeAccentSelect.appendChild(optAccent);
+                    palettes.forEach(p => {
+                        // Value is full path (e.g. Colors/Esmerald)
+                        // Text is display name.
+                        // If we have a selected Group (e.g. Colors), we can strip "Colors/" from display for cleaner UI.
+                        // But getting the group here is tricky without context logic.
+                        // Let's just show full path for clarity OR try to be smart.
 
-                    const optNeutral = document.createElement('option');
-                    optNeutral.value = p.name;
-                    optNeutral.textContent = p.name;
-                    themeNeutralSelect.appendChild(optNeutral);
-                });
+                        let displayName = p.name;
+                        // Optional: if p.name includes '/', show only last part? 
+                        // "Colors/Esmerald" -> "Esmerald" is nicer if "Colors" is already selected above.
+
+                        const groupSelect = document.getElementById('theme-source-group');
+                        const currentGroup = groupSelect ? groupSelect.value : '';
+
+                        if (currentGroup && displayName.startsWith(currentGroup + '/')) {
+                            displayName = displayName.substring(currentGroup.length + 1);
+                        }
+
+                        const optAccent = document.createElement('option');
+                        optAccent.value = p.name;
+                        optAccent.textContent = displayName;
+                        themeAccentSelect.appendChild(optAccent);
+
+                        const optNeutral = document.createElement('option');
+                        optNeutral.value = p.name;
+                        optNeutral.textContent = displayName;
+                        themeNeutralSelect.appendChild(optNeutral);
+                    });
+                }
 
                 // Enable dropdowns
                 themeAccentSelect.disabled = false;
@@ -1323,8 +1375,9 @@
         // Source collection and group
         const themeSourceCollection = document.getElementById('theme-source-collection');
         const themeSourceGroup = document.getElementById('theme-source-group');
+        const loadPalettesBtn = document.getElementById('load-palettes-btn');
 
-        // When source collection selected, load groups
+        // When source collection selected, load groups (ONLY groups)
         themeSourceCollection.addEventListener('change', () => {
             const collectionId = themeSourceCollection.value;
             if (collectionId) {
@@ -1335,33 +1388,31 @@
                         collectionId
                     }
                 }, '*');
-
-                // Load palettes from this collection
-                parent.postMessage({
-                    pluginMessage: {
-                        type: 'load-palettes',
-                        collectionId,
-                        groupName: ''
-                    }
-                }, '*');
             }
         });
 
-        // When group selected, reload palettes
-        themeSourceGroup.addEventListener('change', () => {
+        // Manual Load Palettes Trigger
+        loadPalettesBtn.onclick = () => {
             const collectionId = themeSourceCollection.value;
             const groupName = themeSourceGroup.value;
 
-            if (collectionId) {
-                parent.postMessage({
-                    pluginMessage: {
-                        type: 'load-palettes',
-                        collectionId,
-                        groupName
-                    }
-                }, '*');
+            if (!collectionId) {
+                alert('Please select a Source Collection first');
+                return;
             }
-        });
+
+            // Disable button briefly or show loading state if desired
+            loadPalettesBtn.textContent = "Loading...";
+            setTimeout(() => { loadPalettesBtn.textContent = "Load Palettes"; }, 1000);
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'load-palettes',
+                    collectionId,
+                    groupName
+                }
+            }, '*');
+        };
 
         // Enable generate button when both palettes selected
         function checkThemePalettes() {

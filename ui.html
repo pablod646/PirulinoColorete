@@ -559,13 +559,32 @@
 
         <!-- Step 1: Configuration -->
         <div id="theme-config-section">
-            <div class="section-title">Step 1: Select Palettes</div>
+            <div class="section-title">Step 1: Source Collection</div>
+            <p class="description">Select where your color palettes are stored</p>
+
+            <div class="input-group">
+                <label>Collection</label>
+                <select id="theme-source-collection">
+                    <option value="" disabled selected>Select collection...</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Group (Optional)</label>
+                <select id="theme-source-group">
+                    <option value="">All groups</option>
+                </select>
+            </div>
+
+            <div class="separator"></div>
+
+            <div class="section-title">Step 2: Select Palettes</div>
 
             <div class="input-group">
                 <label>Accent Color</label>
                 <p style="font-size: 12px; color: #666; margin: 4px 0 8px 0;">Used for actions, buttons, and highlights
                 </p>
-                <select id="theme-accent-palette">
+                <select id="theme-accent-palette" disabled>
                     <option value="" disabled selected>Select accent palette...</option>
                 </select>
             </div>
@@ -574,7 +593,7 @@
                 <label>Neutral Palette</label>
                 <p style="font-size: 12px; color: #666; margin: 4px 0 8px 0;">Used for backgrounds, text, and borders
                 </p>
-                <select id="theme-neutral-palette">
+                <select id="theme-neutral-palette" disabled>
                     <option value="" disabled selected>Select neutral palette...</option>
                 </select>
             </div>
@@ -769,6 +788,18 @@
                     aliasSelect.appendChild(option);
                 });
 
+                // Populate Theme Source Collection
+                const themeSourceCollection = document.getElementById('theme-source-collection');
+                if (themeSourceCollection) {
+                    themeSourceCollection.innerHTML = '<option value="" disabled selected>Select collection...</option>';
+                    payload.forEach(c => {
+                        const option = document.createElement('option');
+                        option.value = c.id;
+                        option.textContent = c.name;
+                        themeSourceCollection.appendChild(option);
+                    });
+                }
+
             } else if (type === 'load-groups') {
                 const groupSelect = document.getElementById('group-select');
                 groupSelect.innerHTML = '<option value="">All Groups</option>';
@@ -950,6 +981,10 @@
                     themeNeutralSelect.appendChild(optNeutral);
                 });
 
+                // Enable dropdowns
+                themeAccentSelect.disabled = false;
+                themeNeutralSelect.disabled = false;
+
             } else if (type === 'load-groups-tab2') {
                 // Populate Tab 2 Group Select (Reusing logic but specifically for tab 2)
                 // Wait, we can reuse load-groups if we know who asked? 
@@ -963,6 +998,18 @@
                     option.textContent = g;
                     groupSelect.appendChild(option);
                 });
+
+            } else if (type === 'load-groups-theme') {
+                // Populate Theme Source Group Select
+                const themeGroupSelect = document.getElementById('theme-source-group');
+                themeGroupSelect.innerHTML = '<option value="">All groups</option>';
+                payload.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g;
+                    opt.textContent = g;
+                    themeGroupSelect.appendChild(opt);
+                });
+
             } else if (type === 'selection-contrast-update') {
                 // Reuse this existing message for Scale Tab selection Check too?
                 // Yes, if we are in Scale Tab, we want to update the swatch.
@@ -1272,6 +1319,49 @@
         const themePreviewMode = document.getElementById('theme-preview-mode');
         const regenerateThemeBtn = document.getElementById('regenerate-theme-btn');
         const createThemeBtn = document.getElementById('create-theme-btn');
+
+        // Source collection and group
+        const themeSourceCollection = document.getElementById('theme-source-collection');
+        const themeSourceGroup = document.getElementById('theme-source-group');
+
+        // When source collection selected, load groups
+        themeSourceCollection.addEventListener('change', () => {
+            const collectionId = themeSourceCollection.value;
+            if (collectionId) {
+                // Load groups for this collection
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'get-groups-for-theme',
+                        collectionId
+                    }
+                }, '*');
+
+                // Load palettes from this collection
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'load-palettes',
+                        collectionId,
+                        groupName: ''
+                    }
+                }, '*');
+            }
+        });
+
+        // When group selected, reload palettes
+        themeSourceGroup.addEventListener('change', () => {
+            const collectionId = themeSourceCollection.value;
+            const groupName = themeSourceGroup.value;
+
+            if (collectionId) {
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'load-palettes',
+                        collectionId,
+                        groupName
+                    }
+                }, '*');
+            }
+        });
 
         // Enable generate button when both palettes selected
         function checkThemePalettes() {

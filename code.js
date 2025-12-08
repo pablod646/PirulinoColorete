@@ -1736,40 +1736,32 @@ async function loadPalettes(collectionId, groupName) {
 }
 
 // Generate theme with intelligent mapping
-async function generateTheme(accentPalette, neutralPalette, themeName, isRegenerate) {
+async function generateTheme(accentPalette, neutralPalette, statusPalettes, themeName, isRegenerate) {
   try {
     // Use getLocalVariablesAsync directly
     const allVariables = await figma.variables.getLocalVariablesAsync();
 
-    /* 
-    const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    const allVariables = [];
+    // Filter variables by palette
+    const prefix = (p) => p ? p + '/' : null;
 
-    for (const collection of collections) {
-      const vars = await figma.variables.getVariablesInCollectionAsync(collection.id);
-      allVariables.push(...vars);
-    }
-    */
+    const accentVars = allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(accentPalette)));
+    const neutralVars = allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(neutralPalette)));
 
-    const accentVars = allVariables.filter(v =>
-      v.resolvedType === 'COLOR' && v.name.startsWith(accentPalette + '/')
-    );
-    const neutralVars = allVariables.filter(v =>
-      v.resolvedType === 'COLOR' && v.name.startsWith(neutralPalette + '/')
-    );
+    // Status vars (optional but recommended)
+    // Status vars (optional but recommended)
+    const successVars = (statusPalettes && statusPalettes.success) ? allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(statusPalettes.success))) : [];
+    const warningVars = (statusPalettes && statusPalettes.warning) ? allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(statusPalettes.warning))) : [];
+    const errorVars = (statusPalettes && statusPalettes.error) ? allVariables.filter(v => v.resolvedType === 'COLOR' && v.name.startsWith(prefix(statusPalettes.error))) : [];
 
     console.log(`Generating Theme '${themeName}'...`);
-    console.log(`Accent Palette: "${accentPalette}" (Found ${accentVars.length} vars)`);
-    console.log(`Neutral Palette: "${neutralPalette}" (Found ${neutralVars.length} vars)`);
-
-    if (accentVars.length > 0) {
-      console.log('Sample Accent Var:', accentVars[0].name);
-      // Print all accents to see scales
-      console.log('All Accent Vars:', accentVars.map(v => v.name));
+    console.log(`Accent: ${accentPalette} (${accentVars.length})`);
+    console.log(`Neutral: ${neutralPalette} (${neutralVars.length})`);
+    if (statusPalettes) {
+      console.log(`Status: Success=${statusPalettes.success}(${successVars.length}), Warning=${statusPalettes.warning}(${warningVars.length}), Error=${statusPalettes.error}(${errorVars.length})`);
     }
 
     if (accentVars.length === 0 || neutralVars.length === 0) {
-      figma.notify('❌ Selected palettes not found (0 variables)');
+      figma.notify('❌ Selected primary palettes not found');
       return;
     }
 
@@ -1779,22 +1771,16 @@ async function generateTheme(accentPalette, neutralPalette, themeName, isRegener
       let found = vars.find(v => v.name.endsWith('/' + scale));
 
       // 2. Try hyphenated match (e.g. "...-50" or ".../Blue-50")
-      if (!found) {
-        found = vars.find(v => v.name.endsWith('-' + scale));
-      }
+      if (!found) found = vars.find(v => v.name.endsWith('-' + scale));
 
       // 3. Try space match (e.g. "... 50")
-      if (!found) {
-        found = vars.find(v => v.name.endsWith(' ' + scale));
-      }
+      if (!found) found = vars.find(v => v.name.endsWith(' ' + scale));
 
-      if (!found) console.log(`⚠️ Missing scale ${scale} in vars`);
       return found;
     };
 
     // Get variation index
     const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0;
-    console.log(`Using variation ${variation}`);
 
     const mappings = {
       0: { bgLight: '50', bgDark: '900', textLight: '900', textDark: '50', actionLight: '600', actionDark: '400' },
@@ -1809,12 +1795,17 @@ async function generateTheme(accentPalette, neutralPalette, themeName, isRegener
       if (!lightVar || !darkVar) return;
       const lightColor = lightVar.valuesByMode[Object.keys(lightVar.valuesByMode)[0]];
       const darkColor = darkVar.valuesByMode[Object.keys(darkVar.valuesByMode)[0]];
+
+      // Safety check for color retrieval
+      if (!lightColor || !darkColor) return;
+
       tokens[name] = {
         light: { id: lightVar.id, name: lightVar.name, hex: rgbToHex(lightColor) },
         dark: { id: darkVar.id, name: darkVar.name, hex: rgbToHex(darkColor) }
       };
     };
 
+    // ... Background/Text/Surface/Border/Action tokens (Same as before) ...
     createToken('Background/primary', findVar(neutralVars, map.bgLight), findVar(neutralVars, map.bgDark));
     createToken('Background/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
     createToken('Background/tertiary', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
@@ -1830,16 +1821,19 @@ async function generateTheme(accentPalette, neutralPalette, themeName, isRegener
     createToken('Action/primaryHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
     createToken('Action/disabled', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
 
-    const findStatusVar = (name, scale) => allVariables.find(v => v.resolvedType === 'COLOR' && v.name === `${name}/${scale}`);
-    createToken('Status/success', findStatusVar('Success', '600') || findStatusVar('Green', '600') || findVar(accentVars, '600'), findStatusVar('Success', '400') || findStatusVar('Green', '400') || findVar(accentVars, '400'));
-    createToken('Status/error', findStatusVar('Error', '600') || findStatusVar('Red', '600') || findVar(accentVars, '600'), findStatusVar('Error', '400') || findStatusVar('Red', '400') || findVar(accentVars, '400'));
-    createToken('Status/warning', findStatusVar('Warning', '600') || findStatusVar('Yellow', '600') || findVar(accentVars, '600'), findStatusVar('Warning', '400') || findStatusVar('Yellow', '400') || findVar(accentVars, '400'));
+    // Status tokens uses specific palettes or fallbacks to accent if not provided
+    const getStatusVar = (vars, scale) => vars.length > 0 ? findVar(vars, scale) : findVar(accentVars, scale);
+
+    createToken('Status/success', getStatusVar(successVars, '600'), getStatusVar(successVars, '400'));
+    createToken('Status/error', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '400'));
+    createToken('Status/warning', getStatusVar(warningVars, '600'), getStatusVar(warningVars, '400'));
 
     const validation = { passed: Object.keys(tokens).length, warnings: [] };
     const messageType = isRegenerate ? 'theme-regenerated' : 'theme-generated';
     figma.ui.postMessage({ type: messageType, payload: { themeName, tokens, validation, accentPalette, neutralPalette } });
 
   } catch (error) {
+    console.error("Generate Theme Error:", error);
     figma.notify('❌ Error generating theme: ' + error.message);
   }
 }

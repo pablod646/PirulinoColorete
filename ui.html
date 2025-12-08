@@ -1157,22 +1157,18 @@
             } else if (type === 'theme-generated' || type === 'theme-regenerated') {
                 // Theme generation complete
                 currentThemeData = payload;
-                console.log('Received theme data:', payload);
 
                 // Cache palette data for Tone Editor Picker
                 if (payload.paletteData) {
                     paletteCache = payload.paletteData;
-                    console.log('Updated paletteCache:', Object.keys(paletteCache));
-                } else {
-                    console.error('Missing paletteData in payload!');
                 }
 
                 // Show preview section
                 themePreviewSection.style.display = 'block';
 
-                // Render preview (default to light mode)
-                themePreviewMode.value = 'light';
-                renderThemePreview(currentThemeData, 'light');
+                // Render preview (preserve current mode)
+                const mode = themePreviewMode.value || 'light';
+                renderThemePreview(currentThemeData, mode);
 
                 // Render token list
                 renderTokenList(currentThemeData.tokens);
@@ -1377,30 +1373,6 @@
                 const tSelect = document.getElementById('alias-typo-group');
                 tSelect.innerHTML = opts;
                 tSelect.disabled = false;
-
-            } else if (type === 'theme-generated' || type === 'theme-regenerated') {
-                currentThemeData = payload;
-                console.log('Received theme data:', payload);
-
-                // Cache palette data for Tone Editor Picker
-                if (payload.paletteData) {
-                    paletteCache = payload.paletteData;
-                    console.log('Updated paletteCache:', Object.keys(paletteCache));
-                } else {
-                    console.error('Missing paletteData in payload!');
-                }
-
-                renderThemePreview(currentThemeData, document.getElementById('theme-preview-mode').value);
-                renderTokenList(currentThemeData.tokens);
-                renderValidation(currentThemeData.validation);
-
-                document.getElementById('generate-theme-btn').textContent = 'Generate Theme';
-                document.getElementById('generate-theme-btn').disabled = false;
-
-                // Show Result
-                document.getElementById('theme-preview-section').style.display = 'block';
-                // Scroll
-                document.getElementById('theme-preview-section').scrollIntoView({ behavior: 'smooth' });
 
             } else if (type === 'progress-start') {
                 document.getElementById('progress-overlay').style.display = 'flex';

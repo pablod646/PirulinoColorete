@@ -1753,8 +1753,6 @@ async function loadPalettes(collectionId, groupName) {
 // Helper: Extract palette colors for UI Picker
 function extractPaletteColors(vars, allVarsMap) {
   const result = {};
-  console.log(`Extracting colors from ${vars.length} variables...`);
-
   // Helper to resolve alias to hex
   const resolveValue = (val) => {
     if (!val) return null;
@@ -1771,7 +1769,6 @@ function extractPaletteColors(vars, allVarsMap) {
     return null;
   };
 
-  let loggedCount = 0;
   vars.forEach(v => {
     const safeName = v.name.trim();
 
@@ -1792,17 +1789,10 @@ function extractPaletteColors(vars, allVarsMap) {
       const hex = resolveValue(value);
       if (hex) {
         result[scale] = hex;
-        if (loggedCount < 5) console.log(`[Success] Processed variable: ${safeName} -> Scale: ${scale}, Hex: ${hex}`);
-      } else {
-        if (loggedCount < 5) console.log(`[Fail] Could not resolve value for ${safeName}`);
       }
-    } else {
-      if (loggedCount < 5) console.log(`[Fail] Regex no match for ${safeName}`);
     }
-    loggedCount++;
   });
 
-  console.log(`Extracted keys: ${Object.keys(result).join(', ')}`);
   return result;
 }
 
@@ -1834,16 +1824,10 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
     const neutralVars = filterByPalette(neutralPalette);
 
     // Status vars (optional but recommended)
+    // Status vars (optional but recommended)
     const successVars = (statusPalettes && statusPalettes.success) ? filterByPalette(statusPalettes.success) : [];
     const warningVars = (statusPalettes && statusPalettes.warning) ? filterByPalette(statusPalettes.warning) : [];
     const errorVars = (statusPalettes && statusPalettes.error) ? filterByPalette(statusPalettes.error) : [];
-
-    console.log(`Generating Theme '${themeName}'...`);
-    console.log(`Accent: ${accentPalette} (${accentVars.length})`);
-    console.log(`Neutral: ${neutralPalette} (${neutralVars.length})`);
-    if (statusPalettes) {
-      console.log(`Status: Success=${statusPalettes.success}(${successVars.length}), Warning=${statusPalettes.warning}(${warningVars.length}), Error=${statusPalettes.error}(${errorVars.length})`);
-    }
 
     if (accentVars.length === 0 || neutralVars.length === 0) {
       figma.notify('❌ Selected primary palettes not found');

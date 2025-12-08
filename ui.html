@@ -241,7 +241,8 @@
         <div class="tab" data-tab="measures">2. Measures</div>
         <div class="tab" data-tab="typography">3. Typography</div>
         <div class="tab" data-tab="aliases">4. Aliases</div>
-        <div class="tab" data-tab="collections">5. Documentation</div>
+        <div class="tab" data-tab="theme">5. Theme</div>
+        <div class="tab" data-tab="collections">6. Documentation</div>
     </div>
 
     <!-- Tab 5: Documentation (formerly Collections) -->
@@ -549,6 +550,132 @@
         <p class="description">Creates Figma Text Styles (e.g. "H1 / Bold", "H1 / Light") derived from your responsive
             tokens.</p>
         <button id="create-styles-btn" class="secondary" disabled>Generate Text Styles</button>
+    </div>
+
+    <!-- Tab 5: Theme Generator -->
+    <div id="tab-theme" class="tab-content">
+        <h2>🎨 Theme Generator</h2>
+        <p class="description">Create intelligent Light/Dark themes from your color primitives.</p>
+
+        <!-- Step 1: Configuration -->
+        <div id="theme-config-section">
+            <div class="section-title">Step 1: Select Palettes</div>
+
+            <div class="input-group">
+                <label>Accent Color</label>
+                <p style="font-size: 12px; color: #666; margin: 4px 0 8px 0;">Used for actions, buttons, and highlights
+                </p>
+                <select id="theme-accent-palette">
+                    <option value="" disabled selected>Select accent palette...</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Neutral Palette</label>
+                <p style="font-size: 12px; color: #666; margin: 4px 0 8px 0;">Used for backgrounds, text, and borders
+                </p>
+                <select id="theme-neutral-palette">
+                    <option value="" disabled selected>Select neutral palette...</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Theme Name</label>
+                <input type="text" id="theme-name" placeholder="My Theme" value="Theme">
+            </div>
+
+            <button id="generate-theme-btn" class="primary" style="width: 100%;" disabled>
+                Generate Theme
+            </button>
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- Step 2: Preview & Refine (Hidden initially) -->
+        <div id="theme-preview-section" style="display: none;">
+            <div class="section-title">Step 2: Preview & Refine</div>
+
+            <!-- Mode Toggle -->
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Preview
+                    Mode</label>
+                <select id="theme-preview-mode" style="width: 200px;">
+                    <option value="light">Light Mode</option>
+                    <option value="dark">Dark Mode</option>
+                </select>
+            </div>
+
+            <!-- Component Preview -->
+            <div style="margin-bottom: 24px; padding: 24px; border-radius: 8px; border: 1.5px solid #e5e7eb;"
+                id="theme-preview-container">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 16px;">Component
+                    Preview</label>
+
+                <div id="theme-preview-mockup" style="padding: 20px; border-radius: 8px; transition: all 0.3s ease;">
+                    <!-- Card Example -->
+                    <div id="preview-card"
+                        style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+                        <h3 id="preview-card-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">Card
+                            Title</h3>
+                        <p id="preview-card-text" style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5;">
+                            This is some body text that demonstrates the text color on background.
+                        </p>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="preview-btn-primary"
+                                style="padding: 8px 16px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer;">
+                                Primary Button
+                            </button>
+                            <button id="preview-btn-secondary"
+                                style="padding: 8px 16px; border-radius: 6px; border: 1px solid; font-size: 14px; font-weight: 500; cursor: pointer; background: transparent;">
+                                Secondary
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div id="preview-success"
+                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                            <span>✅</span> Success message
+                        </div>
+                        <div id="preview-warning"
+                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                            <span>⚠️</span> Warning message
+                        </div>
+                        <div id="preview-error"
+                            style="padding: 12px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                            <span>❌</span> Error message
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Token Assignments -->
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px;">Token
+                    Assignments</label>
+                <div id="theme-token-list"
+                    style="background: #f9fafb; padding: 16px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.8;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Validation Summary -->
+            <div id="theme-validation-summary"
+                style="margin-bottom: 24px; padding: 16px; border-radius: 8px; background: #f0fdf4; border: 1.5px solid #86efac;">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 12px;">
+                <button id="regenerate-theme-btn" class="secondary" style="flex: 1;">
+                    🔄 Regenerate
+                </button>
+                <button id="create-theme-btn" class="primary" style="flex: 2;">
+                    Create Theme Variables
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Progress Overlay -->

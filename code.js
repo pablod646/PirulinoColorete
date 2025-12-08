@@ -1738,6 +1738,10 @@ async function loadPalettes(collectionId, groupName) {
 // Generate theme with intelligent mapping
 async function generateTheme(accentPalette, neutralPalette, themeName, isRegenerate) {
   try {
+    // Use getLocalVariablesAsync directly
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+
+    /* 
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
     const allVariables = [];
 
@@ -1745,6 +1749,7 @@ async function generateTheme(accentPalette, neutralPalette, themeName, isRegener
       const vars = await figma.variables.getVariablesInCollectionAsync(collection.id);
       allVariables.push(...vars);
     }
+    */
 
     const accentVars = allVariables.filter(v =>
       v.resolvedType === 'COLOR' && v.name.startsWith(accentPalette + '/')
@@ -1753,13 +1758,43 @@ async function generateTheme(accentPalette, neutralPalette, themeName, isRegener
       v.resolvedType === 'COLOR' && v.name.startsWith(neutralPalette + '/')
     );
 
+    console.log(`Generating Theme '${themeName}'...`);
+    console.log(`Accent Palette: "${accentPalette}" (Found ${accentVars.length} vars)`);
+    console.log(`Neutral Palette: "${neutralPalette}" (Found ${neutralVars.length} vars)`);
+
+    if (accentVars.length > 0) {
+      console.log('Sample Accent Var:', accentVars[0].name);
+      // Print all accents to see scales
+      console.log('All Accent Vars:', accentVars.map(v => v.name));
+    }
+
     if (accentVars.length === 0 || neutralVars.length === 0) {
-      figma.notify('❌ Selected palettes not found');
+      figma.notify('❌ Selected palettes not found (0 variables)');
       return;
     }
 
-    const findVar = (vars, scale) => vars.find(v => v.name.endsWith('/' + scale));
+    // Find variables by scale value
+    const findVar = (vars, scale) => {
+      // 1. Try standard path match (e.g. ".../50")
+      let found = vars.find(v => v.name.endsWith('/' + scale));
+
+      // 2. Try hyphenated match (e.g. "...-50" or ".../Blue-50")
+      if (!found) {
+        found = vars.find(v => v.name.endsWith('-' + scale));
+      }
+
+      // 3. Try space match (e.g. "... 50")
+      if (!found) {
+        found = vars.find(v => v.name.endsWith(' ' + scale));
+      }
+
+      if (!found) console.log(`⚠️ Missing scale ${scale} in vars`);
+      return found;
+    };
+
+    // Get variation index
     const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0;
+    console.log(`Using variation ${variation}`);
 
     const mappings = {
       0: { bgLight: '50', bgDark: '900', textLight: '900', textDark: '50', actionLight: '600', actionDark: '400' },

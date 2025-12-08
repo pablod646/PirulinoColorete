@@ -758,9 +758,9 @@
                 t.classList.add('active');
                 document.getElementById('tab-' + t.dataset.tab).classList.add('active');
 
-                // Load palettes when Theme tab is opened
+                // Load collections when Theme tab is opened
                 if (t.dataset.tab === 'theme') {
-                    parent.postMessage({ pluginMessage: { type: 'load-palettes' } }, '*');
+                    parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
                 }
             });
         });

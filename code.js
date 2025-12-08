@@ -154,8 +154,11 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'create-text-styles') {
     await createTextStyles(msg.config);
 
+  } else if (msg.type === 'get-groups-for-theme') {
+    await getGroupsCustom(msg.collectionId, 'load-groups-theme');
+
   } else if (msg.type === 'load-palettes') {
-    await loadPalettes();
+    await loadPalettes(msg.collectionId, msg.groupName);
 
   } else if (msg.type === 'generate-theme') {
     await generateTheme(msg.accentPalette, msg.neutralPalette, msg.themeName, false);
@@ -1657,28 +1660,37 @@ function getWCAGRating(ratio) {
 // ===== THEME SYSTEM =====
 
 // Load available color palettes
-async function loadPalettes() {
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+async function loadPalettes(collectionId, groupName) {
   const palettes = [];
 
-  for (const collection of collections) {
-    const variables = await figma.variables.getVariablesInCollectionAsync(collection.id);
-    const hasColors = variables.some(v => v.resolvedType === 'COLOR');
-
-    if (hasColors) {
-      const paletteNames = new Set();
-      variables.forEach(v => {
-        if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
-          const paletteName = v.name.split('/')[0];
-          paletteNames.add(paletteName);
-        }
-      });
-
-      paletteNames.forEach(name => {
-        palettes.push({ name, collectionId: collection.id });
-      });
-    }
+  if (!collectionId) {
+    figma.ui.postMessage({ type: 'load-palettes', payload: [] });
+    return;
   }
+
+  const variables = await figma.variables.getVariablesInCollectionAsync(collectionId);
+  const paletteNames = new Set();
+
+  variables.forEach(v => {
+    if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
+      // Filter by group if specified
+      if (groupName) {
+        if (v.name.startsWith(groupName + '/')) {
+          const parts = v.name.substring(groupName.length + 1).split('/');
+          if (parts.length >= 2) {
+            paletteNames.add(parts[0]);
+          }
+        }
+      } else {
+        const paletteName = v.name.split('/')[0];
+        paletteNames.add(paletteName);
+      }
+    }
+  });
+
+  paletteNames.forEach(name => {
+    palettes.push({ name, collectionId });
+  });
 
   figma.ui.postMessage({ type: 'load-palettes', payload: palettes });
 }

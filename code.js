@@ -1,7 +1,8 @@
 console.clear();
 
-// Show the UI with improved dimensions
-figma.showUI(__html__, { width: 600, height: 800, themeColors: true });
+// Show the UI with resizable window for Admin Panel layout
+figma.showUI(__html__, { width: 1200, height: 800, themeColors: true, title: "PirulinoColorete - Design Architect" });
+figma.ui.resize(1200, 800); // Set initial size but allow resizing
 
 async function loadCollections() {
   try {
@@ -16,10 +17,13 @@ async function loadCollections() {
 loadCollections();
 
 figma.ui.onmessage = async (msg) => {
-  if (msg.type === 'convert-collection') {
+  if (msg.type === 'load-collections') {
+    await loadCollections();
+  } else if (msg.type === 'convert-collection') {
     const collectionId = msg.collectionId;
     const group = msg.group;
     await convertCollection(collectionId, group);
+
   } else if (msg.type === 'get-groups') {
     const collectionId = msg.collectionId;
     await getGroups(collectionId);
@@ -163,6 +167,9 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'load-palettes') {
     await loadPalettes(msg.collectionId, msg.groupName);
 
+  } else if (msg.type === 'load-existing-theme') {
+    await loadThemeFromCollection(msg.collectionId);
+
   } else if (msg.type === 'generate-theme') {
     // Correct Signature: (accent, neutral, status, themeName, isRegenerate, tokenOverrides)
     await generateTheme(msg.accentPalette, msg.neutralPalette, msg.statusPalettes, msg.themeName, false, msg.tokenOverrides);
@@ -181,6 +188,14 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'generate-atoms') {
     console.log('📥 Backend received: generate-atoms', msg.atoms);
     await generateAtoms(msg.atoms, msg.targetPage);
+
+  } else if (msg.type === 'generate-molecules') {
+    console.log('📥 Backend received: generate-molecules', msg.molecules);
+    await generateMolecules(msg.molecules, msg.targetPage);
+
+  } else if (msg.type === 'generate-organisms') {
+    console.log('📥 Backend received: generate-organisms', msg.organisms);
+    await generateOrganisms(msg.organisms, msg.targetPage);
   }
 };
 
@@ -2115,6 +2130,31 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
 
     console.log(`Sending paletteData: ${Object.keys(paletteData).map(k => `${k}(${Object.keys(paletteData[k]).length})`).join(', ')}`);
 
+    // Construct Preview Data for UI
+    // Helper to get Hex
+    const getHex = (vars, scale) => {
+      const v = findVar(vars, scale);
+      if (!v) return '#cccccc';
+      const modeId = Object.keys(v.valuesByMode)[0];
+      const val = v.valuesByMode[modeId];
+      // Simple RGB check. For aliases recursion would be needed but primitives should be colors.
+      if (val && val.r !== undefined) return rgbToHex(val.r, val.g, val.b);
+      return '#cccccc';
+    };
+
+    const preview = {
+      light: {
+        bg: getHex(neutralVars, map.bgLight),
+        text: getHex(neutralVars, map.textLight),
+        primary: getHex(accentVars, map.actionLight)
+      },
+      dark: {
+        bg: getHex(neutralVars, map.bgDark),
+        text: getHex(neutralVars, map.textDark),
+        primary: getHex(accentVars, map.actionDark)
+      }
+    };
+
     const messageType = isRegenerate ? 'theme-regenerated' : 'theme-generated';
     figma.ui.postMessage({
       type: messageType,
@@ -2124,7 +2164,8 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
         validation,
         accentPalette,
         neutralPalette,
-        paletteData // Send full palette data for picker
+        paletteData, // Send full palette data for picker
+        preview      // Added Preview Data
       }
     });
 
@@ -2134,28 +2175,245 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
   }
 }
 
-// Create theme collection
+// Load Existing Theme for Editing
+async function loadThemeFromCollection(collectionId) {
+  try {
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) throw new Error("Collection not found");
+
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+    const themeVars = allVariables.filter(v => v.variableCollectionId === collectionId && v.resolvedType === 'COLOR');
+
+    // Identify Modes
+    // We look for modes named "Light" and "Dark" or fallback to first two
+    const modeLight = collection.modes.find(m => m.name === 'Light');
+    const modeDark = collection.modes.find(m => m.name === 'Dark');
+
+    let lightModeId = modeLight ? modeLight.modeId : (collection.modes[0] ? collection.modes[0].modeId : null);
+    let darkModeId = modeDark ? modeDark.modeId : (collection.modes[1] ? collection.modes[1].modeId : null);
+
+    // Fallback for single mode themes (shouldn't happen with our generator but possible)
+    if (!darkModeId) darkModeId = lightModeId;
+
+    const tokens = {};
+    const allVarsMap = {};
+    allVariables.forEach(v => allVarsMap[v.id] = v);
+
+    // Map for resolving Hex
+    const resolveHex = (val) => {
+      if (!val) return '#cccccc';
+      if (val.r !== undefined) return rgbToHex(val.r, val.g, val.b);
+      if (val.type === 'VARIABLE_ALIAS') {
+        // Deep resolve? For editing we need the alias ID primarily
+        const t = allVarsMap[val.id];
+        if (!t) return '#cccccc'; // Safety
+        const tm = Object.keys(t.valuesByMode)[0];
+        return resolveHex(t.valuesByMode[tm]);
+      }
+      return '#cccccc';
+    };
+
+    // Reconstruct Tokens Object & Detect Source Collection
+    const sourceCollectionIds = new Set();
+    const detectedConfig = {
+      accent: null,
+      neutral: null,
+      status: { success: null, warning: null, error: null }
+    };
+
+    // Helper to extract palette name from variable name (e.g. "Colors/Blue/500" -> "Colors/Blue")
+    const getPaletteName = (varName) => {
+      const parts = varName.split('/');
+      if (parts.length >= 2) return parts.slice(0, -1).join('/');
+      return null;
+    };
+
+    themeVars.forEach(v => {
+      const lightVal = v.valuesByMode[lightModeId];
+      const darkVal = v.valuesByMode[darkModeId];
+
+      // Check if both are aliases (using safe check instead of optional chaining)
+      const lightIsAlias = lightVal && lightVal.type === 'VARIABLE_ALIAS';
+      const darkIsAlias = darkVal && darkVal.type === 'VARIABLE_ALIAS';
+
+      if (lightIsAlias && darkIsAlias) {
+        const lightSource = allVarsMap[lightVal.id];
+        const darkSource = allVarsMap[darkVal.id];
+
+        if (lightSource && darkSource) {
+          const lightHex = resolveHex(lightVal);
+          const darkHex = resolveHex(darkVal);
+
+          tokens[v.name] = {
+            light: { id: lightSource.id, name: lightSource.name, hex: lightHex },
+            dark: { id: darkSource.id, name: darkSource.name, hex: darkHex }
+          };
+
+          // Track Source Collection
+          sourceCollectionIds.add(lightSource.variableCollectionId);
+
+          // Infer Mappings based on key tokens
+          if (v.name === 'Action/primary') detectedConfig.accent = getPaletteName(lightSource.name);
+          if (v.name === 'Background/primary') detectedConfig.neutral = getPaletteName(lightSource.name);
+          if (v.name === 'Status/success') detectedConfig.status.success = getPaletteName(lightSource.name);
+          if (v.name === 'Status/warning') detectedConfig.status.warning = getPaletteName(lightSource.name);
+          if (v.name === 'Status/error') detectedConfig.status.error = getPaletteName(lightSource.name);
+        }
+      }
+    });
+
+    // Fetch Source Palettes (Enhanced Robustness)
+    // Instead of relying only on connected aliases, we scan ALL other collections for potential palettes.
+    // This ensures dropdowns are populated even if detection fails or if user wants to switch to a new, unused palette.
+    let availablePalettes = [];
+    const paletteSet = new Set();
+
+    allVariables.forEach(v => {
+      // Skip variables from the Theme collection itself
+      if (v.variableCollectionId === collectionId) return;
+
+      // Only consider Colors
+      if (v.resolvedType !== 'COLOR') return;
+
+      const name = v.name;
+      // Naive palette extractor: everything up to last slash
+      // e.g. "Colors/Blue/500" -> "Colors/Blue"
+      // e.g. "Blue/500" -> "Blue"
+      const parts = name.split('/');
+      if (parts.length >= 2) {
+        const paletteName = parts.slice(0, -1).join('/');
+        paletteSet.add(paletteName);
+      }
+    });
+
+    availablePalettes = Array.from(paletteSet).map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+    console.log(`Edit Mode: Found ${availablePalettes.length} available palettes from other collections.`);
+
+    // Reconstruct Preview Data (Heuristic)
+    const getPreviewHex = (name) => {
+      return tokens[name] ? tokens[name].light.hex : '#cccccc'; // Default to light
+    };
+    const getPreviewHexDark = (name) => {
+      return tokens[name] ? tokens[name].dark.hex : '#333333';
+    };
+
+    const preview = {
+      light: {
+        bg: getPreviewHex('Background/primary'),
+        text: getPreviewHex('Text/primary'),
+        primary: getPreviewHex('Action/primary')
+      },
+      dark: {
+        bg: getPreviewHexDark('Background/primary'),
+        text: getPreviewHexDark('Text/primary'),
+        primary: getPreviewHexDark('Action/primary')
+      }
+    };
+
+    figma.ui.postMessage({
+      type: 'theme-loaded-for-edit',
+      payload: {
+        themeName: collection.name,
+        collectionId: collection.id, // Pass ID for updates
+        tokens,
+        validation: { passed: Object.keys(tokens).length },
+        preview,
+        availablePalettes,
+        detectedConfig
+      }
+    });
+
+    figma.notify(`Loaded theme "${collection.name}" for editing!`);
+
+  } catch (err) {
+    console.error("Load Theme Error:", err);
+    figma.notify("Error loading theme: " + err.message);
+  }
+}
+
+// Create OR Update theme collection
 async function createThemeCollection(themeData) {
   try {
-    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Theme Collection...' });
-    const { themeName, tokens } = themeData;
-    const collection = figma.variables.createVariableCollection(themeName);
-    const lightModeId = collection.modes[0].modeId;
-    collection.renameMode(lightModeId, 'Light');
-    const darkModeId = collection.addMode('Dark');
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Processing Theme Collection...' });
+    const { themeName, tokens, collectionId } = themeData;
 
+    let collection;
+    const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
+
+    if (collectionId) {
+      collection = localCollections.find(c => c.id === collectionId);
+    }
+
+    // Fallback: Find by name if no ID or ID not found
+    if (!collection) {
+      collection = localCollections.find(c => c.name === themeName);
+    }
+
+    if (collection) {
+      console.log(`Updating existing collection: ${collection.name}`);
+    } else {
+      console.log(`Creating new collection: ${themeName}`);
+      collection = figma.variables.createVariableCollection(themeName);
+    }
+
+    // Handle Modes
+    // We expect 'Light' and 'Dark'.
+    const lightMode = collection.modes.find(m => m.name === 'Light');
+    let lightModeId = lightMode ? lightMode.modeId : null;
+
+    const darkMode = collection.modes.find(m => m.name === 'Dark');
+    let darkModeId = darkMode ? darkMode.modeId : null;
+
+    if (!lightModeId) {
+      if (collection.modes.length > 0) {
+        // Rename first mode to Light
+        lightModeId = collection.modes[0].modeId;
+        collection.renameMode(lightModeId, 'Light');
+      } else {
+        // Should not happen for new collections
+      }
+    }
+
+    if (!darkModeId) {
+      darkModeId = collection.addMode('Dark');
+    }
+
+    // Helper: Find existing variable in collection
+    const collectionVars = await figma.variables.getLocalVariablesAsync(); // Refresh vars
+    const existingMap = new Map();
+    collectionVars.forEach(v => {
+      if (v.variableCollectionId === collection.id) {
+        existingMap.set(v.name, v);
+      }
+    });
+
+    // Process Tokens
     for (const [tokenPath, mapping] of Object.entries(tokens)) {
-      const variable = figma.variables.createVariable(tokenPath, collection, 'COLOR');
-      variable.setValueForMode(lightModeId, { type: 'VARIABLE_ALIAS', id: mapping.light.id });
-      variable.setValueForMode(darkModeId, { type: 'VARIABLE_ALIAS', id: mapping.dark.id });
+      let variable = existingMap.get(tokenPath);
+
+      if (!variable) {
+        // Create new
+        variable = figma.variables.createVariable(tokenPath, collection, 'COLOR');
+      }
+
+      // Update Values
+      if (mapping.light && mapping.light.id) {
+        variable.setValueForMode(lightModeId, { type: 'VARIABLE_ALIAS', id: mapping.light.id });
+      }
+      if (mapping.dark && mapping.dark.id) {
+        variable.setValueForMode(darkModeId, { type: 'VARIABLE_ALIAS', id: mapping.dark.id });
+      }
     }
 
     figma.ui.postMessage({ type: 'progress-end' });
-    figma.ui.postMessage({ type: 'theme-created-success', payload: `Theme "${themeName}" created with ${Object.keys(tokens).length} tokens! ✅` });
-    figma.notify(`✅ Theme "${themeName}" created successfully!`);
+    const action = collectionId ? 'updated' : 'created';
+    figma.ui.postMessage({ type: 'theme-created-success', payload: `Theme "${themeName}" ${action} with ${Object.keys(tokens).length} tokens! ✅` });
+    figma.notify(`✅ Theme "${themeName}" ${action} successfully!`);
   } catch (error) {
+    console.error("Create Theme Error:", error);
     figma.ui.postMessage({ type: 'progress-end' });
-    figma.notify('❌ Error creating theme: ' + error.message);
+    figma.notify('❌ Error creating/updating theme: ' + error.message);
   }
 }
 
@@ -2195,12 +2453,21 @@ async function checkFoundation() {
       v.name.includes('fontWeight')
     );
 
-    // Check for alias tokens - look for variables in collections named "Aliases"
+    // Check for alias tokens - look for variables in collections named "Aliases" or "Tokens"
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    const aliasCollection = collections.find(c => c.name === 'Aliases');
-    const aliasTokens = aliasCollection ?
-      allVariables.filter(v => v.variableCollectionId === aliasCollection.id) :
-      [];
+    let aliasCollection = collections.find(c => c.name === 'Aliases' || c.name === 'Tokens');
+
+    let aliasTokens = [];
+    if (aliasCollection) {
+      aliasTokens = allVariables.filter(v => v.variableCollectionId === aliasCollection.id);
+    } else {
+      // Fallback: Check for variables with semantic names that are NOT colors (since we checked status/theme above)
+      // e.g., Spacing tokens, Radius, etc.
+      aliasTokens = allVariables.filter(v =>
+        v.resolvedType === 'FLOAT' &&
+        (v.name.includes('space') || v.name.includes('gap') || v.name.includes('radius'))
+      );
+    }
 
     const status = {
       colors: colorTokens.length > 0,
@@ -2229,437 +2496,3 @@ async function checkFoundation() {
   }
 }
 
-/**
- * Generate atomic components
- */
-async function generateAtoms(atoms, targetPage) {
-  try {
-    figma.ui.postMessage({
-      type: 'atoms-progress',
-      payload: 'Preparing to generate atoms...'
-    });
-
-    // Get or create target page
-    let page;
-    if (targetPage === 'NEW_PAGE') {
-      page = figma.createPage();
-      page.name = 'Atoms';
-      await figma.setCurrentPageAsync(page);
-    } else {
-      page = figma.currentPage;
-    }
-
-    // Get all variables for reference
-    const allVariables = await figma.variables.getLocalVariablesAsync();
-
-    let totalCreated = 0;
-
-    // Generate each selected atom type
-    for (const atomType of atoms) {
-      figma.ui.postMessage({
-        type: 'atoms-progress',
-        payload: `Generating ${atomType} components...`
-      });
-
-      let count = 0;
-
-      switch (atomType) {
-        case 'text':
-          count = await generateTextAtoms(allVariables, page);
-          break;
-        case 'icon':
-          count = await generateIconAtoms(allVariables, page);
-          break;
-        case 'divider':
-          count = await generateDividerAtoms(allVariables, page);
-          break;
-        case 'spacer':
-          count = await generateSpacerAtoms(page);
-          break;
-      }
-
-      totalCreated += count;
-    }
-
-    // Organize components on page
-    organizeAtomsOnPage(page);
-
-    figma.ui.postMessage({
-      type: 'atoms-complete',
-      payload: `Created ${totalCreated} atom components!`
-    });
-
-    figma.notify(`✅ Created ${totalCreated} atom components!`);
-
-  } catch (error) {
-    figma.ui.postMessage({
-      type: 'atoms-error',
-      payload: error.message
-    });
-    figma.notify('❌ Error generating atoms: ' + error.message);
-  }
-}
-
-/**
- * Generate Text Atom Components
- */
-async function generateTextAtoms(allVariables, page) {
-  const frame = figma.createFrame();
-  frame.name = '📝 Text Atoms';
-  frame.layoutMode = 'VERTICAL';
-  frame.primaryAxisSizingMode = 'AUTO';
-  frame.counterAxisSizingMode = 'AUTO';
-  frame.itemSpacing = 16;
-  frame.paddingTop = 24;
-  frame.paddingRight = 24;
-  frame.paddingBottom = 24;
-  frame.paddingLeft = 24;
-  frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }];
-
-  page.appendChild(frame);
-
-  let count = 0;
-
-  // Get all text styles
-  const allTextStyles = await figma.getLocalTextStylesAsync();
-  console.log('📝 Found text styles:', allTextStyles.length);
-
-  if (allTextStyles.length === 0) {
-    console.log('⚠️ No text styles found, skipping text atoms');
-    figma.notify('⚠️ No text styles found. Create text styles in Tab 4 first.');
-    return 0;
-  }
-
-  // Text colors for variants
-  const colors = [
-    { name: 'Primary', token: 'Text/primary' },
-    { name: 'Secondary', token: 'Text/secondary' },
-    { name: 'Tertiary', token: 'Text/tertiary' }
-  ];
-
-  // Find theme collection (variables with Light/Dark modes)
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
-  const themeCollection = collections.find(c =>
-    c.modes.some(m => m.name === 'Light' || m.name === 'Dark')
-  );
-
-  if (themeCollection) {
-    console.log(`🎨 Found theme collection: ${themeCollection.name} with modes:`, themeCollection.modes.map(m => m.name));
-  } else {
-    console.log('⚠️ No theme collection found with Light/Dark modes');
-  }
-
-  // Create one component per text style with color variants
-  for (const textStyle of allTextStyles) {
-    console.log(`\n📝 Creating component for: ${textStyle.name}`);
-
-    const variants = [];
-
-    // Create variant for each color
-    for (const color of colors) {
-      const component = figma.createComponent();
-      component.name = `Color=${color.name}`;
-
-      component.layoutMode = 'HORIZONTAL';
-      component.primaryAxisSizingMode = 'AUTO';
-      component.counterAxisSizingMode = 'AUTO';
-      component.paddingTop = 8;
-      component.paddingRight = 16;
-      component.paddingBottom = 8;
-      component.paddingLeft = 16;
-
-      // Create text node
-      const text = figma.createText();
-
-      // Apply text style
-      await figma.loadFontAsync(textStyle.fontName);
-      await text.setTextStyleIdAsync(textStyle.id);
-      text.characters = textStyle.name;
-
-      // Bind to color variable
-      const colorVar = allVariables.find(v => v.name === color.token);
-      if (colorVar) {
-        try {
-          // Must bind on the paint object, not the node
-          text.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, boundVariables: { color: { type: 'VARIABLE_ALIAS', id: colorVar.id } } }];
-        } catch (e) {
-          text.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
-        }
-      } else {
-        text.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
-      }
-
-      component.appendChild(text);
-      variants.push(component);
-    }
-
-    // Combine into component set with variants
-    if (variants.length > 0) {
-      const componentSet = figma.combineAsVariants(variants, frame);
-      const cleanName = textStyle.name.replace(/\//g, '-');
-      componentSet.name = `Text/${cleanName}`;
-
-      // Configure theme modes if available
-      if (themeCollection) {
-        try {
-          // Set the component set to use the theme collection
-          componentSet.setExplicitVariableModeForCollection(themeCollection, themeCollection.modes[0].modeId);
-          console.log(`✅ Applied theme modes to: ${componentSet.name}`);
-        } catch (e) {
-          console.log(`⚠️ Could not apply theme modes: ${e.message}`);
-        }
-      }
-
-      console.log(`✅ Created component set: ${componentSet.name} with ${variants.length} color variants`);
-      count++;
-    }
-  }
-
-  console.log(`✅ Created ${count} text component sets from ${allTextStyles.length} text styles`);
-  return count;
-}
-
-/**
- * Generate Icon Atom Components
- */
-async function generateIconAtoms(allVariables, page) {
-  const frame = figma.createFrame();
-  frame.name = '🎨 Icon Atoms';
-  frame.layoutMode = 'HORIZONTAL';
-  frame.primaryAxisSizingMode = 'AUTO';
-  frame.counterAxisSizingMode = 'AUTO';
-  frame.itemSpacing = 16;
-  frame.paddingTop = 24;
-  frame.paddingRight = 24;
-  frame.paddingBottom = 24;
-  frame.paddingLeft = 24;
-  frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }];
-
-  page.appendChild(frame);
-
-  const sizes = [16, 20, 24, 32, 40];
-  const colors = [
-    { name: 'Default', token: 'Icon/default' },
-    { name: 'Subtle', token: 'Icon/subtle' },
-    { name: 'Brand', token: 'Icon/brand' },
-    { name: 'Disabled', token: 'Icon/disabled' }
-  ];
-
-  // Find theme collection
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
-  const themeCollection = collections.find(c =>
-    c.modes.some(m => m.name === 'Light' || m.name === 'Dark')
-  );
-
-  let count = 0;
-
-  // Create one component set per size with color variants
-  for (const size of sizes) {
-    const variants = [];
-
-    for (const color of colors) {
-      const component = figma.createComponent();
-      component.name = `Color=${color.name}`;
-      component.resize(size, size);
-
-      // Create simple icon shape (circle for now)
-      const circle = figma.createEllipse();
-      circle.resize(size * 0.6, size * 0.6);
-      circle.x = size * 0.2;
-      circle.y = size * 0.2;
-
-      // Bind to color variable
-      const colorVar = allVariables.find(v => v.name === color.token);
-      if (colorVar) {
-        try {
-          // Must bind on the paint object, not the node
-          circle.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, boundVariables: { color: { type: 'VARIABLE_ALIAS', id: colorVar.id } } }];
-          console.log(`✅ Bound ${color.token} to Icon/${size}px/${color.name}`);
-        } catch (e) {
-          console.log(`❌ Failed to bind ${color.token}: ${e.message}`);
-          circle.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.5, b: 0.9 } }];
-        }
-      } else {
-        console.log(`⚠️ Variable ${color.token} not found, using fallback color`);
-        circle.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.5, b: 0.9 } }];
-      }
-
-      component.appendChild(circle);
-      variants.push(component);
-    }
-
-    // Combine into component set
-    if (variants.length > 0) {
-      const componentSet = figma.combineAsVariants(variants, frame);
-      componentSet.name = `Icon/${size}px`;
-
-      // Apply theme modes
-      if (themeCollection) {
-        try {
-          componentSet.setExplicitVariableModeForCollection(themeCollection, themeCollection.modes[0].modeId);
-          console.log(`✅ Applied theme modes to: ${componentSet.name}`);
-        } catch (e) {
-          console.log(`⚠️ Could not apply theme modes: ${e.message}`);
-        }
-      }
-
-      console.log(`✅ Created icon component set: ${componentSet.name} with ${variants.length} color variants`);
-      count++;
-    }
-  }
-
-  return count;
-}
-
-/**
- * Generate Divider Atom Components
- */
-async function generateDividerAtoms(allVariables, page) {
-  const frame = figma.createFrame();
-  frame.name = '━━ Divider Atoms';
-  frame.layoutMode = 'VERTICAL';
-  frame.primaryAxisSizingMode = 'AUTO';
-  frame.counterAxisSizingMode = 'AUTO';
-  frame.itemSpacing = 16;
-  frame.paddingTop = 24;
-  frame.paddingRight = 24;
-  frame.paddingBottom = 24;
-  frame.paddingLeft = 24;
-  frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }];
-
-  page.appendChild(frame);
-
-  const orientations = ['Horizontal', 'Vertical'];
-  const weights = [
-    { name: 'Thin', value: 1 },
-    { name: 'Medium', value: 2 }
-  ];
-
-  // Find theme collection
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
-  const themeCollection = collections.find(c =>
-    c.modes.some(m => m.name === 'Light' || m.name === 'Dark')
-  );
-
-  let count = 0;
-
-  // Create one component set per orientation with weight variants
-  for (const orientation of orientations) {
-    const variants = [];
-
-    for (const weight of weights) {
-      const component = figma.createComponent();
-      component.name = `Weight=${weight.name}`;
-
-      const line = figma.createLine();
-
-      if (orientation === 'Horizontal') {
-        line.resize(200, 0);
-        line.strokeWeight = weight.value;
-        component.resize(200, weight.value);
-      } else {
-        line.resize(0, 100);
-        line.rotation = 90;
-        line.strokeWeight = weight.value;
-        component.resize(weight.value, 100);
-      }
-      // Bind to border color
-      const borderVar = allVariables.find(v => v.name === 'Border/default');
-      if (borderVar) {
-        try {
-          // Must bind on the paint object, not the node
-          line.strokes = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, boundVariables: { color: { type: 'VARIABLE_ALIAS', id: borderVar.id } } }];
-          console.log(`✅ Bound Border/default to Divider/${orientation}/${weight.name}`);
-        } catch (e) {
-          console.log(`❌ Failed to bind Border/default: ${e.message}`);
-          line.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
-        }
-      } else {
-        console.log(`⚠️ Variable Border/default not found, using fallback color`);
-        line.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
-      }
-
-      component.appendChild(line);
-      variants.push(component);
-    }
-
-    // Combine into component set
-    if (variants.length > 0) {
-      const componentSet = figma.combineAsVariants(variants, frame);
-      componentSet.name = `Divider/${orientation}`;
-
-      // Apply theme modes
-      if (themeCollection) {
-        try {
-          componentSet.setExplicitVariableModeForCollection(themeCollection, themeCollection.modes[0].modeId);
-          console.log(`✅ Applied theme modes to: ${componentSet.name}`);
-        } catch (e) {
-          console.log(`⚠️ Could not apply theme modes: ${e.message}`);
-        }
-      }
-
-      console.log(`✅ Created divider component set: ${componentSet.name} with ${variants.length} weight variants`);
-      count++;
-    }
-  }
-
-  return count;
-}
-
-/**
- * Generate Spacer Atom Components
- */
-async function generateSpacerAtoms(page) {
-  const frame = figma.createFrame();
-  frame.name = '↔️ Spacer Atoms';
-  frame.layoutMode = 'HORIZONTAL';
-  frame.primaryAxisSizingMode = 'AUTO';
-  frame.counterAxisSizingMode = 'AUTO';
-  frame.itemSpacing = 8;
-  frame.paddingTop = 24;
-  frame.paddingRight = 24;
-  frame.paddingBottom = 24;
-  frame.paddingLeft = 24;
-  frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }];
-
-  page.appendChild(frame);
-
-  const sizes = [4, 8, 12, 16, 24, 32, 48, 64];
-  let count = 0;
-
-  for (const size of sizes) {
-    const component = figma.createComponent();
-    component.name = `Spacer/${size}px`;
-    component.resize(size, size);
-    component.fills = []; // Transparent
-
-    // Add visual guide (dashed border)
-    component.strokes = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 }, opacity: 0.5 }];
-    component.strokeWeight = 1;
-    component.dashPattern = [4, 4];
-
-    frame.appendChild(component);
-    count++;
-  }
-
-  return count;
-}
-
-/**
- * Organize atoms on page in a grid layout
- */
-function organizeAtomsOnPage(page) {
-  const frames = page.children.filter(node => node.type === 'FRAME');
-
-  let x = 0;
-  let y = 0;
-  const gap = 40;
-
-  for (const frame of frames) {
-    frame.x = x;
-    frame.y = y;
-
-    // Move to next position
-    y += frame.height + gap;
-  }
-}

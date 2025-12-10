@@ -1,0 +1,83 @@
+<div id="section-typography" class="section-content">
+    <h2>Typography System</h2>
+
+    <!-- Section 1: Fonts -->
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">1. Font
+            Families</label>
+
+        <div style="margin-bottom: 12px;">
+            <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Heading Font</label>
+            <select id="font-heading" class="font-select"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                <option value="" disabled selected>Loading fonts...</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Body Font</label>
+            <select id="font-body" class="font-select"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                <option value="" disabled selected>Loading fonts...</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Code/Mono Font</label>
+            <select id="font-code" class="font-select"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                <option value="" disabled selected>Loading fonts...</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Section 2: Scale Lists -->
+    <div style="margin-bottom: 24px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">2.
+            Scales</label>
+
+        <div style="margin-bottom: 16px;">
+            <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Font Weights
+                (Numeric)</label>
+            <textarea id="typo-weights"
+                style="width: 100%; height: 50px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">100, 200, 300, 400, 500, 600, 700, 800, 900</textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Letter Spacing (%)</label>
+            <textarea id="typo-spacing"
+                style="width: 100%; height: 50px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">-2, -1, 0, 1, 2, 4, 8, 10</textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label style="font-size: 11px; color: #666; margin-bottom: 4px; display: block;">Font Sizes (px)</label>
+            <textarea id="typo-sizes"
+                style="width: 100%; height: 50px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 12px; resize: vertical;">8, 10, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72</textarea>
+            <p style="font-size: 10px; color: #888; margin-top: 4px;">Will define generic sizes (3xs, 2xs, xs, sm, base,
+                lg...).</p>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <div style="border-top: 1px solid #eee; padding-top: 20px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 12px; color: #333;">3.
+            Target</label>
+
+        <div style="margin-bottom: 12px;">
+            <select id="typo-collection-select"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                <option value="" disabled selected>Select Collection...</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <select id="typo-group-select"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+                <option value="">(Root / No Group)</option>
+                <option value="NEW_GROUP">+ New Group...</option>
+            </select>
+            <input type="text" id="typo-group-custom" placeholder="e.g. Typography" value="Typography"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; margin-top: 8px; display: none;">
+        </div>
+
+        <button id="create-typo-btn" style="background-color: #18A0FB;">Create Typography Variables</button>
+    </div>
+</div>

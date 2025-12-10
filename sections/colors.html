@@ -1,0 +1,75 @@
+<div id="section-scale" class="section-content active">
+    <h2>Color Palettes</h2>
+    <p class="description">Generate color scales for your design system.</p>
+
+    <!-- Step 1: Collection -->
+    <div class="section-title">1. Collection</div>
+    <div class="input-group">
+        <label>Target Collection</label>
+        <select id="var-collection-select">
+            <option value="" disabled selected>Select Collection...</option>
+            <option value="NEW_COLLECTION">+ Create New Collection...</option>
+        </select>
+    </div>
+    <input type="text" id="var-collection-custom" placeholder="Enter new collection name"
+        style="display: none; width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #3b82f6; font-size: 14px; margin-top: 8px; margin-bottom: 16px; background: #eff6ff; transition: all 0.2s ease;">
+
+    <!-- Step 2: Group -->
+    <div class="section-title">2. Group (Optional)</div>
+    <div class="input-group">
+        <label>Target Group</label>
+        <select id="var-group-select">
+            <option value="">(Root / No Group)</option>
+            <option value="NEW_GROUP">+ New Group...</option>
+        </select>
+    </div>
+    <input type="text" id="var-group-custom" placeholder="Enter new group name"
+        style="display: none; width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #3b82f6; font-size: 14px; margin-top: 8px; margin-bottom: 24px; background: #eff6ff; transition: all 0.2s ease;">
+
+    <div class="separator"></div>
+
+    <!-- Step 3: Add Colors -->
+    <div class="section-title">3. Add Colors</div>
+    <div
+        style="margin-bottom: 20px; background: white; padding: 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #374151;">Add New
+            Color</label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+            <div>
+                <input type="text" id="new-color-name" placeholder="Name (e.g. Primary)"
+                    style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1d5db; font-size: 14px;">
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="new-color-hex" placeholder="#Hex"
+                    style="flex: 1; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1d5db; font-family: monospace; font-size: 14px;">
+                <div id="new-color-swatch"
+                    style="width: 40px; height: 40px; border-radius: 8px; background: #f3f4f6; border: 1.5px solid #d1d5db;">
+                </div>
+            </div>
+        </div>
+
+        <button id="add-color-btn" class="secondary" style="width: 100%;">+ Add to Queue</button>
+        <p id="add-error" style="color: #dc2626; font-size: 12px; margin-top: 8px; display: none;">Invalid Input</p>
+    </div>
+
+    <!-- Color Queue List -->
+    <div id="color-queue-container" style="margin-bottom: 24px;">
+        <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 8px; color: #444;">Colors to
+            Generate (<span id="queue-count">0</span>)</label>
+        <div id="color-queue"
+            style="display: flex; flex-direction: column; gap: 8px; min-height: 40px; margin-bottom: 12px;">
+            <p id="empty-queue-msg" style="font-size: 11px; color: #999; font-style: italic;">No colors added yet.</p>
+        </div>
+        <button id="preview-scale-btn" class="primary" disabled style="width: 100%;">Preview
+            Palettes</button>
+    </div>
+
+    <!-- Preview Section -->
+    <div id="scale-preview-container" style="display: none; border-top: 1px solid #eee; padding-top: 20px;">
+        <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 12px; color: #444;">Palettes
+            Preview</label>
+        <div id="scale-list" style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px;"></div>
+        <button id="create-vars-btn" class="primary" style="width: 100%;">Create All Variables</button>
+    </div>
+</div>

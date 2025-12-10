@@ -1,0 +1,167 @@
+<div class="section-content" id="section-theme">
+    <div class="header-actions" style="margin-bottom: 24px;">
+        <div class="tab-toggle"
+            style="background: #f3f4f6; padding: 4px; border-radius: 6px; display: flex; width: 100%;">
+            <button id="mode-generate" class="toggle-btn active"
+                style="flex: 1; padding: 8px; border: none; background: white; border-radius: 4px; font-size: 13px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Generate
+                New</button>
+            <button id="mode-edit" class="toggle-btn"
+                style="flex: 1; padding: 8px; border: none; background: transparent; font-size: 13px; font-weight: 500; color: #666;">Edit
+                Existing</button>
+        </div>
+    </div>
+
+    <!-- Mode: Generate -->
+    <div id="theme-mode-generate">
+        <!-- Step 1: Source -->
+        <div class="form-section">
+            <h3>Step 1: Source Collection</h3>
+            <p class="section-description">Select where your color palettes are stored</p>
+
+            <div class="form-group">
+                <label>Collection</label>
+                <div class="select-wrapper">
+                    <select id="theme-source-collection">
+                        <option value="" disabled selected>Select collection...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Group (Optional)</label>
+                <div class="select-wrapper">
+                    <select id="theme-source-group" disabled>
+                        <option value="">All groups</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="load-palettes-btn" class="btn btn-secondary" style="width: 100%;">Load Palettes</button>
+        </div>
+    </div>
+
+    <!-- Mode: Edit (New) -->
+    <div id="theme-mode-edit" style="display: none;">
+        <div class="form-section">
+            <h3>Select Theme Collection</h3>
+            <p class="section-description">Choose an existing theme collection to edit</p>
+
+            <div class="form-group">
+                <label>Theme Collection</label>
+                <div class="select-wrapper">
+                    <select id="theme-edit-collection">
+                        <option value="" disabled selected>Select theme...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Theme Group (Optional)</label>
+                <div class="select-wrapper">
+                    <select id="theme-edit-group" disabled>
+                        <option value="">(Root)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="load-existing-theme-btn" class="btn btn-primary" style="width: 100%;">Load Theme Tokens</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Configuration -->
+    <div class="form-section">
+        <h3>Step 2: Semantic Mapping</h3>
+        <p class="section-description">Map your palettes to semantic roles</p>
+
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Accent / Brand</label>
+                <div class="select-wrapper">
+                    <select id="theme-accent-palette" disabled></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Neutral / Surface</label>
+                <div class="select-wrapper">
+                    <select id="theme-neutral-palette" disabled></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+        <label class="sub-label">Status Palettes (Optional)</label>
+
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Success</label>
+                <div class="select-wrapper">
+                    <select id="theme-success-palette" disabled></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Warning</label>
+                <div class="select-wrapper">
+                    <select id="theme-warning-palette" disabled></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Error</label>
+                <div class="select-wrapper">
+                    <select id="theme-error-palette" disabled></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+            <label>Theme Name</label>
+            <input type="text" id="theme-name" class="input-text" value="Theme" placeholder="e.g. My Product Theme">
+        </div>
+
+        <button id="generate-theme-btn" class="btn btn-primary" style="width: 100%;" disabled>Generate Theme</button>
+    </div>
+
+    <!-- Step 3: Editor & Preview (Hidden initially) -->
+    <div id="theme-preview-section"
+        style="display: none; margin-top: 32px; border-top: 1px solid #eee; padding-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3>Theme Editor</h3>
+            <div class="tab-toggle" style="background: #f3f4f6; padding: 4px; border-radius: 6px; display: flex;">
+                <button id="view-light" class="toggle-btn active"
+                    style="padding: 4px 12px; border: none; background: white; border-radius: 4px; font-size: 12px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Light</button>
+                <button id="view-dark" class="toggle-btn"
+                    style="padding: 4px 12px; border: none; background: transparent; font-size: 12px; font-weight: 500; color: #666;">Dark</button>
+            </div>
+        </div>
+
+        <!-- Live Preview Board -->
+        <div id="theme-preview-board"
+            style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 24px; transition: all 0.3s ease;">
+            <!-- Rendered via JS based on tokens -->
+        </div>
+
+        <!-- Token Editor Accordion -->
+        <div class="editor-accordion">
+            <details open>
+                <summary>Background & Surface</summary>
+                <div class="token-grid" id="editor-bg"></div>
+            </details>
+            <details>
+                <summary>Text & Content</summary>
+                <div class="token-grid" id="editor-text"></div>
+            </details>
+            <details>
+                <summary>Actions & Buttons</summary>
+                <div class="token-grid" id="editor-action"></div>
+            </details>
+            <details>
+                <summary>Status & Feedback</summary>
+                <div class="token-grid" id="editor-status"></div>
+            </details>
+        </div>
+
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee;">
+            <button id="create-theme-btn" class="btn btn-primary big-btn" style="width: 100%; padding: 12px;">Create
+                Variables Collection</button>
+        </div>
+    </div>
+</div>

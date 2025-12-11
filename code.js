@@ -2056,6 +2056,7 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
       { name: 'Surface/card', light: '50', dark: '800' },
       { name: 'Surface/float', light: '50', dark: '800' },
       { name: 'Surface/modal', light: '50', dark: '800' },
+      { name: 'Surface/overlay', light: '900', dark: '950' }, // Semi-transparent overlay
       { name: 'Surface/wash', light: '50', dark: '950' }, // Wash/App Background often slightly tinted
 
       // 4. BORDERS
@@ -2440,6 +2441,59 @@ async function loadThemeFromCollection(collectionId) {
       dark: getPreviewData('dark')
     };
 
+    // Extract Palette Colors for Custom Dropdowns
+    console.log('Extracting palette colors for edit mode...');
+    const paletteData = {
+      accent: {},
+      neutral: {},
+      success: {},
+      warning: {},
+      error: {}
+    };
+
+    // Helper to get variables from a specific palette
+    const getPaletteVars = (paletteName) => {
+      if (!paletteName) return [];
+      return allVariables.filter(v => {
+        if (v.resolvedType !== 'COLOR') return false;
+        const name = v.name;
+        return name.startsWith(paletteName + '/') || name.startsWith(paletteName + '-') || name.startsWith(paletteName + ' ');
+      });
+    };
+
+    // Extract colors for each palette type
+    if (detectedConfig.accent) {
+      const accentVars = getPaletteVars(detectedConfig.accent);
+      paletteData.accent = extractPaletteColors(accentVars, allVarsMap);
+      console.log(`Accent palette (${detectedConfig.accent}): ${Object.keys(paletteData.accent).length} colors`);
+    }
+
+    if (detectedConfig.neutral) {
+      const neutralVars = getPaletteVars(detectedConfig.neutral);
+      paletteData.neutral = extractPaletteColors(neutralVars, allVarsMap);
+      console.log(`Neutral palette (${detectedConfig.neutral}): ${Object.keys(paletteData.neutral).length} colors`);
+    }
+
+    if (detectedConfig.status.success) {
+      const successVars = getPaletteVars(detectedConfig.status.success);
+      paletteData.success = extractPaletteColors(successVars, allVarsMap);
+      console.log(`Success palette (${detectedConfig.status.success}): ${Object.keys(paletteData.success).length} colors`);
+    }
+
+    if (detectedConfig.status.warning) {
+      const warningVars = getPaletteVars(detectedConfig.status.warning);
+      paletteData.warning = extractPaletteColors(warningVars, allVarsMap);
+      console.log(`Warning palette (${detectedConfig.status.warning}): ${Object.keys(paletteData.warning).length} colors`);
+    }
+
+    if (detectedConfig.status.error) {
+      const errorVars = getPaletteVars(detectedConfig.status.error);
+      paletteData.error = extractPaletteColors(errorVars, allVarsMap);
+      console.log(`Error palette (${detectedConfig.status.error}): ${Object.keys(paletteData.error).length} colors`);
+    }
+
+    console.log(`Sending paletteData: accent(${Object.keys(paletteData.accent).length}), neutral(${Object.keys(paletteData.neutral).length}), success(${Object.keys(paletteData.success).length}), warning(${Object.keys(paletteData.warning).length}), error(${Object.keys(paletteData.error).length})`);
+
     figma.ui.postMessage({
       type: 'theme-loaded-for-edit',
       payload: {
@@ -2449,7 +2503,11 @@ async function loadThemeFromCollection(collectionId) {
         validation: { passed: Object.keys(tokens).length },
         preview,
         availablePalettes,
-        detectedConfig
+        detectedConfig,
+        paletteData, // Add palette colors
+        accentPalette: detectedConfig.accent,
+        neutralPalette: detectedConfig.neutral,
+        statusPalettes: detectedConfig.status
       }
     });
 

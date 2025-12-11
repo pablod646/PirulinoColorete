@@ -156,6 +156,15 @@ function initTheme() {
                     if (c.status.error && errorSelect) errorSelect.value = c.status.error;
                 }
 
+                // Extract paletteData for custom dropdowns
+                if (payload.paletteData) {
+                    paletteData = payload.paletteData;
+                    console.log('📊 Palette Data loaded for edit mode:', paletteData);
+                    Object.keys(paletteData).forEach(paletteName => {
+                        console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors');
+                    });
+                }
+
                 // 3. Show Config Section (Step 2)
                 if (configSection) {
                     configSection.style.display = 'block';

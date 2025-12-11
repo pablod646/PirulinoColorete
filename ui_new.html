@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PirulinoColorete</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/layout.css">
+    <link rel="stylesheet" href="styles/components.css">
+</head>
+
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">PirulinoColorete</div>
+            <div class="sidebar-subtitle">DESIGN ARCHITECT</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-section="scale">
+                <span class="nav-item-icon">🎨</span>
+                <span class="nav-item-label">Colors</span>
+            </div>
+            <div class="nav-item" data-section="measures">
+                <span class="nav-item-icon">📏</span>
+                <span class="nav-item-label">Measures</span>
+            </div>
+            <div class="nav-item" data-section="typography">
+                <span class="nav-item-icon">✍️</span>
+                <span class="nav-item-label">Typography</span>
+            </div>
+            <div class="nav-item" data-section="aliases">
+                <span class="nav-item-icon">🔗</span>
+                <span class="nav-item-label">Aliases</span>
+            </div>
+            <div class="nav-item" data-section="theme">
+                <span class="nav-item-icon">🌓</span>
+                <span class="nav-item-label">Theme</span>
+            </div>
+            <div class="nav-item" data-section="components">
+                <span class="nav-item-icon">🧬</span>
+                <span class="nav-item-label">Components</span>
+            </div>
+            <div class="nav-item" data-section="collections">
+                <span class="nav-item-icon">📚</span>
+                <span class="nav-item-label">Documentation</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="content-header">
+            <h1 id="page-title">Color Palettes</h1>
+            <p id="page-description">Generate color scales for your design system.</p>
+        </div>
+        <div class="content-body">
+            <div class="content-container" id="sections-container">
+                <!-- Sections will be loaded here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Script -->
+    <script src="scripts/navigation.js"></script>
+</body>
+
+</html>

@@ -37,7 +37,7 @@ sections.forEach(section => {
 });
 
 // Read CSS files
-const cssFiles = ['layout.css', 'components.css'];
+const cssFiles = ['layout.css', 'components.css', 'custom-select.css'];
 let stylesCSS = '';
 cssFiles.forEach(file => {
     const filePath = path.join(STYLES_DIR, file);

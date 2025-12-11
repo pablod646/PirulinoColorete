@@ -171,3 +171,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* Resize Handle Hover Effect */
+#resize-handle:hover path {
+    stroke: #18A0FB;
+}

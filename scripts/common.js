@@ -97,3 +97,49 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(overlay);
     }
 });
+
+// Custom Resize Handle Logic
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if handle already exists
+    if (document.getElementById('resize-handle')) return;
+
+    // Inject resize handle
+    const handle = document.createElement('div');
+    handle.id = 'resize-handle';
+    handle.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 16px; height: 16px; cursor: nwse-resize; z-index: 10000;';
+
+    // Add visual indicator (triangle) using SVG
+    handle.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 8L8 14M14 4L4 14" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+    document.body.appendChild(handle);
+
+    let isResizing = false;
+
+    handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        e.preventDefault(); // Prevent text selection
+
+        // Notify parent we are starting resize? (Optional)
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    });
+
+    function handleMouseMove(e) {
+        if (!isResizing) return;
+
+        // Calculate new size based on mouse position
+        const newWidth = Math.max(300, e.clientX); // Min width 300
+        const newHeight = Math.max(300, e.clientY); // Min height 300
+
+        // Send message to code.js
+        parent.postMessage({
+            pluginMessage: { type: 'resize-window', width: newWidth, height: newHeight }
+        }, '*');
+    }
+
+    function handleMouseUp() {
+        isResizing = false;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    }
+});

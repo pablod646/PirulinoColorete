@@ -296,3 +296,35 @@ details[open] summary {
     gap: 24px;
     align-content: flex-start;
 }
+
+/* Token Highlighter */
+.preview-highlight {
+    outline: 2px solid #FF00FF !important;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5) !important;
+    position: relative;
+    z-index: 10;
+
+    transition: all 0.2s;
+}
+
+/* Editor Row Flash */
+@keyframes flashRow {
+    0% {
+        background-color: rgba(24, 160, 251, 0.4);
+        outline: 2px solid #18A0FB;
+        transform: scale(1.02);
+    }
+
+    100% {
+        background-color: #f9fafb;
+        outline: none;
+        transform: scale(1);
+    }
+}
+
+.editor-flash {
+    animation: flashRow 1.5s ease-out forwards !important;
+    z-index: 100;
+    position: relative;
+    border-color: #18A0FB !important;
+}

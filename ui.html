@@ -178,6 +178,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* Resize Handle Hover Effect */
+#resize-handle:hover path {
+    stroke: #18A0FB;
+}
 /* Base Design Tokens */
 :root {
     --primary: #18A0FB;
@@ -475,6 +480,142 @@ details[open] summary {
     flex-wrap: wrap;
     gap: 24px;
     align-content: flex-start;
+}
+
+/* Token Highlighter */
+.preview-highlight {
+    outline: 2px solid #FF00FF !important;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5) !important;
+    position: relative;
+    z-index: 10;
+
+    transition: all 0.2s;
+}
+
+/* Editor Row Flash */
+@keyframes flashRow {
+    0% {
+        background-color: rgba(24, 160, 251, 0.4);
+        outline: 2px solid #18A0FB;
+        transform: scale(1.02);
+    }
+
+    100% {
+        background-color: #f9fafb;
+        outline: none;
+        transform: scale(1);
+    }
+}
+
+.editor-flash {
+    animation: flashRow 1.5s ease-out forwards !important;
+    z-index: 100;
+    position: relative;
+    border-color: #18A0FB !important;
+}
+/* Custom Select Component Styles */
+.custom-select {
+    position: relative;
+    flex: 1;
+    font-size: 11px;
+    user-select: none;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.custom-select-trigger:hover {
+    border-color: #9ca3af;
+}
+
+.custom-select.open .custom-select-trigger {
+    border-color: #18A0FB;
+    box-shadow: 0 0 0 1px #18A0FB;
+}
+
+.custom-select .color-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.custom-select .scale-value {
+    flex: 1;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.custom-select .dropdown-arrow {
+    font-size: 8px;
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.custom-select.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.custom-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.custom-select.open .custom-options {
+    display: block;
+}
+
+.custom-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.custom-option:hover {
+    background-color: #f3f4f6;
+}
+
+.custom-option.selected {
+    background-color: #eff6ff;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+.custom-option .color-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.custom-option .scale-value {
+    font-family: monospace;
+    font-size: 11px;
 }
 
     </style>
@@ -943,6 +1084,10 @@ details[open] summary {
                 <div class="token-grid" id="editor-action"></div>
             </details>
             <details>
+                <summary>Borders & Dividers</summary>
+                <div class="token-grid" id="editor-border"></div>
+            </details>
+            <details>
                 <summary>Status & Feedback</summary>
                 <div class="token-grid" id="editor-status"></div>
             </details>
@@ -1079,6 +1224,52 @@ document.addEventListener('DOMContentLoaded', () => {
             <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
         `;
         document.body.appendChild(overlay);
+    }
+});
+
+// Custom Resize Handle Logic
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if handle already exists
+    if (document.getElementById('resize-handle')) return;
+
+    // Inject resize handle
+    const handle = document.createElement('div');
+    handle.id = 'resize-handle';
+    handle.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 16px; height: 16px; cursor: nwse-resize; z-index: 10000;';
+
+    // Add visual indicator (triangle) using SVG
+    handle.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 8L8 14M14 4L4 14" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+    document.body.appendChild(handle);
+
+    let isResizing = false;
+
+    handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        e.preventDefault(); // Prevent text selection
+
+        // Notify parent we are starting resize? (Optional)
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    });
+
+    function handleMouseMove(e) {
+        if (!isResizing) return;
+
+        // Calculate new size based on mouse position
+        const newWidth = Math.max(300, e.clientX); // Min width 300
+        const newHeight = Math.max(300, e.clientY); // Min height 300
+
+        // Send message to code.js
+        parent.postMessage({
+            pluginMessage: { type: 'resize-window', width: newWidth, height: newHeight }
+        }, '*');
+    }
+
+    function handleMouseUp() {
+        isResizing = false;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
     }
 });
 
@@ -1846,6 +2037,7 @@ function initTheme() {
     // State
     let loadedPalettes = [];
     let generatedThemeData = null;
+    let tokenOverrides = {}; // Store user overrides
     let currentPreviewMode = 'light'; // 'light' or 'dark'
 
     // Mode Elements
@@ -2069,11 +2261,21 @@ function initTheme() {
         };
     }
 
-    generateBtn.onclick = () => {
-        if (!accentSelect.value || !neutralSelect.value) {
-            alert('Accent and Neutral palettes are required');
-            return;
-        }
+    // Live Preview / Regeneration Logic
+    const triggerRegeneration = () => {
+        if (!accentSelect.value || !neutralSelect.value) return;
+
+        // Gather current overrides from the UI if any
+        const currentOverrides = {};
+        document.querySelectorAll('.token-override-select').forEach(sel => {
+            const token = sel.dataset.token;
+            const mode = sel.dataset.mode;
+            const val = sel.value;
+            if (val) {
+                if (!currentOverrides[token]) currentOverrides[token] = {};
+                currentOverrides[token][mode] = val;
+            }
+        });
 
         const msg = {
             type: 'generate-theme',
@@ -2085,11 +2287,25 @@ function initTheme() {
                 error: errorSelect.value
             },
             themeName: themeNameInput.value.trim(),
-            tokenOverrides: {}
+            tokenOverrides: currentOverrides, // Send existing overrides so they aren't lost
+            isRegenerate: true // Flag to tell backend this is a live update
         };
 
-        console.log('🌓 Generating theme...', msg);
+        console.log('🔄 Auto-updating preview...', msg);
         parent.postMessage({ pluginMessage: msg }, '*');
+    };
+
+    // Attach listeners for Validated Live Preview
+    [accentSelect, neutralSelect, successSelect, warningSelect, errorSelect].forEach(sel => {
+        if (sel) sel.onchange = triggerRegeneration;
+    });
+
+    generateBtn.onclick = () => {
+        if (!accentSelect.value || !neutralSelect.value) {
+            alert('Accent and Neutral palettes are required');
+            return;
+        }
+        triggerRegeneration();
     };
 
     createThemeBtn.onclick = () => {
@@ -2131,71 +2347,246 @@ function initTheme() {
         if (!generatedThemeData || !generatedThemeData.preview) return;
 
         const p = generatedThemeData.preview[currentPreviewMode];
+        const isDark = currentPreviewMode === 'dark';
 
-        // Construct the UI Board HTML
-        // We use styles injected from the preview data (bg, text, primary)
-        // Note: generatedThemeData.preview contains HEX values sent from backend
+        // Helper for consistent small styles
+        const cardStyle = `background-color: ${p.surface.card}; border: 1px solid ${p.border.default}; border-radius: 8px; padding: 20px;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);`;
+        const labelStyle = `display: block; font-size: 11px; font-weight: 600; margin-bottom: 6px; color: ${p.text.secondary}; letter-spacing: 0.025em; text-transform: uppercase;`;
 
         previewBoard.innerHTML = `
-            <div style="background-color: ${p.bg}; color: ${p.text}; padding: 32px; transition: background 0.3s; font-family: sans-serif;">
+            <div data-tokens="Background/primary Text/primary" style="background-color: ${p.bg.primary}; color: ${p.text.primary}; padding: 32px; transition: background 0.3s; font-family: 'Inter', sans-serif; min-height: 480px;">
                 
-                <!-- Navbar Mockup -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 16px;">
-                    <div style="font-weight: bold; font-size: 18px;">AppLogo</div>
-                    <div style="display: flex; gap: 20px; font-size: 14px; opacity: 0.8;">
-                        <span>Dashboard</span>
-                        <span style="border-bottom: 2px solid ${p.primary}; color: ${p.primary}; font-weight: 500;">Settings</span>
-                        <span>Profile</span>
+                <!-- Navbar -->
+                <nav data-tokens="Border/subtle Text/brand Text/primary Text/secondary" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; padding-bottom: 16px; border-bottom: 1px solid ${p.border.subtle || p.border.default};">
+                    <div data-tokens="Text/brand" style="font-weight: 700; font-size: 18px; color: ${p.text.brand || p.text.primary}; letter-spacing: -0.02em;">Acme Inc.</div>
+                    <div style="display: flex; gap: 24px; font-size: 14px;">
+                        <span data-tokens="Text/primary" style="color: ${p.text.primary}; font-weight: 500;">Dashboard</span>
+                        <span data-tokens="Text/secondary" style="color: ${p.text.secondary};">Team</span>
+                        <span data-tokens="Text/secondary" style="color: ${p.text.secondary};">Projects</span>
                     </div>
-                </div>
+                </nav>
 
-                <!-- Content -->
-                <div style="max-width: 600px; margin: 0 auto;">
-                    <h1 style="font-size: 24px; margin-bottom: 12px; font-weight: 600;">Account Settings</h1>
-                    <p style="opacity: 0.7; margin-bottom: 24px; line-height: 1.5;">Manage your profile details and preferences settings.</p>
-
-                    <!-- Card -->
-                    <div style="background-color: ${currentPreviewMode === 'light' ? '#fff' : 'rgba(255,255,255,0.05)'}; 
-                                border: 1px solid rgba(128,128,128,0.2); 
-                                border-radius: 8px; 
-                                padding: 24px; 
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; max-width: 900px; margin: 0 auto;">
+                    
+                    <!-- Main Content Column -->
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
                         
-                        <!-- Form Group -->
-                        <div style="margin-bottom: 16px;">
-                            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 8px; opacity: 0.8;">USERNAME</label>
-                            <div style="display: flex; align-items: center; 
-                                        border: 1px solid rgba(128,128,128,0.3); 
-                                        border-radius: 6px; 
-                                        padding: 8px 12px; 
-                                        background: ${currentPreviewMode === 'light' ? '#f9fafb' : 'rgba(0,0,0,0.2)'};">
-                                <span style="flex: 1;">johndoe</span>
+                        <!-- Header -->
+                        <div>
+                            <h1 data-tokens="Text/primary" style="font-size: 24px; font-weight: 700; color: ${p.text.primary}; margin: 0 0 8px 0;">Settings</h1>
+                            <p data-tokens="Text/secondary" style="color: ${p.text.secondary}; margin: 0; font-size: 14px;">Manage your team members and permissions.</p>
+                        </div>
+
+                        <!-- Main Form Card -->
+                        <div data-tokens="Surface/card Border/default" style="${cardStyle}">
+                            <div style="margin-bottom: 20px;">
+                                <h2 data-tokens="Text/primary" style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0; color: ${p.text.primary};">Profile Information</h2>
+                                <p data-tokens="Text/secondary" style="font-size: 13px; color: ${p.text.secondary}; margin: 0;">Update your account's profile information and email address.</p>
+                            </div>
+
+                            <!-- Input Group -->
+                            <div style="margin-bottom: 16px;">
+                                <label data-tokens="Text/secondary" style="${labelStyle}">Username</label>
+                                <div data-tokens="Border/default Background/tertiary" style="display: flex; border: 1px solid ${p.border.default}; border-radius: 6px; overflow: hidden;">
+                                    <span data-tokens="Background/tertiary Text/secondary" style="background: ${p.bg.tertiary || p.bg.secondary}; color: ${p.text.secondary}; padding: 8px 12px; font-size: 13px; border-right: 1px solid ${p.border.default};">acme.com/</span>
+                                    <input data-tokens="Background/primary Text/primary" type="text" value="johndoe" style="flex: 1; border: none; padding: 8px 12px; font-size: 13px; background: ${p.bg.primary}; color: ${p.text.primary}; outline: none;">
+                                </div>
+                            </div>
+                            
+                            <!-- Input Focus State Mockup -->
+                            <div style="margin-bottom: 24px;">
+                                <label data-tokens="Text/secondary" style="${labelStyle}">Email Address</label>
+                                <input data-tokens="Border/focus Action/primary Background/primary Text/primary" type="text" value="john@example.com" style="width: 100%; border: 1px solid ${p.border.focus}; box-shadow: 0 0 0 3px ${p.action.primary}20; border-radius: 6px; padding: 8px 12px; font-size: 13px; background: ${p.bg.primary}; color: ${p.text.primary}; outline: none;">
+                                <span data-tokens="Text/secondary" style="display: block; margin-top: 4px; font-size: 11px; color: ${p.text.tertiary || p.text.secondary};">We'll never share your email with anyone else.</span>
+                            </div>
+
+                            <!-- Actions -->
+                            <div data-tokens="Border/subtle" style="display: flex; gap: 12px; padding-top: 16px; border-top: 1px solid ${p.border.subtle || p.border.default};">
+                                <button data-tokens="Action/primary" style="background-color: ${p.action.primary}; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 13px; cursor: pointer;">Save Changes</button>
+                                <button data-tokens="Text/primary Border/default" style="background-color: transparent; color: ${p.text.primary}; border: 1px solid ${p.border.strong || p.border.default}; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 13px; cursor: pointer;">Cancel</button>
                             </div>
                         </div>
 
-                        <!-- Primary Button -->
-                        <button style="background-color: ${p.primary}; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer;">
-                            Save Changes
-                        </button>
-                        
-                        <button style="background: transparent; border: 1px solid rgba(128,128,128,0.3); color: inherit; padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px; margin-left: 12px; cursor: pointer;">
-                            Cancel
-                        </button>
-
                     </div>
 
-                    <!-- Alerts Mockup -->
-                    <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
-                        <div style="padding: 12px; border-radius: 6px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: ${currentPreviewMode === 'light' ? '#047857' : '#34d399'}; font-size: 13px;">
-                            ✅ Profile updated successfully.
+                    <!-- Sidebar Column -->
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        
+                        <!-- Status Cards -->
+                        <div data-tokens="Surface/card Border/default" style="${cardStyle}">
+                            <h3 data-tokens="Text/secondary" style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: ${p.text.secondary}; margin: 0 0 16px 0; letter-spacing: 0.05em;">System Status</h3>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Success -->
+                                <div data-tokens="Status/successBg Status/success" style="display: flex; gap: 12px; align-items: start; padding: 12px; border-radius: 6px; background: ${p.status.successBg}; border: 1px solid ${p.status.success}30;">
+                                    <div data-tokens="Status/success" style="width: 8px; height: 8px; border-radius: 50%; background: ${p.status.success}; margin-top: 6px;"></div>
+                                    <div>
+                                        <div data-tokens="Status/success" style="font-size: 13px; font-weight: 600; color: ${p.status.success};">All Systems Operational</div>
+                                        <div data-tokens="Status/success" style="font-size: 12px; color: ${p.status.success}; opacity: 0.9;">No incidents reported today.</div>
+                                    </div>
+                                </div>
+
+                                <!-- Warning -->
+                                <div data-tokens="Status/warningBg Status/warning" style="display: flex; gap: 12px; align-items: start; padding: 12px; border-radius: 6px; background: ${p.status.warningBg}; border: 1px solid ${p.status.warning}30;">
+                                    <div data-tokens="Status/warning" style="width: 8px; height: 8px; border-radius: 50%; background: ${p.status.warning}; margin-top: 6px;"></div>
+                                    <div>
+                                        <div data-tokens="Status/warning" style="font-size: 13px; font-weight: 600; color: ${p.status.warning};">Storage Warning</div>
+                                        <div data-tokens="Status/warning" style="font-size: 12px; color: ${p.status.warning}; opacity: 0.9;">85% of standard storage used.</div>
+                                    </div>
+                                </div>
+
+                                <!-- Error -->
+                                <div data-tokens="Status/errorBg Status/error" style="display: flex; gap: 12px; align-items: start; padding: 12px; border-radius: 6px; background: ${p.status.errorBg}; border: 1px solid ${p.status.error}30;">
+                                    <div data-tokens="Status/error" style="width: 8px; height: 8px; border-radius: 50%; background: ${p.status.error}; margin-top: 6px;"></div>
+                                    <div>
+                                        <div data-tokens="Status/error" style="font-size: 13px; font-weight: 600; color: ${p.status.error};">Connection Failed</div>
+                                        <div data-tokens="Status/error" style="font-size: 12px; color: ${p.status.error}; opacity: 0.9;">Unable to sync with database.</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div style="padding: 12px; border-radius: 6px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: ${currentPreviewMode === 'light' ? '#b91c1c' : '#f87171'}; font-size: 13px;">
-                            ❌ Please verify your email address.
+
+                        <!-- Modal/Overlay Preview (Mini) -->
+                        <div data-tokens="Surface/overlay Border/default" style="position: relative; height: 160px; border-radius: 8px; overflow: hidden; border: 1px solid ${p.border.default};">
+                             <div data-tokens="Surface/overlay" style="position: absolute; inset: 0; background: ${p.surface.overlay || '#00000080'}; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+                                <div data-tokens="Surface/modal Text/primary" style="background: ${p.surface.modal}; padding: 16px; border-radius: 8px; width: 80%; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                                    <div data-tokens="Text/primary" style="font-size: 13px; font-weight: 600; color: ${p.text.primary}; margin-bottom: 4px;">Confirm Deletion</div>
+                                    <p data-tokens="Text/secondary" style="font-size: 11px; color: ${p.text.secondary}; margin-bottom: 12px;">Are you sure?</p>
+                                    <button data-tokens="Action/destructive" style="width: 100%; background: ${p.action.destructive}; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">Delete Everything</button>
+                                </div>
+                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         `;
+
+        // --- NEW PREVIEW INTERACTION LOGIC ---
+
+        // 1. Tooltip Element
+        let tooltip = document.getElementById('preview-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'preview-tooltip';
+            tooltip.style.cssText = `
+                position: fixed; pointer-events: none; z-index: 9999;
+                background: rgba(0,0,0,0.85); color: white; padding: 6px 10px;
+                border-radius: 4px; font-size: 11px; font-weight: 500;
+                display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1);
+            `;
+
+            document.body.appendChild(tooltip);
+        }
+
+        // 2. Attach Events to Elements with Tokens
+        setTimeout(() => {
+            const elements = previewBoard.querySelectorAll('[data-tokens]');
+            elements.forEach(el => {
+                // Style cursor to indicate clickable
+                el.style.cursor = 'crosshair';
+
+                el.addEventListener('mouseenter', (e) => {
+                    e.stopPropagation(); // Prefer inner elements
+                    // Highlight self
+                    el.style.outline = '2px dashed #18A0FB';
+
+                    // Show Tooltip
+                    const tokenList = el.dataset.tokens.replace(/ /g, ', ');
+                    tooltip.textContent = tokenList;
+                    tooltip.style.display = 'block';
+                });
+
+                el.addEventListener('mousemove', (e) => {
+                    tooltip.style.left = (e.clientX + 12) + 'px';
+                    tooltip.style.top = (e.clientY + 12) + 'px';
+                });
+
+                el.addEventListener('mouseleave', () => {
+                    el.style.outline = '';
+                    tooltip.style.display = 'none';
+                });
+
+                el.addEventListener('click', (e) => {
+                    // Check if there's a more specific child element with data-tokens
+                    // between the click target and this element
+                    let target = e.target;
+                    let hasMoreSpecificChild = false;
+
+                    // Walk up from target to this element
+                    while (target && target !== el) {
+                        if (target.hasAttribute && target.hasAttribute('data-tokens')) {
+                            // Found a child element with data-tokens
+                            hasMoreSpecificChild = true;
+                            break;
+                        }
+                        target = target.parentElement;
+                    }
+
+                    if (hasMoreSpecificChild) {
+                        // Let the more specific child handle it
+                        return;
+                    }
+
+                    // This is the most specific element, handle the click
+                    e.stopPropagation();
+
+                    // Robust parsing: split by space, trim, remove empty strings
+                    const tokens = el.dataset.tokens.split(' ').map(t => t.trim()).filter(Boolean);
+
+                    console.log('🖱️ Clicked element with tokens:', tokens);
+
+                    if (tokens.length > 0) {
+                        let scrolled = false;
+                        let foundAny = false;
+
+                        tokens.forEach(tokenName => {
+                            const safeName = tokenName.replace(/\//g, '-');
+                            const targetId = `token-row-${safeName}`;
+                            const targetRow = document.getElementById(targetId);
+
+                            console.log(`  Looking for ID: "${targetId}"`, targetRow ? '✅ Found' : '❌ Not found');
+
+                            if (targetRow) {
+                                foundAny = true;
+                                // Scroll to the FIRST compatible row found
+                                if (!scrolled) {
+                                    // First, ensure the parent <details> is open
+                                    const parentDetails = targetRow.closest('details');
+                                    if (parentDetails && !parentDetails.open) {
+                                        console.log('📂 Opening parent accordion');
+                                        parentDetails.open = true;
+                                    }
+
+                                    // Use scrollIntoView which works better with accordions
+                                    console.log('📜 Scrolling to row');
+                                    setTimeout(() => {
+                                        targetRow.scrollIntoView({
+                                            behavior: 'smooth',
+                                            block: 'center',
+                                            inline: 'nearest'
+                                        });
+                                    }, parentDetails && !parentDetails.open ? 100 : 0);
+
+                                    scrolled = true;
+                                }
+                                // Flash ALL compatible rows
+                                console.log('⚡ Adding flash effect to row');
+                                targetRow.classList.add('editor-flash');
+                                setTimeout(() => targetRow.classList.remove('editor-flash'), 1500);
+                            } else {
+                                console.warn('Target row not found:', safeName);
+                            }
+                        });
+
+                        if (!foundAny) {
+                            console.warn('No valid token rows found for:', tokens);
+                        }
+                    }
+                });
+            });
+        }, 100); // Small delay to ensure DOM render
     }
 
     function renderTokenEditor() {
@@ -2209,31 +2600,137 @@ function initTheme() {
             bg: document.getElementById('editor-bg'),
             text: document.getElementById('editor-text'),
             action: document.getElementById('editor-action'),
+            border: document.getElementById('editor-border'),
             status: document.getElementById('editor-status')
         };
 
-        Object.values(containers).forEach(el => el.innerHTML = '');
+        Object.values(containers).forEach(el => { if (el) el.innerHTML = ''; });
 
-        // Generate scale options (50-950)
-        const generateOptions = (currentValue) => {
-            // currentValue is full variable path? No, we likely want just the scale step for the override.
-            // Actually, we need to know WHICH palette to pull from.
-            // For simplicity, we just list 50, 100...950 and let backend resolve
-            const steps = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
-            return steps.map(s => `<option value="${s}" ${currentValue.endsWith(s) ? 'selected' : ''}>${s}</option>`).join('');
+        // DEBUG: Log palette data to see what we're working with
+        console.log('📊 Palette Data received:', paletteData);
+        Object.keys(paletteData).forEach(paletteName => {
+            console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors', paletteData[paletteName]);
+        });
+
+        // Helper: Determine which palette a token should use
+        const getPaletteForToken = (tokenName) => {
+            // Status tokens
+            if (tokenName.startsWith('Status/success')) return 'success';
+            if (tokenName.startsWith('Status/warning')) return 'warning';
+            if (tokenName.startsWith('Status/error')) return 'error';
+            if (tokenName.startsWith('Status/info')) return 'accent';
+
+            // Destructive actions (use error palette)
+            if (tokenName.startsWith('Action/destructive')) return 'error';
+
+            // Other actions and buttons (use accent)
+            if (tokenName.startsWith('Action/') || tokenName.startsWith('Button/')) return 'accent';
+
+            // Backgrounds
+            if (tokenName.startsWith('Background/brand') || tokenName.startsWith('Background/accent')) return 'accent';
+
+            // Text
+            if (tokenName.startsWith('Text/brand') || tokenName.startsWith('Text/link')) return 'accent';
+
+            // Badges
+            if (tokenName.startsWith('Badge/brand')) return 'accent';
+
+            // Navigation
+            if (tokenName.startsWith('Nav/')) return 'accent';
+
+            // Icons
+            if (tokenName.startsWith('Icon/brand')) return 'accent';
+
+            // Borders - check error first, then brand/focus
+            if (tokenName.startsWith('Border/error')) return 'error';
+            if (tokenName.startsWith('Border/brand') || tokenName.startsWith('Border/focus')) return 'accent';
+
+            // Inputs
+            if (tokenName.startsWith('Input/borderFocus')) return 'accent';
+
+            // Default to neutral for everything else
+            return 'neutral';
+        };
+
+        // Generate custom dropdown with color swatches
+        const generateCustomSelect = (paletteColors, currentValue, overrideValue, tokenName, mode) => {
+            if (!paletteColors || Object.keys(paletteColors).length === 0) {
+                // Fallback to generic if palette data missing
+                const steps = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+                paletteColors = {};
+                steps.forEach(s => paletteColors[s] = '#cccccc');
+            }
+
+            const targetVal = overrideValue ? String(overrideValue) : String(currentValue);
+
+            // Smart fallback: if targetVal doesn't exist in palette, find nearest available value
+            let actualTargetVal = targetVal;
+            if (!paletteColors[targetVal]) {
+                const availableScales = Object.keys(paletteColors).map(Number).sort((a, b) => a - b);
+                const requestedScale = Number(targetVal);
+
+                // Find closest scale
+                let closest = availableScales[0];
+                let minDiff = Math.abs(requestedScale - closest);
+
+                for (const scale of availableScales) {
+                    const diff = Math.abs(requestedScale - scale);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closest = scale;
+                    }
+                }
+
+                actualTargetVal = String(closest);
+                console.warn(`⚠️ ${tokenName} ${mode} requested ${targetVal} but palette only has ${availableScales.join(', ')}. Using closest: ${closest}`);
+            }
+
+            const selectedHex = paletteColors[actualTargetVal] || '#cccccc';
+
+            // Create unique ID for this dropdown
+            const dropdownId = `dropdown-${tokenName.replace(/\//g, '-')}-${mode}`;
+
+            // Generate options HTML
+            const optionsHtml = Object.entries(paletteColors)
+                .sort((a, b) => Number(a[0]) - Number(b[0]))
+                .map(([scale, hex]) => {
+                    const isSelected = actualTargetVal === scale;
+                    return `
+                        <div class="custom-option ${isSelected ? 'selected' : ''}" data-value="${scale}" data-hex="${hex}">
+                            <span class="color-swatch" style="background: ${hex};"></span>
+                            <span class="scale-value">${scale}</span>
+                        </div>
+                    `;
+                }).join('');
+
+            return `
+                <div class="custom-select" data-token="${tokenName}" data-mode="${mode}" id="${dropdownId}">
+                    <div class="custom-select-trigger">
+                        <span class="color-swatch" style="background: ${selectedHex};"></span>
+                        <span class="scale-value">${actualTargetVal}</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="custom-options">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
         };
 
         // Helper: Create Token Row
         const createRow = (name, token) => {
             const row = document.createElement('div');
+            // Create a safe ID string: replace / with -
+            const safeName = name.replace(/\//g, '-');
+            row.id = `token-row-${safeName}`;
             row.className = 'token-row';
             row.style.cssText = `
                 display: flex; flex-direction: column; gap: 4px; 
                 padding: 12px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;
             `;
 
-            // Helper to extract scale step
             const getScale = (n) => {
+                if (!n) return '500';
                 const parts = n.split(/[\/\- ]/);
                 return parts[parts.length - 1];
             };
@@ -2241,83 +2738,154 @@ function initTheme() {
             const lightStep = getScale(token.light.name);
             const darkStep = getScale(token.dark.name);
 
-            // Show swatch for current preview mode
-            const currentHex = currentPreviewMode === 'light' ? token.light.hex : token.dark.hex;
+            // Get Overrides if any
+            const overrideLight = tokenOverrides[name] && tokenOverrides[name].light;
+            const overrideDark = tokenOverrides[name] && tokenOverrides[name].dark;
+
+            // Determine which palette to use for this token
+            const paletteName = getPaletteForToken(name);
+            const paletteColors = paletteData[paletteName] || {};
 
             row.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="font-size: 11px; font-weight: 600; color: #374151;">${name.split('/')[1]}</span>
-                    <div style="width: 24px; height: 24px; background: ${currentHex}; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1);" title="Current Preview Color"></div>
+                    <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase;">${paletteName}</span>
                 </div>
-                
-                <!-- Light Mode -->
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <label style="font-size: 10px; color: #666; width: 32px;">Light</label>
-                    <select class="token-override-select" data-token="${name}" data-mode="light" 
-                        style="flex: 1; padding: 4px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px;">
-                        ${generateOptions(lightStep)}
-                    </select>
+                    <label style="font-size: 10px; color: #666; width: 12px;">L</label>
+                    <div style="width: 16px; height: 16px; border-radius: 50%; background: ${token.light.hex}; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;" title="${token.light.hex}"></div>
+                    ${generateCustomSelect(paletteColors, lightStep, overrideLight, name, 'light')}
                 </div>
-
-                <!-- Dark Mode -->
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <label style="font-size: 10px; color: #666; width: 32px;">Dark</label>
-                    <select class="token-override-select" data-token="${name}" data-mode="dark" 
-                        style="flex: 1; padding: 4px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px;">
-                        ${generateOptions(darkStep)}
-                    </select>
+                    <label style="font-size: 10px; color: #666; width: 12px;">D</label>
+                    <div style="width: 16px; height: 16px; border-radius: 50%; background: ${token.dark.hex}; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;" title="${token.dark.hex}"></div>
+                    ${generateCustomSelect(paletteColors, darkStep, overrideDark, name, 'dark')}
                 </div>
             `;
+
+            // Highlighter Events
+            const highlightMatch = () => {
+                document.querySelectorAll(`[data-tokens]`).forEach(el => {
+                    const tokens = el.dataset.tokens.split(' ');
+                    if (tokens.includes(name)) {
+                        el.classList.add('preview-highlight');
+                    } else {
+                        el.classList.remove('preview-highlight');
+                    }
+                });
+            };
+
+            const removeHighlight = () => {
+                document.querySelectorAll('.preview-highlight').forEach(el => el.classList.remove('preview-highlight'));
+            };
+
+            row.addEventListener('mouseenter', highlightMatch);
+            row.addEventListener('mouseleave', removeHighlight);
+
             return row;
         };
 
         // Group Tokens into Categories
         Object.entries(tokens).forEach(([name, token]) => {
             let container = containers.bg; // Fallback
-            if (name.startsWith('Background/') || name.startsWith('Surface/') || name.startsWith('Overlay/')) container = containers.bg;
-            else if (name.startsWith('Text/') || name.startsWith('Icon/')) container = containers.text;
-            else if (name.startsWith('Action/') || name.startsWith('Button/') || name.startsWith('Input/')) container = containers.action;
-            else if (name.startsWith('Status/') || name.startsWith('Badge/') || name.startsWith('Border/')) container = containers.status;
+
+            if (name.startsWith('Background/') || name.startsWith('Surface/') || name.startsWith('Overlay/')) {
+                container = containers.bg;
+            } else if (name.startsWith('Text/') || name.startsWith('Icon/')) {
+                container = containers.text;
+            } else if (name.startsWith('Action/') || name.startsWith('Button/') || name.startsWith('Input/')) {
+                container = containers.action;
+            } else if (name.startsWith('Border/')) {
+                container = containers.border;
+            } else if (name.startsWith('Status/') || name.startsWith('Badge/') || name.startsWith('A11y/')) {
+                container = containers.status;
+            }
 
             if (container) {
                 container.appendChild(createRow(name, token));
             }
         });
 
-        // Add Listeners
-        document.querySelectorAll('.token-override-select').forEach(sel => {
-            sel.onchange = (e) => {
-                const name = e.target.dataset.token;
-                const mode = e.target.dataset.mode; // 'light' or 'dark'
-                const val = e.target.value;
+        // Add Listeners for Custom Selects
+        document.querySelectorAll('.custom-select').forEach(customSelect => {
+            const trigger = customSelect.querySelector('.custom-select-trigger');
+            const options = customSelect.querySelectorAll('.custom-option');
+            const tokenName = customSelect.dataset.token;
+            const mode = customSelect.dataset.mode;
 
-                // Update Overrides
-                if (!tokenOverrides[name]) tokenOverrides[name] = {};
-                tokenOverrides[name][mode] = val; // e.g. tokenOverrides['Background/primary']['light'] = '50'
+            // Toggle dropdown
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close other dropdowns
+                document.querySelectorAll('.custom-select.open').forEach(other => {
+                    if (other !== customSelect) other.classList.remove('open');
+                });
+                customSelect.classList.toggle('open');
+            });
 
-                console.log('Override updated:', tokenOverrides);
+            // Handle option selection
+            options.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const value = option.dataset.value;
+                    const hex = option.dataset.hex;
 
-                // Debounce regeneration? No, button "Regenerate" is better practice usually, 
-                // but for "Live" feel, we trigger regeneration.
-                // However, regeneration is expensive. 
-                // Let's create a "Refresh" button or trigger it.
-                // For now, let's trigger it.
+                    // Update UI
+                    options.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
 
-                const msg = {
-                    type: 'regenerate-theme',
-                    accentPalette: accentSelect.value,
-                    neutralPalette: neutralSelect.value,
-                    statusPalettes: {
-                        success: successSelect.value,
-                        warning: warningSelect.value,
-                        error: errorSelect.value
-                    },
-                    themeName: themeNameInput.value.trim(),
-                    tokenOverrides: tokenOverrides
-                };
-                parent.postMessage({ pluginMessage: msg }, '*');
-            };
+                    // Update trigger
+                    const triggerSwatch = trigger.querySelector('.color-swatch');
+                    const triggerValue = trigger.querySelector('.scale-value');
+                    triggerSwatch.style.background = hex;
+                    triggerValue.textContent = value;
+
+                    // Close dropdown
+                    customSelect.classList.remove('open');
+
+                    // Update Overrides
+                    if (!tokenOverrides) tokenOverrides = {};
+                    if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
+                    tokenOverrides[tokenName][mode] = value;
+
+                    // Trigger Regeneration
+                    const msg = {
+                        type: 'regenerate-theme',
+                        accentPalette: accentSelect.value,
+                        neutralPalette: neutralSelect.value,
+                        statusPalettes: {
+                            success: successSelect.value,
+                            warning: warningSelect.value,
+                            error: errorSelect.value
+                        },
+                        themeName: themeNameInput.value.trim(),
+                        tokenOverrides: tokenOverrides
+                    };
+
+                    // Store scroll position to restore after re-render
+                    window.lastEditorScroll = document.getElementById('editor-panel') ? document.getElementById('editor-panel').scrollTop : 0;
+
+                    parent.postMessage({ pluginMessage: msg }, '*');
+                });
+            });
         });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-select.open').forEach(select => {
+                select.classList.remove('open');
+            });
+        });
+
+        // Restore Scroll Position if available
+        if (typeof window.lastEditorScroll !== 'undefined') {
+            const editorPanel = document.getElementById('editor-panel');
+            if (editorPanel) {
+                editorPanel.scrollTop = window.lastEditorScroll;
+                // Optional: clear it to avoid sticking on next manual render
+                // window.lastEditorScroll = undefined; 
+            }
+        }
     }
 }
 

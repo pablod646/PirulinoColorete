@@ -185,6 +185,9 @@ figma.ui.onmessage = async (msg) => {
     console.log('📥 Backend received: check-foundation');
     await checkFoundation();
 
+  } else if (msg.type === 'generate-canvas') {
+    await generateOnCanvas(msg.collectionId, msg.groupName);
+
   } else if (msg.type === 'generate-atoms') {
     console.log('📥 Backend received: generate-atoms', msg.atoms);
     await generateAtoms(msg.atoms, msg.targetPage);
@@ -1248,17 +1251,19 @@ async function generateOnCanvas(collectionId, groupFilter) {
     mainContainer.paddingLeft = 40;
     mainContainer.paddingRight = 40;
     mainContainer.paddingTop = 40;
-    mainContainer.paddingBottom = 40;
-    mainContainer.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }];
-    mainContainer.cornerRadius = 24;
+    mainContainer.paddingTop = 80;
+    mainContainer.paddingBottom = 80;
+    mainContainer.fills = [{ type: 'SOLID', color: { r: 0.12, g: 0.12, b: 0.12 } }]; // Dark Background (#1E1E1E)
+    mainContainer.cornerRadius = 32;
     mainContainer.primaryAxisSizingMode = "AUTO";
     mainContainer.counterAxisSizingMode = "AUTO";
 
     // Add Collection Title
     const title = figma.createText();
     title.characters = collection.name;
-    title.fontSize = 32;
+    title.fontSize = 48;
     title.fontName = { family: "Inter", style: "Bold" };
+    title.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // White Text
     mainContainer.appendChild(title);
 
     // 3. Process each group
@@ -1300,18 +1305,12 @@ async function generateOnCanvas(collectionId, groupFilter) {
       }
 
       // Neutral Logic Improvement:
-      // 1. Semantic Check: If name contains common neutral keywords, force to end.
-      // 2. Saturation Check: Increase threshold to 0.10 (some "Cool Greys" are quite blue).
       const lowerName = groupName.toLowerCase();
       const neutralKeywords = ['gray', 'grey', 'slate', 'zinc', 'stone', 'neutral', 'cement', 'silver', 'ash', 'sand'];
       const isSemanticNeutral = neutralKeywords.some(kw => lowerName.includes(kw));
 
       if (isSemanticNeutral || maxSat < 0.10) {
         bestHue = 1000; // Force to very end
-        // Optional: Secondary sort for neutrals? 
-        // We can add "sub-hue" (1000 + hue) to sort neutrals by temperature among themselves
-        // or just 1000 and let them sort by original generic hue.
-        // Let's keep it simple: 1000.
       }
 
       return { name: groupName, hue: bestHue };
@@ -1334,7 +1333,7 @@ async function generateOnCanvas(collectionId, groupFilter) {
         const value = v.valuesByMode[modeId];
         let lum = 0;
         if (value && 'r' in value) {
-          lum = getLuminance(value.r, value.g, value.b); // Fixed v.b -> value.b
+          lum = getLuminance(value.r, value.g, value.b);
         }
         return { variable: v, lum };
       });
@@ -1346,7 +1345,7 @@ async function generateOnCanvas(collectionId, groupFilter) {
       const groupFrame = figma.createFrame();
       groupFrame.name = groupName;
       groupFrame.layoutMode = "VERTICAL";
-      groupFrame.itemSpacing = 16;
+      groupFrame.itemSpacing = 24;
       groupFrame.fills = [];
       groupFrame.primaryAxisSizingMode = "AUTO";
       groupFrame.counterAxisSizingMode = "AUTO";
@@ -1355,8 +1354,9 @@ async function generateOnCanvas(collectionId, groupFilter) {
       // Group Title
       const groupTitle = figma.createText();
       groupTitle.characters = groupName;
-      groupTitle.fontSize = 20;
+      groupTitle.fontSize = 24;
       groupTitle.fontName = { family: "Inter", style: "Bold" };
+      groupTitle.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // White Text
       groupFrame.appendChild(groupTitle);
 
       // Row Container (Horizontal)
@@ -1411,7 +1411,6 @@ async function generateOnCanvas(collectionId, groupFilter) {
           instance.fills = [{ type: 'SOLID', color: { r, g, b }, opacity: a }];
 
           // Populate Data
-          // We use children.find for direct access, assuming flat structure in component v3
           const setText = async (name, text) => {
             const node = instance.children.find(n => n.name === name);
             if (node && node.type === "TEXT") {
@@ -1446,19 +1445,24 @@ async function generateOnCanvas(collectionId, groupFilter) {
       }
     }
 
-    figma.viewport.scrollAndZoomIntoView([mainContainer]);
-    figma.ui.postMessage({ type: 'progress-end' });
-    figma.notify(`Generated ${totalProcessed} advanced color cards!`);
+    if (totalProcessed === 0) {
+      figma.notify("⚠️ No colors found to document in this collection.");
+    } else {
+      figma.viewport.scrollAndZoomIntoView([mainContainer]);
+      figma.notify(`Generated ${totalProcessed} advanced color cards!`);
+    }
+
+    figma.ui.postMessage({ type: 'progress-end', payload: 'Done' });
 
   } catch (error) {
     console.error("Error generating on canvas:", error);
-    figma.ui.postMessage({ type: 'progress-end' });
+    figma.ui.postMessage({ type: 'progress-end', payload: 'Error' });
     figma.notify("Error: " + error.message);
   }
 }
 
 async function getOrCreateComponent() {
-  const componentName = "Color Card v6"; // Increment version to force recreation
+  const componentName = "Color Card v7"; // Version 7 - Dark Theme Ready
   const existing = figma.currentPage.findOne(n => n.type === "COMPONENT" && n.name === componentName);
 
   if (existing) {

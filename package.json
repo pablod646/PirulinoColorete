@@ -7,7 +7,7 @@
         "build": "npm run build:code && npm run build:ui",
         "build:new": "npm run build:code && npm run build:ui:new",
         "build:code": "esbuild src/code/main.ts --bundle --outfile=code.js --target=es6 --format=iife",
-        "build:ui": "node build.js",
+        "build:ui": "node build.js --new-ui",
         "build:ui:new": "node build.js --new-ui",
         "watch": "npm run watch:code & npm run watch:ui",
         "watch:code": "esbuild src/code/main.ts --bundle --outfile=code.js --target=es6 --format=iife --watch",

@@ -1731,7 +1731,21 @@ button:active .icon,
         <div class="section-title">Palette Preview</div>
         <div id="scale-list" class="scale-preview-grid"></div>
 
-        <button id="create-vars-btn" class="primary big-btn" style="width: 100%; margin-top: var(--space-6);">
+        <div id="creation-progress" style="display: none; margin-top: var(--space-6); margin-bottom: var(--space-2);">
+            <div
+                style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                <span id="progress-message">Initializing...</span>
+                <span id="progress-percent">0%</span>
+            </div>
+            <div
+                style="height: 6px; background: var(--bg-surface-active); border-radius: var(--radius-full); overflow: hidden;">
+                <div id="progress-bar-fill"
+                    style="height: 100%; width: 0%; background: var(--accent-primary); transition: width 0.3s ease;">
+                </div>
+            </div>
+        </div>
+
+        <button id="create-vars-btn" class="primary big-btn" style="width: 100%; margin-top: var(--space-4);">
             <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path
@@ -3640,11 +3654,17 @@ function initColors() {
     const addColorBtn = document.getElementById('add-color-btn');
     const addError = document.getElementById('add-error');
     const colorQueueDiv = document.getElementById('color-queue');
-    const queueCountSpan = document.getElementById('queue-count');
+    const queueCountSpan = document.getElementById('queue-count-badge');
     const previewScaleBtn = document.getElementById('preview-scale-btn');
     const scalePreviewContainer = document.getElementById('scale-preview-container');
     const scaleList = document.getElementById('scale-list');
     const createVarsBtn = document.getElementById('create-vars-btn');
+
+    // Progress Bar Elements
+    const progressDiv = document.getElementById('creation-progress');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const progressMessage = document.getElementById('progress-message');
+    const progressPercent = document.getElementById('progress-percent');
 
     if (!addColorBtn) {
         console.error('❌ Critical Error: add-color-btn not found. DOM might not be ready.');
@@ -3663,7 +3683,48 @@ function initColors() {
         const { type, payload } = event.detail;
         console.log(`🎨 Colors received message: ${type}`, payload);
 
-        if (type === 'load-collections') {
+        if (type === 'progress-start') {
+            if (progressDiv) {
+                progressDiv.style.display = 'block';
+                progressBarFill.style.width = '0%';
+                progressMessage.textContent = payload || 'Starting...';
+                progressPercent.textContent = '0%';
+                createVarsBtn.disabled = true;
+                createVarsBtn.style.opacity = '0.5';
+            }
+
+        } else if (type === 'progress-update') {
+            if (progressDiv && payload) {
+                const percent = Math.round((payload.current / payload.total) * 100);
+                progressBarFill.style.width = `${percent}%`;
+                progressMessage.textContent = payload.message;
+                progressPercent.textContent = `${percent}%`;
+            }
+
+        } else if (type === 'progress-end') {
+            if (progressDiv) {
+                progressBarFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+                progressMessage.textContent = 'Done!';
+
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    createVarsBtn.disabled = false;
+                    createVarsBtn.style.opacity = '1';
+
+                    // Close the preview container smoothly if tasks are done
+                    if (colorQueue.length === 0) {
+                        scalePreviewContainer.style.display = 'none';
+                    }
+                }, 1500);
+            }
+
+        } else if (type === 'variables-created-success') {
+            colorQueue = [];
+            updateQueueUI();
+
+        } else if (type === 'load-collections') {
+            if (!collectionSelect) return;
             // Populate Collection Select
             // Reset but keep first 2 options
             while (collectionSelect.options.length > 2) {
@@ -3679,6 +3740,7 @@ function initColors() {
             console.log(`✅ Loaded ${payload.length} collections into dropdown`);
 
         } else if (type === 'load-groups-tab1') {
+            if (!groupSelect) return;
             // Populate Group Select
             groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
             payload.forEach(g => {
@@ -3737,53 +3799,54 @@ function initColors() {
 
             scalePreviewContainer.style.display = 'block';
             createVarsBtn.disabled = false;
-
-        } else if (type === 'variables-created-success') {
-            colorQueue = [];
-            updateQueueUI();
-            scalePreviewContainer.style.display = 'none';
         }
     });
 
     // Event Handlers
 
     // Collection Select Change
-    collectionSelect.onchange = () => {
-        const val = collectionSelect.value;
-        if (val === 'NEW_COLLECTION') {
-            customCollectionInput.style.display = 'block';
-            // Enable group selection so user can create a group in the new collection
-            groupSelect.disabled = false;
-            // Reset to default options: Root and New Group
-            groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
-        } else {
-            customCollectionInput.style.display = 'none';
-            // Load groups for this collection
-            parent.postMessage({ pluginMessage: { type: 'get-groups-for-tab1', collectionId: val } }, '*');
-        }
-    };
+    if (collectionSelect) {
+        collectionSelect.onchange = () => {
+            const val = collectionSelect.value;
+            if (val === 'NEW_COLLECTION') {
+                customCollectionInput.style.display = 'block';
+                // Enable group selection so user can create a group in the new collection
+                groupSelect.disabled = false;
+                // Reset to default options: Root and New Group
+                groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
+            } else {
+                customCollectionInput.style.display = 'none';
+                // Load groups for this collection
+                parent.postMessage({ pluginMessage: { type: 'get-groups-for-tab1', collectionId: val } }, '*');
+            }
+        };
+    }
 
     // Group Select Change
-    groupSelect.onchange = () => {
-        if (groupSelect.value === 'NEW_GROUP') {
-            customGroupInput.style.display = 'block';
-        } else {
-            customGroupInput.style.display = 'none';
-        }
-    };
+    if (groupSelect) {
+        groupSelect.onchange = () => {
+            if (groupSelect.value === 'NEW_GROUP') {
+                customGroupInput.style.display = 'block';
+            } else {
+                customGroupInput.style.display = 'none';
+            }
+        };
+    }
 
     // Hex/Color Input Preview (Supports Hex, RGB, HSL, OKLCH, etc.)
-    newColorHex.oninput = () => {
-        const val = newColorHex.value.trim();
-        // Try to set the background color. If it's valid CSS, the browser will apply it.
-        if (val) {
-            newColorSwatch.style.backgroundColor = val;
-            // Check if it worked (simple validation hack)
-            // Note: This isn't perfect but allows flexibility
-        } else {
-            newColorSwatch.style.backgroundColor = '#f3f4f6';
-        }
-    };
+    if (newColorHex) {
+        newColorHex.oninput = () => {
+            const val = newColorHex.value.trim();
+            // Try to set the background color. If it's valid CSS, the browser will apply it.
+            if (val) {
+                newColorSwatch.style.backgroundColor = val;
+                // Check if it worked (simple validation hack)
+                // Note: This isn't perfect but allows flexibility
+            } else {
+                newColorSwatch.style.backgroundColor = '#f3f4f6';
+            }
+        };
+    }
 
     // Add to Queue
     addColorBtn.onclick = () => {
@@ -3811,7 +3874,10 @@ function initColors() {
     };
 
     function updateQueueUI() {
-        queueCountSpan.textContent = colorQueue.length;
+        if (queueCountSpan) {
+            queueCountSpan.textContent = colorQueue.length + ' colors'; // Add 'colors' suffix to match design
+        }
+
         colorQueueDiv.innerHTML = '';
 
         if (colorQueue.length === 0) {
@@ -3824,19 +3890,17 @@ function initColors() {
 
         colorQueue.forEach((item, index) => {
             const el = document.createElement('div');
-            el.className = 'color-item'; // Defined in CSS
-            // Basic styles for queue item just in case CSS missed it
-            el.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px; background: white; border: 1px solid #eee; border-radius: 4px; margin-bottom: 4px;';
+            el.className = 'color-queue-item'; // Use correct class from CSS
 
             el.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div class="color-preview" style="width: 24px; height: 24px; border-radius: 4px; background-color: ${item.hex}; border: 1px solid rgba(0,0,0,0.1);"></div>
-                    <div class="color-info">
-                        <div class="color-name" style="font-size: 12px; font-weight: 500;">${item.name}</div>
-                        <div class="color-value" style="font-size: 10px; color: #666; font-family: monospace;">${item.hex}</div>
-                    </div>
+                <div class="swatch" style="background-color: ${item.hex};"></div>
+                <div class="info">
+                    <div class="name">${item.name}</div>
+                    <div class="hex">${item.hex}</div>
                 </div>
-                <button class="remove-btn" data-index="${index}" style="width: 24px; height: 24px; padding: 0; background: transparent; color: #999; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;">✕</button>
+                <button class="remove-btn" data-index="${index}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             `;
             colorQueueDiv.appendChild(el);
         });

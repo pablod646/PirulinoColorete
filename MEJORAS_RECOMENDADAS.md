@@ -229,34 +229,6 @@ export class CSSExporter {
 - Otros archivos Figma
 - Design Tokens estándar
 
-### 3.3 Presets de Temas
-
-**Agregar temas predefinidos**:
-- Material Design 3
-- Apple Human Interface Guidelines
-- Ant Design
-- Chakra UI
-- Custom presets del usuario
-
-```typescript
-// src/code/presets/materialDesign.ts
-export const materialDesign3Preset: ThemePreset = {
-  name: 'Material Design 3',
-  description: 'Google\'s Material Design 3 color system',
-  palettes: {
-    accent: 'Primary',
-    neutral: 'Neutral',
-    success: 'Tertiary',
-    warning: 'Error',
-    error: 'Error'
-  },
-  tokenOverrides: {
-    'Action/primary': { light: '600', dark: '200' },
-    'Background/primary': { light: '50', dark: '900' }
-  }
-};
-```
-
 ### 3.4 Modo de Comparación
 
 **Comparar dos temas lado a lado**:

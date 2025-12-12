@@ -712,36 +712,93 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             return v;
         };
 
-        // Typography Maps
+        // Typography Maps - Font Sizes
         const textMap = [
+            // Micro text
+            { name: 'Typography/Label', desktop: 'xs', tablet: 'xs', mobile: 'xs' },
+            { name: 'Typography/Overline', desktop: '2xs', tablet: '2xs', mobile: '2xs' },
             { name: 'Typography/Caption', desktop: 'xs', tablet: 'xs', mobile: 'xs' },
+
+            // Body text
             { name: 'Typography/Body/s', desktop: 'sm', tablet: 'sm', mobile: 'sm' },
             { name: 'Typography/Body/m', desktop: 'base', tablet: 'base', mobile: 'base' },
             { name: 'Typography/Body/l', desktop: 'lg', tablet: 'lg', mobile: 'lg' },
+
+            // Code text (for mono font contexts)
+            { name: 'Typography/Code/inline', desktop: 'sm', tablet: 'sm', mobile: 'xs' },
+            { name: 'Typography/Code/block', desktop: 'sm', tablet: 'sm', mobile: 'xs' },
+
+            // Quote
+            { name: 'Typography/Quote', desktop: 'lg', tablet: 'base', mobile: 'base' },
+
+            // Headings
+            { name: 'Typography/Heading/h6', desktop: 'lg', tablet: 'base', mobile: 'base' },
+            { name: 'Typography/Heading/h5', desktop: 'xl', tablet: 'lg', mobile: 'base' },
             { name: 'Typography/Heading/h4', desktop: '2xl', tablet: 'xl', mobile: 'lg' },
             { name: 'Typography/Heading/h3', desktop: '3xl', tablet: '2xl', mobile: 'xl' },
             { name: 'Typography/Heading/h2', desktop: '4xl', tablet: '3xl', mobile: '2xl' },
             { name: 'Typography/Heading/h1', desktop: '5xl', tablet: '4xl', mobile: '3xl' },
+
+            // Display (hero text)
             { name: 'Typography/Display/h2', desktop: '6xl', tablet: '5xl', mobile: '4xl' },
             { name: 'Typography/Display/h1', desktop: '7xl', tablet: '6xl', mobile: '5xl' },
         ];
 
         const spaceMap = [
+            // Gaps
+            { name: 'Spacing/Gap/3xs', desktop: '2px', tablet: '2px', mobile: '2px' },
             { name: 'Spacing/Gap/2xs', desktop: '4px', tablet: '2px', mobile: '2px' },
             { name: 'Spacing/Gap/xs', desktop: '8px', tablet: '4px', mobile: '4px' },
             { name: 'Spacing/Gap/s', desktop: '16px', tablet: '12px', mobile: '8px' },
             { name: 'Spacing/Gap/m', desktop: '24px', tablet: '20px', mobile: '16px' },
             { name: 'Spacing/Gap/l', desktop: '32px', tablet: '24px', mobile: '20px' },
             { name: 'Spacing/Gap/xl', desktop: '48px', tablet: '32px', mobile: '24px' },
+            { name: 'Spacing/Gap/2xl', desktop: '64px', tablet: '48px', mobile: '32px' },
+
+            // Padding
+            { name: 'Spacing/Padding/xs', desktop: '8px', tablet: '4px', mobile: '4px' },
             { name: 'Spacing/Padding/sm', desktop: '16px', tablet: '12px', mobile: '8px' },
             { name: 'Spacing/Padding/md', desktop: '24px', tablet: '16px', mobile: '12px' },
             { name: 'Spacing/Padding/lg', desktop: '32px', tablet: '24px', mobile: '16px' },
+            { name: 'Spacing/Padding/xl', desktop: '48px', tablet: '32px', mobile: '24px' },
+
+            // Radius
+            { name: 'Spacing/Radius/xs', desktop: '2px', tablet: '2px', mobile: '2px' },
             { name: 'Spacing/Radius/s', desktop: '4px', tablet: '4px', mobile: '2px' },
             { name: 'Spacing/Radius/m', desktop: '8px', tablet: '8px', mobile: '4px' },
             { name: 'Spacing/Radius/l', desktop: '12px', tablet: '12px', mobile: '8px' },
+            { name: 'Spacing/Radius/xl', desktop: '16px', tablet: '16px', mobile: '12px' },
+
+            // Border Width
+            { name: 'Spacing/Border/thin', desktop: '1px', tablet: '1px', mobile: '1px' },
+            { name: 'Spacing/Border/medium', desktop: '2px', tablet: '2px', mobile: '2px' },
+            { name: 'Spacing/Border/thick', desktop: '4px', tablet: '4px', mobile: '4px' },
+
+            // Section Spacing (for larger layout gaps)
+            { name: 'Spacing/Section/sm', desktop: '48px', tablet: '32px', mobile: '24px' },
+            { name: 'Spacing/Section/md', desktop: '64px', tablet: '48px', mobile: '32px' },
+            { name: 'Spacing/Section/lg', desktop: '96px', tablet: '64px', mobile: '48px' },
         ];
 
-        // Process Typography
+        // Line Height Map (multipliers based on common leading values)
+        const lineHeightMap = [
+            { name: 'Typography/Leading/none', value: 1 },
+            { name: 'Typography/Leading/tight', value: 1.25 },
+            { name: 'Typography/Leading/snug', value: 1.375 },
+            { name: 'Typography/Leading/normal', value: 1.5 },
+            { name: 'Typography/Leading/relaxed', value: 1.625 },
+            { name: 'Typography/Leading/loose', value: 2 },
+        ];
+
+        // Font Weight Semantic Map
+        const fontWeightMap = [
+            { name: 'Typography/Weight/normal', source: 'Regular' },
+            { name: 'Typography/Weight/medium', source: 'Medium' },
+            { name: 'Typography/Weight/semibold', source: 'SemiBold' },
+            { name: 'Typography/Weight/bold', source: 'Bold' },
+        ];
+
+        // Process Typography Font Sizes
         for (const item of textMap) {
             const v = await findOrCreateVar(item.name);
 
@@ -772,6 +829,49 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setSpaceMode(desktopId, item.desktop);
             setSpaceMode(tabletId, item.tablet);
             setSpaceMode(mobileId, item.mobile);
+        }
+
+        // Process Line Height (direct values, same across all modes)
+        for (const item of lineHeightMap) {
+            let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
+            if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
+            v.setValueForMode(desktopId, item.value);
+            v.setValueForMode(tabletId, item.value);
+            v.setValueForMode(mobileId, item.value);
+        }
+
+        // Process Font Weight Semantic tokens (alias to source weights)
+        for (const item of fontWeightMap) {
+            const sourceVar = findSource(typoGroup, item.source);
+            if (sourceVar) {
+                const v = await findOrCreateVar(item.name);
+                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+            }
+        }
+
+        // Process Font Family aliases (STRING type - needs special handling)
+        const fontFamilyMap = [
+            { name: 'Typography/Font/heading', source: 'Heading' },
+            { name: 'Typography/Font/body', source: 'Body' },
+            { name: 'Typography/Font/code', source: 'Code' },
+        ];
+
+        for (const item of fontFamilyMap) {
+            // Find Source Font Family variable
+            const fontPath = `${typoGroup}/Font Family/${item.source}`;
+            const sourceVar = allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === fontPath);
+
+            if (sourceVar) {
+                // Create STRING type variable for font family alias
+                let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
+                if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'STRING');
+
+                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+            }
         }
 
         figma.ui.postMessage({ type: 'progress-end' });
@@ -919,30 +1019,76 @@ async function generateTheme(
         const tokens: Record<string, ThemeToken> = {};
 
         const TOKEN_SCHEMA = [
+            // Backgrounds
             { name: 'Background/primary', light: map.bgLight, dark: map.bgDark },
             { name: 'Background/secondary', light: '100', dark: '800' },
             { name: 'Background/tertiary', light: '200', dark: '700' },
+            { name: 'Background/brand', light: '100', dark: '900', useAccent: true },
+            { name: 'Background/inverse', light: '900', dark: '50' },
+
+            // Text
             { name: 'Text/primary', light: map.textLight, dark: map.textDark },
             { name: 'Text/secondary', light: '700', dark: '300' },
             { name: 'Text/tertiary', light: '600', dark: '400' },
             { name: 'Text/brand', light: '700', dark: '300', useAccent: true },
+            { name: 'Text/link', light: '600', dark: '400', useAccent: true },
+            { name: 'Text/linkHover', light: '700', dark: '300', useAccent: true },
+            { name: 'Text/inverse', light: '50', dark: '900' },
+            { name: 'Text/disabled', light: '400', dark: '600' },
+            { name: 'Text/placeholder', light: '400', dark: '500' },
+
+            // Surface
+            { name: 'Surface/primary', light: '50', dark: '900' },
             { name: 'Surface/card', light: '50', dark: '800' },
             { name: 'Surface/modal', light: '50', dark: '800' },
             { name: 'Surface/overlay', light: '900', dark: '950' },
+            { name: 'Surface/elevated', light: '50', dark: '700' },
+            { name: 'Surface/hover', light: '100', dark: '750' },
+            { name: 'Surface/pressed', light: '200', dark: '700' },
+            { name: 'Surface/disabled', light: '100', dark: '800' },
+
+            // Border
             { name: 'Border/default', light: '200', dark: '700' },
             { name: 'Border/subtle', light: '100', dark: '800' },
+            { name: 'Border/strong', light: '400', dark: '500' },
             { name: 'Border/focus', light: '500', dark: '400', useAccent: true },
+            { name: 'Border/disabled', light: '200', dark: '700' },
             { name: 'Border/error', light: '500', dark: '400', useStatus: 'error' },
+            { name: 'Border/success', light: '500', dark: '400', useStatus: 'success' },
+            { name: 'Border/warning', light: '500', dark: '400', useStatus: 'warning' },
+
+            // Action
             { name: 'Action/primary', light: map.actionLight, dark: map.actionDark, useAccent: true },
             { name: 'Action/primaryHover', light: '700', dark: '300', useAccent: true },
+            { name: 'Action/primaryActive', light: '800', dark: '200', useAccent: true },
+            { name: 'Action/primaryDisabled', light: '300', dark: '700', useAccent: true },
             { name: 'Action/secondary', light: '100', dark: '800' },
+            { name: 'Action/secondaryHover', light: '200', dark: '700' },
+            { name: 'Action/ghost', light: '50', dark: '900' },
+            { name: 'Action/ghostHover', light: '100', dark: '800' },
             { name: 'Action/destructive', light: '600', dark: '500', useStatus: 'error' },
+            { name: 'Action/destructiveHover', light: '700', dark: '400', useStatus: 'error' },
+
+            // Status
             { name: 'Status/success', light: '600', dark: '400', useStatus: 'success' },
             { name: 'Status/successBg', light: '50', dark: '900', useStatus: 'success' },
             { name: 'Status/warning', light: '600', dark: '400', useStatus: 'warning' },
             { name: 'Status/warningBg', light: '50', dark: '900', useStatus: 'warning' },
             { name: 'Status/error', light: '600', dark: '400', useStatus: 'error' },
             { name: 'Status/errorBg', light: '50', dark: '900', useStatus: 'error' },
+            { name: 'Status/info', light: '600', dark: '400', useAccent: true },
+            { name: 'Status/infoBg', light: '50', dark: '900', useAccent: true },
+
+            // Icons
+            { name: 'Icon/primary', light: '700', dark: '300' },
+            { name: 'Icon/secondary', light: '500', dark: '400' },
+            { name: 'Icon/brand', light: '600', dark: '400', useAccent: true },
+            { name: 'Icon/disabled', light: '300', dark: '600' },
+            { name: 'Icon/inverse', light: '50', dark: '900' },
+
+            // Interactive (focus states)
+            { name: 'Interactive/focus', light: '500', dark: '400', useAccent: true },
+            { name: 'Interactive/focusRing', light: '400', dark: '500', useAccent: true },
         ];
 
         const resolveVar = (entry: { light: string; dark: string; useAccent?: boolean; useStatus?: string }, mode: 'light' | 'dark'): Variable | null => {
@@ -1596,6 +1742,16 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                         if (!item?.hex) continue;
                         const color = parseColor(item.hex);
                         if (color) {
+                            // Send progress update
+                            figma.ui.postMessage({
+                                type: 'progress-update',
+                                payload: {
+                                    current: createdCount + 1,
+                                    total: colors.length,
+                                    message: `Creating palette for ${item.name} (${createdCount + 1}/${colors.length})...`
+                                }
+                            });
+
                             const scale = calculateScale(color);
                             await createVariables(scale, {
                                 colorName: item.name,
@@ -1603,6 +1759,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                                 groupName: config.groupName
                             });
                             createdCount++;
+
+                            // Slight delay to allow UI to update (optional but good for UX)
+                            await new Promise(resolve => setTimeout(resolve, 100));
                         }
                     }
 
@@ -2023,6 +2182,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                     figma.notify('Error: ' + (error as Error).message);
                 }
                 break;
+            }
+
 
             default:
                 console.warn('Unknown message type:', msg.type);
@@ -2031,308 +2192,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         console.error('Error handling message:', error);
         figma.notify('Error: ' + (error as Error).message);
     }
-};
-
-figma.on('selectionchange', handleSelectionChange);
-
-figma.notify('Collection not found');
-return;
-}
-
-// Get all variables
-const variables: Variable[] = [];
-for (const id of collection.variableIds) {
-    const variable = await figma.variables.getVariableByIdAsync(id);
-    if (variable) {
-        variables.push(variable);
-    }
-}
-
-// Filter by group if specified
-const filtered = groupName && groupName !== ''
-    ? variables.filter(v => v.name.startsWith(groupName + '/'))
-    : variables;
-
-// Group color variables by palette
-const palettes: Record<string, Variable[]> = {};
-
-for (const v of filtered) {
-    if (v.resolvedType === 'COLOR') {
-        const parts = v.name.split('/');
-        const paletteName = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : parts[0];
-
-        if (!palettes[paletteName]) {
-            palettes[paletteName] = [];
-        }
-        palettes[paletteName].push(v);
-    }
-}
-
-// Sort palettes
-for (const paletteName in palettes) {
-    palettes[paletteName].sort((a, b) => {
-        const aNum = parseInt(a.name.split('-').pop() || '0');
-        const bNum = parseInt(b.name.split('-').pop() || '0');
-        return aNum - bNum;
-    });
-}
-
-// Create frame for documentation
-const frame = figma.createFrame();
-frame.name = `${collection.name} Documentation`;
-frame.resize(1200, 800);
-frame.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
-
-let yOffset = 40;
-const leftMargin = 40;
-
-// Create title
-const title = figma.createText();
-await figma.loadFontAsync({ family: "Inter", style: "Bold" });
-title.fontName = { family: "Inter", style: "Bold" };
-title.fontSize = 32;
-title.characters = collection.name;
-title.x = leftMargin;
-title.y = yOffset;
-frame.appendChild(title);
-
-yOffset += 60;
-
-// Create color cards for each palette
-for (const [paletteName, colors] of Object.entries(palettes)) {
-    // Palette title
-    const paletteTitle = figma.createText();
-    await figma.loadFontAsync({ family: "Inter", style: "Medium" });
-    paletteTitle.fontName = { family: "Inter", style: "Medium" };
-    paletteTitle.fontSize = 20;
-    paletteTitle.characters = paletteName;
-    paletteTitle.x = leftMargin;
-    paletteTitle.y = yOffset;
-    frame.appendChild(paletteTitle);
-
-    yOffset += 40;
-
-    // Create color cards
-    let xOffset = leftMargin;
-    const cardWidth = 280;
-    const cardHeight = 420;
-    const gap = 20;
-
-    for (const colorVar of colors) {
-        const modeId = Object.keys(colorVar.valuesByMode)[0];
-        const value = colorVar.valuesByMode[modeId];
-
-        if (value && typeof value === 'object' && 'r' in value) {
-            const r = Math.round(value.r * 255);
-            const g = Math.round(value.g * 255);
-            const b = Math.round(value.b * 255);
-            const hexColor = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
-
-            // Calculate luminance for WCAG
-            const getLuminance = (r: number, g: number, b: number) => {
-                const [rs, gs, bs] = [r, g, b].map(c => {
-                    c = c / 255;
-                    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-                });
-                return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
-            };
-
-            const lum = getLuminance(r, g, b);
-            const contrastBlack = (lum + 0.05) / 0.05;
-            const contrastWhite = 1.05 / (lum + 0.05);
-
-            // Convert to OKLCH (simplified approximation)
-            const rLin = r / 255;
-            const gLin = g / 255;
-            const bLin = b / 255;
-            const l = 0.4122214708 * rLin + 0.5363325363 * gLin + 0.0514459929 * bLin;
-            const m = 0.2119034982 * rLin + 0.6806995451 * gLin + 0.1073969566 * bLin;
-            const s = 0.0883024619 * rLin + 0.2817188376 * gLin + 0.6299787005 * bLin;
-            const lOklab = Math.cbrt(l);
-            const oklchL = (lOklab * 100).toFixed(1);
-
-            // Create card
-            const card = figma.createFrame();
-            card.name = colorVar.name;
-            card.resize(cardWidth, cardHeight);
-            card.x = xOffset;
-            card.y = yOffset;
-            card.cornerRadius = 16;
-            card.fills = [{ type: 'SOLID', color: { r: value.r, g: value.g, b: value.b } }];
-            card.effects = [{
-                type: 'DROP_SHADOW',
-                color: { r: 0, g: 0, b: 0, a: 0.15 },
-                offset: { x: 0, y: 4 },
-                radius: 12,
-                visible: true,
-                blendMode: 'NORMAL'
-            }];
-
-            // Determine text color based on luminance
-            const textColor = lum > 0.5 ? { r: 0, g: 0, b: 0 } : { r: 1, g: 1, b: 1 };
-            const secondaryTextColor = lum > 0.5
-                ? { r: 0.2, g: 0.2, b: 0.2 }
-                : { r: 0.8, g: 0.8, b: 0.8 };
-
-            let textY = 24;
-            const textX = 24;
-            const lineHeight = 28;
-
-            // Helper function to create text with typography variables
-            const createTextWithVariable = async (text: string, variableName: string, color: RGB) => {
-                const textNode = figma.createText();
-
-                // Try to find and apply typography variable
-                const allVariables = await figma.variables.getLocalVariablesAsync();
-                const typoVar = allVariables.find(v =>
-                    v.name.includes(variableName) && v.resolvedType === 'STRING'
-                );
-
-                if (typoVar) {
-                    // Apply variable
-                    const boundFields: { [field: string]: VariableAlias } = {
-                        fontFamily: { type: 'VARIABLE_ALIAS', id: typoVar.id },
-                        fontStyle: { type: 'VARIABLE_ALIAS', id: typoVar.id },
-                        fontSize: { type: 'VARIABLE_ALIAS', id: typoVar.id }
-                    };
-                    textNode.setBoundVariable('fontFamily', { type: 'VARIABLE_ALIAS', id: typoVar.id });
-                } else {
-                    // Fallback to default font
-                    await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-                    textNode.fontName = { family: "Inter", style: "Regular" };
-                }
-
-                textNode.characters = text;
-                textNode.fills = [{ type: 'SOLID', color }];
-                textNode.x = textX;
-                textNode.y = textY;
-                textNode.resize(cardWidth - 48, 30);
-                card.appendChild(textNode);
-                textY += lineHeight;
-                return textNode;
-            };
-
-            // Helper function to create text with text styles
-            const createText = async (text: string, styleType: 'title' | 'label' | 'body' | 'code', color: RGB) => {
-                const textNode = figma.createText();
-
-                // Try to use text style if provided
-                const styleId = textStyles?.[styleType];
-                if (styleId) {
-                    try {
-                        const style = figma.getStyleById(styleId) as TextStyle;
-                        if (style) {
-                            textNode.textStyleId = styleId;
-                            // Load the font from the style
-                            await figma.loadFontAsync(style.fontName);
-                            console.log(`✅ Using text style: ${style.name}`);
-                        }
-                    } catch (error) {
-                        console.warn(`⚠️ Could not load text style ${styleId}, using fallback`);
-                    }
-                }
-
-                // Fallback to default fonts if no style or style failed
-                if (!textNode.textStyleId) {
-                    const fallbackWeight = styleType === 'title' ? 'Bold' : styleType === 'label' ? 'Medium' : 'Regular';
-                    await figma.loadFontAsync({ family: "Inter", style: fallbackWeight });
-                    textNode.fontName = { family: "Inter", style: fallbackWeight };
-                    textNode.fontSize = styleType === 'title' ? 32 : styleType === 'code' ? 11 : 14;
-                }
-
-                textNode.characters = text;
-                textNode.fills = [{ type: 'SOLID', color }];
-                textNode.x = textX;
-                textNode.y = textY;
-                const fontSize = typeof textNode.fontSize === 'number' ? textNode.fontSize : 14;
-                textNode.resize(cardWidth - 48, fontSize + 8);
-                card.appendChild(textNode);
-                textY += lineHeight;
-                return textNode;
-            };
-
-            // Color name (large)
-            const stepName = colorVar.name.split('/').pop() || '';
-            await createText(stepName, 'title', textColor);
-            textY += 12;
-
-            // WCAG Contrast
-            await createText("WCAG Black", 'label', textColor);
-            await createText(contrastBlack.toFixed(2), 'body', secondaryTextColor);
-            textY += 8;
-
-            await createText("WCAG White", 'label', textColor);
-            await createText(contrastWhite.toFixed(2), 'body', secondaryTextColor);
-            textY += 16;
-
-            // CSS Var
-            await createText("CSS Var", 'label', textColor);
-            const cssVarName = `--${colorVar.name.toLowerCase().replace(/\/\//g, '-')}`;
-            await createText(cssVarName, 'code', secondaryTextColor);
-            textY += 8;
-
-            // Hex
-            await createText("Hex", 'label', textColor);
-            await createText(hexColor, 'code', secondaryTextColor);
-
-            // RGBA
-            await createText("RGBA", 'label', textColor);
-            await createText(`rgba(${r}, ${g}, ${b}, 1)`, 'code', secondaryTextColor);
-
-            // OKLCH
-            await createText("OKLCH", 'label', textColor);
-            await createText(`oklch(${oklchL}% ...)`, 'code', secondaryTextColor);
-
-            // P3
-            await createText("P3", 'label', textColor);
-            await createText(`color(display-p3 ${(r / 255).toFixed(3)} ${(g / 255).toFixed(3)} ${(b / 255).toFixed(3)})`, 'code', secondaryTextColor);
-
-            // Lum
-            await createText("Lum", 'label', textColor);
-            await createText(lum.toFixed(4), 'code', secondaryTextColor);
-
-            frame.appendChild(card);
-
-            xOffset += cardWidth + gap;
-
-            // Wrap to next row if needed
-            if (xOffset + cardWidth > 1200 - leftMargin) {
-                xOffset = leftMargin;
-                yOffset += cardHeight + gap;
-            }
-        }
-    }
-
-    // Move to next palette
-    if (xOffset > leftMargin) {
-        yOffset += cardHeight + gap;
-    }
-    yOffset += 20;
-    xOffset = leftMargin;
-}
-
-// Adjust frame height
-frame.resize(1200, Math.max(800, yOffset + 40));
-
-// Select and zoom to frame
-figma.currentPage.selection = [frame];
-figma.viewport.scrollAndZoomIntoView([frame]);
-
-figma.notify(`✅ Generated documentation for ${Object.keys(palettes).length} palettes`);
-    } catch (error) {
-    console.error('Error generating canvas:', error);
-    figma.notify('Error generating documentation: ' + (error as Error).message);
-}
-break;
-}
-
-            default:
-console.warn('Unknown message type:', msg.type);
-    }
-    } catch (error) {
-    console.error('Error handling message:', error);
-    figma.notify('Error: ' + (error as Error).message);
-}
 };
 
 figma.on('selectionchange', handleSelectionChange);

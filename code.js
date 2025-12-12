@@ -1,7 +1,8 @@
 console.clear();
 
-// Show the UI with resizable window (Restored defaults)
+// Show the UI with resizable window for Admin Panel layout
 figma.showUI(__html__, { width: 1200, height: 800, themeColors: true, title: "PirulinoColorete - Design Architect" });
+figma.ui.resize(1200, 800); // Set initial size but allow resizing
 
 async function loadCollections() {
   try {
@@ -96,7 +97,6 @@ figma.ui.onmessage = async (msg) => {
         throw new Error("No collection specified");
       }
 
-      // Update config with actual collection ID
       // Update config with actual collection ID
       const finalConfig = Object.assign({}, config, { collectionId: targetCollectionId });
 
@@ -199,8 +199,6 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'generate-organisms') {
     console.log('📥 Backend received: generate-organisms', msg.organisms);
     await generateOrganisms(msg.organisms, msg.targetPage);
-  } else if (msg.type === 'resize-window') {
-    figma.ui.resize(msg.width, msg.height);
   }
 };
 
@@ -990,7 +988,7 @@ async function createTextStyles(config) {
     // Primitive Weights to iterate - CORRECTED FOR INTER (Spaces)
 
     // Primitive Weights to iterate - CORRECTED FOR INTER (Spaces)
-    // We iterate(what Figma expects for Inter)
+    // We iterate the Font Styles (what Figma expects for Inter)
     const weightNames = ["Thin", "Extra Light", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"];
 
     // Map to Variable Names (created in Step 1, likely no spaces if keys were "ExtraLight")
@@ -1844,9 +1842,7 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
           v.name.startsWith(paletteName + '/') ||
           v.name.startsWith(paletteName + '-') ||
           v.name.startsWith(paletteName + ' ') ||
-          v.name.startsWith(paletteName + '_') || // Added underscore
-          v.name === paletteName || // Exact match? Unlikely for a palette root but possible
-          v.name.startsWith(paletteName) // Loose match catch-all (Caution: might match unwanted prefixes)
+          v.name === paletteName // Exact match? Unlikely for a palette root but possible
         )
       );
     };
@@ -1866,18 +1862,24 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
     }
 
     // Find variables by scale value
-    // Find variables by scale value (Robust Regex)
     const findVar = (vars, scale) => {
-      // Matches scale at end of string preceded by a separator (SLASH, DASH, SPACE, UNDERSCORE)
-      // This correctly handles "Name/Name-50" (matches -50) and "Name/50" (matches /50)
-      // and avoids matching "500" when looking for "50".
-      const regex = new RegExp(`[\\/\\-\\s_]${scale}$`);
-      return vars.find(v => regex.test(v.name));
+      // 1. Try standard path match (e.g. ".../50")
+      let found = vars.find(v => v.name.endsWith('/' + scale));
+
+      // 2. Try hyphenated match (e.g. "...-50" or ".../Blue-50")
+      if (!found) found = vars.find(v => v.name.endsWith('-' + scale));
+
+      // 3. Try space match (e.g. "... 50")
+      if (!found) found = vars.find(v => v.name.endsWith(' ' + scale));
+
+      return found;
     };
 
     // Get variation index
-    // FIX: Disable random variation for stable Live Preview. Always use Standard (0).
-    const variation = 0;
+    // Improvement: Ensure we cycle or pick a different one if regenerating
+    // For now, random is fine providing the mapping logic is distinct enough.
+    // Let's add more distinct variations.
+    const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0; // 0 is default "Standard"
 
     const mappings = {
       // 0: Standard Modern (Clean, high contrast text)
@@ -1901,101 +1903,59 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
         // We need to resolve these scale values to actual variables
 
         // Determine target vars based on token type - IMPROVED to match frontend logic
-        let source = 'neutral';
-        let targetVars;
+        let targetVars = neutralVars; // Default
 
         // Status tokens - most specific first
         if (name.startsWith('Status/success')) {
           targetVars = successVars.length > 0 ? successVars : accentVars;
-          source = successVars.length > 0 ? 'success' : 'accent';
         } else if (name.startsWith('Status/warning')) {
           targetVars = warningVars.length > 0 ? warningVars : accentVars;
-          source = warningVars.length > 0 ? 'warning' : 'accent';
         } else if (name.startsWith('Status/error')) {
           targetVars = errorVars.length > 0 ? errorVars : accentVars;
-          source = errorVars.length > 0 ? 'error' : 'accent';
         } else if (name.startsWith('Status/info')) {
           targetVars = accentVars; // Info uses accent
-          source = 'accent';
         }
         // Action/Button tokens
         else if (name.startsWith('Action/') || name.startsWith('Button/')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Background tokens
         else if (name.startsWith('Background/brand') || name.startsWith('Background/accent')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Text tokens
         else if (name.startsWith('Text/brand') || name.startsWith('Text/link')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Badge tokens
         else if (name.startsWith('Badge/brand')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Nav tokens
         else if (name.startsWith('Nav/')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Icon tokens
         else if (name.startsWith('Icon/brand')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Border tokens
         else if (name.startsWith('Border/brand') || name.startsWith('Border/focus')) {
           targetVars = accentVars;
-          source = 'accent';
         }
         // Everything else uses neutral
         else {
           targetVars = neutralVars;
-          source = 'neutral';
         }
 
         // If specific override var exists, use it
         if (override.light) {
-          console.log(`🔍 Looking for light override: ${name} -> ${override.light} in`, targetVars.map(v => v.name));
-          let found = findVar(targetVars, override.light);
-
-          // If not found, try fallback logic (similar to resolveVar)
-          if (!found && (override.light === '0' || override.light === '50')) {
-            console.warn(`⚠️ ${override.light} not found, trying fallbacks...`);
-            if (override.light === '0') found = findVar(targetVars, '50');
-            if (!found) found = findVar(targetVars, '100');
-            if (!found) found = findVar(targetVars, '200');
-          }
-
-          if (found) {
-            console.log(`✅ Found light override:`, found.name);
-            lightVar = found;
-          } else {
-            console.error(`❌ Could not find light value ${override.light} for ${name}`);
-          }
+          const found = findVar(targetVars, override.light);
+          if (found) lightVar = found;
         }
         if (override.dark) {
-          console.log(`🔍 Looking for dark override: ${name} -> ${override.dark} in`, targetVars.map(v => v.name));
-          let found = findVar(targetVars, override.dark);
-
-          // If not found, try fallback logic
-          if (!found && (override.dark === '950' || override.dark === '900')) {
-            console.warn(`⚠️ ${override.dark} not found, trying fallbacks...`);
-            found = findVar(targetVars, '800');
-            if (!found) found = findVar(targetVars, '700');
-          }
-
-          if (found) {
-            console.log(`✅ Found dark override:`, found.name);
-            darkVar = found;
-          } else {
-            console.error(`❌ Could not find dark value ${override.dark} for ${name}`);
-          }
+          const found = findVar(targetVars, override.dark);
+          if (found) darkVar = found;
         }
       }
 
@@ -2006,192 +1966,160 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
       // Safety check for color retrieval
       if (!lightColor || !darkColor) return;
 
-      // Determine default source if not overridden
-      let defaultSource = 'neutral';
-      if (name.startsWith('Status/success')) defaultSource = successVars.length > 0 ? 'success' : 'accent';
-      else if (name.startsWith('Status/warning')) defaultSource = warningVars.length > 0 ? 'warning' : 'accent';
-      else if (name.startsWith('Status/error')) defaultSource = errorVars.length > 0 ? 'error' : 'accent';
-      else if (name.startsWith('Status/info')) defaultSource = 'accent';
-      else if (name.startsWith('Action/') || name.startsWith('Button/')) defaultSource = 'accent';
-      else if (name.startsWith('Background/brand') || name.startsWith('Background/accent')) defaultSource = 'accent';
-      else if (name.startsWith('Text/brand') || name.startsWith('Text/link')) defaultSource = 'accent';
-      else if (name.startsWith('Badge/brand')) defaultSource = 'accent';
-      else if (name.startsWith('Nav/')) defaultSource = 'accent';
-      else if (name.startsWith('Icon/brand')) defaultSource = 'accent';
-      else if (name.startsWith('Border/brand') || name.startsWith('Border/focus')) defaultSource = 'accent';
-
       tokens[name] = {
         light: { id: lightVar.id, name: lightVar.name, hex: rgbToHex(lightColor) },
-        dark: { id: darkVar.id, name: darkVar.name, hex: rgbToHex(darkColor) },
-        source: defaultSource // Pass source to frontend
+        dark: { id: darkVar.id, name: darkVar.name, hex: rgbToHex(darkColor) }
       };
     };
 
     // ========================================
-    // 🔥 GOD-TIER TOKEN SYSTEM (SCHEMA DRIVEN) 🔥
+    // 🔥 GOD-TIER TOKEN SYSTEM 🔥
     // ========================================
 
-    const TOKEN_SCHEMA = [
-      // 1. BACKGROUNDS
-      { name: 'Background/primary', light: map.bgLight, dark: map.bgDark },
-      { name: 'Background/secondary', light: '100', dark: '800' },
-      { name: 'Background/tertiary', light: '200', dark: '700' },
-      { name: 'Background/inverse', light: '900', dark: '50' },
-      { name: 'Background/brand', light: '50', dark: '950', useAccent: true },
-      { name: 'Background/accent', light: '100', dark: '900', useAccent: true },
+    // Status tokens helper (uses specific palettes or fallbacks to accent)
+    const getStatusVar = (vars, scale) => vars.length > 0 ? findVar(vars, scale) : findVar(accentVars, scale);
 
-      // 2. TEXT
-      { name: 'Text/primary', light: map.textLight, dark: map.textDark },
-      { name: 'Text/secondary', light: '700', dark: '300' },
-      { name: 'Text/tertiary', light: '600', dark: '400' },
-      { name: 'Text/disabled', light: '400', dark: '600' },
-      { name: 'Text/inverse', light: '50', dark: '900' },
-      { name: 'Text/brand', light: '700', dark: '300', useAccent: true },
-      { name: 'Text/link', light: '600', dark: '400', useAccent: true },
-      { name: 'Text/linkHover', light: '700', dark: '300', useAccent: true },
+    // ===== 1. FOUNDATION TOKENS =====
+    // Background Hierarchy (6 levels)
+    createToken('Background/primary', findVar(neutralVars, map.bgLight), findVar(neutralVars, map.bgDark));
+    createToken('Background/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Background/tertiary', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Background/inverse', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+    createToken('Background/brand', findVar(accentVars, '50'), findVar(accentVars, '950'));
+    createToken('Background/accent', findVar(accentVars, '100'), findVar(accentVars, '900'));
 
-      // 3. SURFACE (Elevation/Depth)
-      { name: 'Surface/bum', light: '50', dark: '950' }, // Bottom Up Material
-      { name: 'Surface/base', light: '50', dark: '900' },
-      { name: 'Surface/card', light: '50', dark: '800' },
-      { name: 'Surface/float', light: '50', dark: '800' },
-      { name: 'Surface/modal', light: '50', dark: '800' },
-      { name: 'Surface/overlay', light: '900', dark: '950' }, // Semi-transparent overlay
-      { name: 'Surface/wash', light: '50', dark: '950' }, // Wash/App Background often slightly tinted
+    // Text Hierarchy (7 levels)
+    createToken('Text/primary', findVar(neutralVars, map.textLight), findVar(neutralVars, map.textDark));
+    createToken('Text/secondary', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Text/tertiary', findVar(neutralVars, '600'), findVar(neutralVars, '400'));
+    createToken('Text/disabled', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Text/inverse', findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Text/brand', findVar(accentVars, '700'), findVar(accentVars, '300'));
+    createToken('Text/link', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Text/linkHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
 
-      // 4. BORDERS
-      { name: 'Border/default', light: '200', dark: '700' },
-      { name: 'Border/subtle', light: '100', dark: '800' },
-      { name: 'Border/strong', light: '300', dark: '600' },
-      { name: 'Border/interactive', light: '400', dark: '500' },
-      { name: 'Border/focus', light: '500', dark: '400', useAccent: true },
-      { name: 'Border/brand', light: '300', dark: '700', useAccent: true },
-      { name: 'Border/error', light: '500', dark: '400', useStatus: 'error' },
+    // Surface System (8 levels for elevation)
+    createToken('Surface/level0', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Surface/level1', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Surface/level2', findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Surface/level3', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Surface/level4', findVar(neutralVars, '100'), findVar(neutralVars, '750') || findVar(neutralVars, '700'));
+    createToken('Surface/overlay', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '800'));
+    createToken('Surface/modal', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Surface/tooltip', findVar(neutralVars, '900'), findVar(neutralVars, '700'));
 
-      // 5. ACTIONS
-      { name: 'Action/primary', light: map.actionLight, dark: map.actionDark, useAccent: true },
-      { name: 'Action/primaryHover', light: '700', dark: '300', useAccent: true },
-      { name: 'Action/primaryActive', light: '800', dark: '200', useAccent: true },
-      { name: 'Action/primaryDisabled', light: '200', dark: '800' },
-      { name: 'Action/primaryText', light: '50', dark: '950', useAccent: false }, // Text on primary button
+    // Border System (6 levels)
+    createToken('Border/default', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Border/subtle', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Border/strong', findVar(neutralVars, '300'), findVar(neutralVars, '600'));
+    createToken('Border/brand', findVar(accentVars, '300'), findVar(accentVars, '700'));
+    createToken('Border/focus', findVar(accentVars, '500'), findVar(accentVars, '400'));
+    createToken('Border/error', getStatusVar(errorVars, '500'), getStatusVar(errorVars, '400'));
 
-      { name: 'Action/secondary', light: '100', dark: '800' },
-      { name: 'Action/secondaryHover', light: '200', dark: '700' },
-      { name: 'Action/secondaryActive', light: '300', dark: '600' },
+    // ===== 2. INTERACTIVE TOKENS =====
+    // Primary Actions (Complete State Machine)
+    createToken('Action/primary', findVar(accentVars, map.actionLight), findVar(accentVars, map.actionDark));
+    createToken('Action/primaryHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
+    createToken('Action/primaryActive', findVar(accentVars, '800'), findVar(accentVars, '200'));
+    createToken('Action/primaryDisabled', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+    createToken('Action/primarySubtle', findVar(accentVars, '100'), findVar(accentVars, '900'));
+    createToken('Action/primarySubtleHover', findVar(accentVars, '200'), findVar(accentVars, '800'));
 
-      { name: 'Action/outline', light: '50', dark: '900' },
-      { name: 'Action/outlineBorder', light: '300', dark: '600' },
+    // Secondary Actions
+    createToken('Action/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Action/secondaryHover', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Action/secondaryActive', findVar(neutralVars, '300'), findVar(neutralVars, '600'));
 
-      { name: 'Action/ghost', light: '50', dark: '900' },
-      { name: 'Action/ghostHover', light: '100', dark: '800' },
+    // Ghost/Tertiary Actions
+    createToken('Action/ghost', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Action/ghostHover', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Action/ghostActive', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
 
-      { name: 'Action/destructive', light: '600', dark: '500', useStatus: 'error' },
-      { name: 'Action/destructiveHover', light: '700', dark: '400', useStatus: 'error' },
-      { name: 'Action/destructiveText', light: '50', dark: '950' },
+    // Destructive Actions
+    createToken('Action/destructive', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '500'));
+    createToken('Action/destructiveHover', getStatusVar(errorVars, '700'), getStatusVar(errorVars, '400'));
+    createToken('Action/destructiveActive', getStatusVar(errorVars, '800'), getStatusVar(errorVars, '300'));
 
-      // 6. STATUS
-      { name: 'Status/success', light: '600', dark: '400', useStatus: 'success' },
-      { name: 'Status/successBg', light: '50', dark: '900', useStatus: 'success' },
-      { name: 'Status/successBorder', light: '200', dark: '800', useStatus: 'success' },
+    // ===== 3. COMPONENT-SPECIFIC TOKENS =====
+    // Input Fields
+    createToken('Input/background', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Input/backgroundHover', findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Input/backgroundFocus', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Input/backgroundDisabled', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Input/border', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+    createToken('Input/borderHover', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Input/borderFocus', findVar(accentVars, '500'), findVar(accentVars, '400'));
+    createToken('Input/borderError', getStatusVar(errorVars, '500'), getStatusVar(errorVars, '400'));
+    createToken('Input/placeholder', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Input/text', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
 
-      { name: 'Status/warning', light: '600', dark: '400', useStatus: 'warning' },
-      { name: 'Status/warningBg', light: '50', dark: '900', useStatus: 'warning' },
-      { name: 'Status/warningBorder', light: '200', dark: '800', useStatus: 'warning' },
+    // Cards
+    createToken('Card/background', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Card/backgroundHover', findVar(neutralVars, '50'), findVar(neutralVars, '850') || findVar(neutralVars, '800'));
+    createToken('Card/border', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Card/borderHover', findVar(neutralVars, '300'), findVar(neutralVars, '600'));
 
-      { name: 'Status/error', light: '600', dark: '400', useStatus: 'error' },
-      { name: 'Status/errorBg', light: '50', dark: '900', useStatus: 'error' },
-      { name: 'Status/errorBorder', light: '200', dark: '800', useStatus: 'error' },
+    // Buttons (Text on Button)
+    createToken('Button/primaryText', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Button/secondaryText', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+    createToken('Button/ghostText', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
 
-      { name: 'Status/info', light: '600', dark: '400', useAccent: true },
-      { name: 'Status/infoBg', light: '50', dark: '900', useAccent: true },
-      { name: 'Status/infoBorder', light: '200', dark: '800', useAccent: true },
+    // Badges & Tags
+    createToken('Badge/background', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Badge/text', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Badge/brandBackground', findVar(accentVars, '100'), findVar(accentVars, '900'));
+    createToken('Badge/brandText', findVar(accentVars, '700'), findVar(accentVars, '300'));
 
-      // 7. OVERLAY
-      { name: 'Overlay/scrim', light: '950', dark: '950' }, // Always dark
-      { name: 'Overlay/backdrop', light: '50', dark: '900' },
+    // Navigation
+    createToken('Nav/background', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Nav/itemDefault', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Nav/itemHover', findVar(neutralVars, '900'), findVar(neutralVars, '50'));
+    createToken('Nav/itemActive', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Nav/itemActiveBackground', findVar(accentVars, '100'), findVar(accentVars, '900'));
 
-      // 8. COMPONENTS (Generic)
-      { name: 'Input/background', light: '50', dark: '900' },
-      { name: 'Input/border', light: '300', dark: '700' },
-      { name: 'Input/borderFocus', light: '500', dark: '400', useAccent: true },
+    // ===== 4. STATUS & FEEDBACK TOKENS =====
+    // Success
+    createToken('Status/success', getStatusVar(successVars, '600'), getStatusVar(successVars, '400'));
+    createToken('Status/successSubtle', getStatusVar(successVars, '100'), getStatusVar(successVars, '900'));
+    createToken('Status/successBorder', getStatusVar(successVars, '300'), getStatusVar(successVars, '700'));
+    createToken('Status/successText', getStatusVar(successVars, '700'), getStatusVar(successVars, '300'));
 
-      { name: 'Badge/bg', light: '100', dark: '800' },
-      { name: 'Badge/text', light: '800', dark: '200' },
-    ];
+    // Warning
+    createToken('Status/warning', getStatusVar(warningVars, '600'), getStatusVar(warningVars, '400'));
+    createToken('Status/warningSubtle', getStatusVar(warningVars, '100'), getStatusVar(warningVars, '900'));
+    createToken('Status/warningBorder', getStatusVar(warningVars, '300'), getStatusVar(warningVars, '700'));
+    createToken('Status/warningText', getStatusVar(warningVars, '700'), getStatusVar(warningVars, '300'));
 
-    // Helper to resolve variables dynamically with robust fallbacks
-    const resolveVar = (mapEntry, mode) => {
-      const scale = mapEntry[mode];
-      if (!scale) return null;
+    // Error
+    createToken('Status/error', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '400'));
+    createToken('Status/errorSubtle', getStatusVar(errorVars, '100'), getStatusVar(errorVars, '900'));
+    createToken('Status/errorBorder', getStatusVar(errorVars, '300'), getStatusVar(errorVars, '700'));
+    createToken('Status/errorText', getStatusVar(errorVars, '700'), getStatusVar(errorVars, '300'));
 
-      let collection = neutralVars; // Default
-      if (mapEntry.useAccent) collection = accentVars;
-      else if (mapEntry.useStatus === 'success') collection = successVars;
-      else if (mapEntry.useStatus === 'warning') collection = warningVars;
-      else if (mapEntry.useStatus === 'error') collection = errorVars;
+    // Info (using accent)
+    createToken('Status/info', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Status/infoSubtle', findVar(accentVars, '100'), findVar(accentVars, '900'));
+    createToken('Status/infoBorder', findVar(accentVars, '300'), findVar(accentVars, '700'));
+    createToken('Status/infoText', findVar(accentVars, '700'), findVar(accentVars, '300'));
 
-      // 1. Try exact match
-      let v = findVar(collection, scale);
+    // ===== 5. OVERLAY & SCRIM TOKENS =====
+    createToken('Overlay/backdrop', findVar(neutralVars, '900'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Overlay/scrim', findVar(neutralVars, '950') || findVar(neutralVars, '900'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Overlay/skeleton', findVar(neutralVars, '200'), findVar(neutralVars, '800'));
+    createToken('Overlay/loading', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
 
-      // 2. Try configured fallback (e.g. '50' if '0' missing)
-      if (!v && mapEntry.fallbackLight && mode === 'light') {
-        v = findVar(collection, mapEntry.fallbackLight);
-      }
+    // ===== 6. ICON TOKENS =====
+    createToken('Icon/default', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Icon/subtle', findVar(neutralVars, '500'), findVar(neutralVars, '500'));
+    createToken('Icon/disabled', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Icon/brand', findVar(accentVars, '600'), findVar(accentVars, '400'));
+    createToken('Icon/inverse', findVar(neutralVars, '50'), findVar(neutralVars, '900'));
 
-      // 3. Smart Auto-Fallback (Nearest Neighbors)
-      // If we need '0' or '50' (Light) but missing:
-      if (!v && mode === 'light' && (scale === '0' || scale === '50')) {
-        // If looking for 0, try 50 first (closer to white)
-        if (scale === '0') v = findVar(collection, '50');
-        // If still nothing, try 100
-        if (!v) v = findVar(collection, '100');
-        // Desperate: 200
-        if (!v) v = findVar(collection, '200');
-      }
-      // If we need '950' or '900' (Dark) but missing, try '800'
-      if (!v && mode === 'dark' && (scale === '950' || scale === '900')) {
-        v = findVar(collection, '800');
-        if (!v) v = findVar(collection, '700'); // Desperate fallback
-      }
-
-      // 4. Final Fail-Safe: Create a Synthetic "Safe" Token
-      // If the user's palette is totally empty or missing critical steps, we MUST NOT return null.
-      // We return a "Virtual Variable" structure so the token system works.
-      if (!v) {
-        // Determine safe hex
-        const safeHex = mode === 'light' ? '#FFFFFF' : '#121212';
-        // We construct a localized mock object that mimics a Figma variable for our purposes
-        return {
-          synthetic: true,
-          valuesByMode: { [mode]: { r: mode === 'light' ? 1 : 0.07, g: mode === 'light' ? 1 : 0.07, b: mode === 'light' ? 1 : 0.07 } },
-          name: `Fallback/${scale}`
-        };
-      }
-
-      return v;
-    };
-
-    // Iterate Schema and Generate
-    for (const entry of TOKEN_SCHEMA) {
-      const lightVar = resolveVar(entry, 'light');
-      const darkVar = resolveVar(entry, 'dark');
-
-      // Always create token, even if synthetic
-      if (lightVar && darkVar) {
-        if (lightVar.synthetic || darkVar.synthetic) {
-          // Handle synthetic creation manually since createToken expects real vars
-          const lHex = lightVar.synthetic ? (entry.light === '0' || entry.light.includes('50') ? '#FFFFFF' : '#CCCCCC') : rgbToHex(lightVar.valuesByMode[Object.keys(lightVar.valuesByMode)[0]]);
-          const dHex = darkVar.synthetic ? (entry.dark.includes('9') ? '#121212' : '#333333') : rgbToHex(darkVar.valuesByMode[Object.keys(darkVar.valuesByMode)[0]]);
-
-          tokens[entry.name] = {
-            light: { name: 'Fallback', hex: lHex, isSynthetic: true },
-            dark: { name: 'Fallback', hex: dHex, isSynthetic: true }
-          };
-        } else {
-          createToken(entry.name, lightVar, darkVar);
-        }
-      }
-    }
+    // ===== 7. ACCESSIBILITY TOKENS =====
+    createToken('A11y/focusRing', findVar(accentVars, '500'), findVar(accentVars, '400'));
+    createToken('A11y/focusRingError', getStatusVar(errorVars, '500'), getStatusVar(errorVars, '400'));
+    createToken('A11y/highContrastText', findVar(neutralVars, '950') || findVar(neutralVars, '900'), findVar(neutralVars, '0') || findVar(neutralVars, '50'));
+    createToken('A11y/highContrastBorder', findVar(neutralVars, '900'), findVar(neutralVars, '100'));
 
     const validation = { passed: Object.keys(tokens).length, warnings: [] };
 
@@ -2207,67 +2135,28 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
     console.log(`Sending paletteData: ${Object.keys(paletteData).map(k => `${k}(${Object.keys(paletteData[k]).length})`).join(', ')}`);
 
     // Construct Preview Data for UI
-    // Construct Full Preview Data for UI (God-Tier Preview)
-
-    // Construct Full Preview Data for UI (God-Tier Preview)
-    const getPreviewData = (mode) => {
-      // Helper to safely get hex from generic vars or tokens
-      const get = (name) => {
-        // Mode is 'light' or 'dark'
-        // In generateTheme, we look in 'tokens' constructed above which stores { light: {hex...}, dark: {hex...} }
-        // Wait, 'tokens' above is constructed via createToken loops.
-        // Let's rely on the 'tokens' object we just built.
-        const t = tokens[name];
-        // FINAL DEFENSE: If token is still missing, return a clean color, NOT PINK.
-        if (!t) return mode === 'light' ? '#ffffff' : '#1e1e1e';
-        return mode === 'light' ? t.light.hex : t.dark.hex;
-      };
-
-      return {
-        bg: {
-          primary: get('Background/primary'),
-          secondary: get('Background/secondary'),
-          tertiary: get('Background/tertiary'),
-          inverse: get('Background/inverse'),
-          brand: get('Background/brand'),
-        },
-        text: {
-          primary: get('Text/primary'),
-          secondary: get('Text/secondary'),
-          brand: get('Text/brand'),
-          inverse: get('Text/inverse'),
-        },
-        surface: {
-          card: get('Surface/card'),
-          modal: get('Surface/modal'),
-          overlay: get('Surface/overlay'),
-        },
-        border: {
-          default: get('Border/default'),
-          focus: get('Border/focus'),
-          error: get('Border/error'),
-        },
-        action: {
-          primary: get('Action/primary'),
-          primaryHover: get('Action/primaryHover'),
-          secondary: get('Action/secondary'),
-          destructive: get('Action/destructive'),
-        },
-        status: {
-          success: get('Status/success'),
-          successBg: get('Status/successBg'),
-          warning: get('Status/warning'),
-          warningBg: get('Status/warningBg'),
-          error: get('Status/error'),
-          errorBg: get('Status/errorBg'),
-          info: get('Status/info'),
-        }
-      };
+    // Helper to get Hex
+    const getHex = (vars, scale) => {
+      const v = findVar(vars, scale);
+      if (!v) return '#cccccc';
+      const modeId = Object.keys(v.valuesByMode)[0];
+      const val = v.valuesByMode[modeId];
+      // Simple RGB check. For aliases recursion would be needed but primitives should be colors.
+      if (val && val.r !== undefined) return rgbToHex(val.r, val.g, val.b);
+      return '#cccccc';
     };
 
     const preview = {
-      light: getPreviewData('light'),
-      dark: getPreviewData('dark')
+      light: {
+        bg: getHex(neutralVars, map.bgLight),
+        text: getHex(neutralVars, map.textLight),
+        primary: getHex(accentVars, map.actionLight)
+      },
+      dark: {
+        bg: getHex(neutralVars, map.bgDark),
+        text: getHex(neutralVars, map.textDark),
+        primary: getHex(accentVars, map.actionDark)
+      }
     };
 
     const messageType = isRegenerate ? 'theme-regenerated' : 'theme-generated';
@@ -2279,8 +2168,8 @@ async function generateTheme(accentPalette, neutralPalette, statusPalettes, them
         validation,
         accentPalette,
         neutralPalette,
-        paletteData,
-        preview
+        paletteData, // Send full palette data for picker
+        preview      // Added Preview Data
       }
     });
 
@@ -2301,30 +2190,35 @@ async function loadThemeFromCollection(collectionId) {
     const themeVars = allVariables.filter(v => v.variableCollectionId === collectionId && v.resolvedType === 'COLOR');
 
     // Identify Modes
+    // We look for modes named "Light" and "Dark" or fallback to first two
     const modeLight = collection.modes.find(m => m.name === 'Light');
     const modeDark = collection.modes.find(m => m.name === 'Dark');
 
     let lightModeId = modeLight ? modeLight.modeId : (collection.modes[0] ? collection.modes[0].modeId : null);
     let darkModeId = modeDark ? modeDark.modeId : (collection.modes[1] ? collection.modes[1].modeId : null);
 
+    // Fallback for single mode themes (shouldn't happen with our generator but possible)
     if (!darkModeId) darkModeId = lightModeId;
 
     const tokens = {};
     const allVarsMap = {};
     allVariables.forEach(v => allVarsMap[v.id] = v);
 
+    // Map for resolving Hex
     const resolveHex = (val) => {
       if (!val) return '#cccccc';
       if (val.r !== undefined) return rgbToHex(val.r, val.g, val.b);
       if (val.type === 'VARIABLE_ALIAS') {
+        // Deep resolve? For editing we need the alias ID primarily
         const t = allVarsMap[val.id];
-        if (!t) return '#cccccc';
+        if (!t) return '#cccccc'; // Safety
         const tm = Object.keys(t.valuesByMode)[0];
         return resolveHex(t.valuesByMode[tm]);
       }
       return '#cccccc';
     };
 
+    // Reconstruct Tokens Object & Detect Source Collection
     const sourceCollectionIds = new Set();
     const detectedConfig = {
       accent: null,
@@ -2332,6 +2226,7 @@ async function loadThemeFromCollection(collectionId) {
       status: { success: null, warning: null, error: null }
     };
 
+    // Helper to extract palette name from variable name (e.g. "Colors/Blue/500" -> "Colors/Blue")
     const getPaletteName = (varName) => {
       const parts = varName.split('/');
       if (parts.length >= 2) return parts.slice(0, -1).join('/');
@@ -2342,6 +2237,7 @@ async function loadThemeFromCollection(collectionId) {
       const lightVal = v.valuesByMode[lightModeId];
       const darkVal = v.valuesByMode[darkModeId];
 
+      // Check if both are aliases (using safe check instead of optional chaining)
       const lightIsAlias = lightVal && lightVal.type === 'VARIABLE_ALIAS';
       const darkIsAlias = darkVal && darkVal.type === 'VARIABLE_ALIAS';
 
@@ -2358,8 +2254,10 @@ async function loadThemeFromCollection(collectionId) {
             dark: { id: darkSource.id, name: darkSource.name, hex: darkHex }
           };
 
+          // Track Source Collection
           sourceCollectionIds.add(lightSource.variableCollectionId);
 
+          // Infer Mappings based on key tokens
           if (v.name === 'Action/primary') detectedConfig.accent = getPaletteName(lightSource.name);
           if (v.name === 'Background/primary') detectedConfig.neutral = getPaletteName(lightSource.name);
           if (v.name === 'Status/success') detectedConfig.status.success = getPaletteName(lightSource.name);
@@ -2369,14 +2267,23 @@ async function loadThemeFromCollection(collectionId) {
       }
     });
 
-    // Fetch Source Palettes
+    // Fetch Source Palettes (Enhanced Robustness)
+    // Instead of relying only on connected aliases, we scan ALL other collections for potential palettes.
+    // This ensures dropdowns are populated even if detection fails or if user wants to switch to a new, unused palette.
     let availablePalettes = [];
     const paletteSet = new Set();
 
     allVariables.forEach(v => {
+      // Skip variables from the Theme collection itself
       if (v.variableCollectionId === collectionId) return;
+
+      // Only consider Colors
       if (v.resolvedType !== 'COLOR') return;
+
       const name = v.name;
+      // Naive palette extractor: everything up to last slash
+      // e.g. "Colors/Blue/500" -> "Colors/Blue"
+      // e.g. "Blue/500" -> "Blue"
       const parts = name.split('/');
       if (parts.length >= 2) {
         const paletteName = parts.slice(0, -1).join('/');
@@ -2388,111 +2295,25 @@ async function loadThemeFromCollection(collectionId) {
     console.log(`Edit Mode: Found ${availablePalettes.length} available palettes from other collections.`);
 
     // Reconstruct Preview Data (Heuristic)
-    const getPreviewData = (mode) => {
-      const get = (name) => {
-        const t = tokens[name];
-        if (!t) return '#cccccc';
-        return mode === 'light' ? t.light.hex : t.dark.hex;
-      };
-      return {
-        bg: {
-          primary: get('Background/primary'),
-          secondary: get('Background/secondary'),
-          tertiary: get('Background/tertiary'),
-          inverse: get('Background/inverse'),
-          brand: get('Background/brand'),
-        },
-        text: {
-          primary: get('Text/primary'),
-          secondary: get('Text/secondary'),
-          brand: get('Text/brand'),
-          inverse: get('Text/inverse'),
-        },
-        surface: {
-          card: get('Surface/card'),
-          modal: get('Surface/modal'),
-          overlay: get('Surface/overlay'),
-        },
-        border: {
-          default: get('Border/default'),
-          focus: get('Border/focus'),
-          error: get('Border/error'),
-        },
-        action: {
-          primary: get('Action/primary'),
-          primaryHover: get('Action/primaryHover'),
-          secondary: get('Action/secondary'),
-          destructive: get('Action/destructive'),
-        },
-        status: {
-          success: get('Status/success'),
-          successBg: get('Status/successBg'),
-          warning: get('Status/warning'),
-          warningBg: get('Status/warningBg'),
-          error: get('Status/error'),
-          errorBg: get('Status/errorBg'),
-          info: get('Status/info'),
-        }
-      };
+    const getPreviewHex = (name) => {
+      return tokens[name] ? tokens[name].light.hex : '#cccccc'; // Default to light
+    };
+    const getPreviewHexDark = (name) => {
+      return tokens[name] ? tokens[name].dark.hex : '#333333';
     };
 
     const preview = {
-      light: getPreviewData('light'),
-      dark: getPreviewData('dark')
+      light: {
+        bg: getPreviewHex('Background/primary'),
+        text: getPreviewHex('Text/primary'),
+        primary: getPreviewHex('Action/primary')
+      },
+      dark: {
+        bg: getPreviewHexDark('Background/primary'),
+        text: getPreviewHexDark('Text/primary'),
+        primary: getPreviewHexDark('Action/primary')
+      }
     };
-
-    // Extract Palette Colors for Custom Dropdowns
-    console.log('Extracting palette colors for edit mode...');
-    const paletteData = {
-      accent: {},
-      neutral: {},
-      success: {},
-      warning: {},
-      error: {}
-    };
-
-    // Helper to get variables from a specific palette
-    const getPaletteVars = (paletteName) => {
-      if (!paletteName) return [];
-      return allVariables.filter(v => {
-        if (v.resolvedType !== 'COLOR') return false;
-        const name = v.name;
-        return name.startsWith(paletteName + '/') || name.startsWith(paletteName + '-') || name.startsWith(paletteName + ' ');
-      });
-    };
-
-    // Extract colors for each palette type
-    if (detectedConfig.accent) {
-      const accentVars = getPaletteVars(detectedConfig.accent);
-      paletteData.accent = extractPaletteColors(accentVars, allVarsMap);
-      console.log(`Accent palette (${detectedConfig.accent}): ${Object.keys(paletteData.accent).length} colors`);
-    }
-
-    if (detectedConfig.neutral) {
-      const neutralVars = getPaletteVars(detectedConfig.neutral);
-      paletteData.neutral = extractPaletteColors(neutralVars, allVarsMap);
-      console.log(`Neutral palette (${detectedConfig.neutral}): ${Object.keys(paletteData.neutral).length} colors`);
-    }
-
-    if (detectedConfig.status.success) {
-      const successVars = getPaletteVars(detectedConfig.status.success);
-      paletteData.success = extractPaletteColors(successVars, allVarsMap);
-      console.log(`Success palette (${detectedConfig.status.success}): ${Object.keys(paletteData.success).length} colors`);
-    }
-
-    if (detectedConfig.status.warning) {
-      const warningVars = getPaletteVars(detectedConfig.status.warning);
-      paletteData.warning = extractPaletteColors(warningVars, allVarsMap);
-      console.log(`Warning palette (${detectedConfig.status.warning}): ${Object.keys(paletteData.warning).length} colors`);
-    }
-
-    if (detectedConfig.status.error) {
-      const errorVars = getPaletteVars(detectedConfig.status.error);
-      paletteData.error = extractPaletteColors(errorVars, allVarsMap);
-      console.log(`Error palette (${detectedConfig.status.error}): ${Object.keys(paletteData.error).length} colors`);
-    }
-
-    console.log(`Sending paletteData: accent(${Object.keys(paletteData.accent).length}), neutral(${Object.keys(paletteData.neutral).length}), success(${Object.keys(paletteData.success).length}), warning(${Object.keys(paletteData.warning).length}), error(${Object.keys(paletteData.error).length})`);
 
     figma.ui.postMessage({
       type: 'theme-loaded-for-edit',
@@ -2503,11 +2324,7 @@ async function loadThemeFromCollection(collectionId) {
         validation: { passed: Object.keys(tokens).length },
         preview,
         availablePalettes,
-        detectedConfig,
-        paletteData, // Add palette colors
-        accentPalette: detectedConfig.accent,
-        neutralPalette: detectedConfig.neutral,
-        statusPalettes: detectedConfig.status
+        detectedConfig
       }
     });
 

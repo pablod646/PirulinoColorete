@@ -1,0 +1,32 @@
+{
+    "name": "pirulinocolorete",
+    "version": "2.0.0",
+    "description": "PirulinoColorete - Design Architect Figma Plugin",
+    "main": "code.js",
+    "scripts": {
+        "build": "npm run build:code && npm run build:ui",
+        "build:new": "npm run build:code && npm run build:ui:new",
+        "build:code": "esbuild src/code/main.ts --bundle --outfile=code.js --target=es6 --format=iife",
+        "build:ui": "node build.js",
+        "build:ui:new": "node build.js --new-ui",
+        "watch": "npm run watch:code & npm run watch:ui",
+        "watch:code": "esbuild src/code/main.ts --bundle --outfile=code.js --target=es6 --format=iife --watch",
+        "watch:ui": "node build.js --watch",
+        "dev": "npm run watch:code & node build.js --new-ui --watch",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@figma/plugin-typings": "^1.100.0",
+        "esbuild": "^0.20.0",
+        "typescript": "^5.3.3"
+    },
+    "keywords": [
+        "figma",
+        "plugin",
+        "design-system",
+        "color-palette",
+        "variables"
+    ],
+    "author": "",
+    "license": "GPL-3.0"
+}

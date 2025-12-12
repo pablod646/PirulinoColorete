@@ -1,0 +1,287 @@
+/**
+ * PirulinoColorete - Premium Layout System
+ * Modern UI with Glassmorphism and Smooth Animations
+ */
+
+/* ========================================
+   BASE RESET & DEFAULTS
+   ======================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    background: var(--bg-base);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+}
+
+/* ========================================
+   SIDEBAR NAVIGATION
+   ======================================== */
+.sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--gradient-sidebar);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-subtle);
+    position: relative;
+    z-index: var(--z-sticky);
+}
+
+/* Subtle glow effect */
+.sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: var(--gradient-glow);
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.sidebar-header {
+    padding: var(--space-6) var(--space-5);
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+}
+
+.sidebar-logo {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-tight);
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--space-1);
+}
+
+.sidebar-subtitle {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wide);
+    text-transform: uppercase;
+}
+
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-3) 0;
+}
+
+/* Navigation Item */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    margin: var(--space-1) var(--space-2);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: var(--gradient-accent);
+    border-radius: var(--radius-full);
+    transition: height var(--transition-normal);
+}
+
+.nav-item:hover {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+.nav-item:hover::before {
+    height: 50%;
+}
+
+.nav-item.active {
+    background: var(--accent-primary-subtle);
+    color: var(--accent-primary-hover);
+}
+
+.nav-item.active::before {
+    height: 70%;
+}
+
+.nav-item-icon {
+    font-size: var(--font-size-lg);
+    width: 24px;
+    text-align: center;
+    opacity: 0.9;
+}
+
+.nav-item-label {
+    flex: 1;
+}
+
+/* ========================================
+   MAIN CONTENT AREA
+   ======================================== */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-base);
+    position: relative;
+}
+
+/* Content Header */
+.content-header {
+    padding: var(--space-5) var(--space-8);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+    z-index: 10;
+}
+
+.content-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-header);
+    pointer-events: none;
+}
+
+.content-header h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-tight);
+    color: var(--text-primary);
+    margin: 0 0 var(--space-1) 0;
+    position: relative;
+}
+
+.content-header p {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    margin: 0;
+    position: relative;
+}
+
+/* Content Body */
+.content-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-8);
+    background: var(--bg-base);
+}
+
+.content-container {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+/* ========================================
+   SECTION CONTENT
+   ======================================== */
+.section-content {
+    display: none;
+    animation: fadeSlideIn 0.4s var(--transition-spring);
+}
+
+.section-content.active {
+    display: block;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR
+   ======================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: var(--radius-full);
+    transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-quaternary);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
+/* ========================================
+   RESIZE HANDLE
+   ======================================== */
+#resize-handle {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    z-index: var(--z-tooltip);
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+#resize-handle:hover {
+    opacity: 1;
+}
+
+#resize-handle:hover svg path {
+    stroke: var(--accent-primary);
+}

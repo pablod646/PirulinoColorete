@@ -1,0 +1,307 @@
+<div id="section-scale" class="section-content active">
+    <!-- Header -->
+    <div class="card" style="margin-bottom: var(--space-6);">
+        <div class="card-header">
+            <div>
+                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
+                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="13.5" cy="6.5" r=".5" />
+                            <circle cx="17.5" cy="10.5" r=".5" />
+                            <circle cx="8.5" cy="7.5" r=".5" />
+                            <circle cx="6.5" cy="12.5" r=".5" />
+                            <path
+                                d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+                        </svg></span> Color Palettes</h2>
+                <p class="card-subtitle">Generate Tailwind-style color scales from base colors</p>
+            </div>
+            <span class="badge">New</span>
+        </div>
+    </div>
+
+    <!-- Step 1: Collection -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">1. Collection</div>
+        <div class="input-group">
+            <label>Target Collection</label>
+            <select id="var-collection-select">
+                <option value="" disabled selected>Select Collection...</option>
+                <option value="NEW_COLLECTION">+ Create New Collection...</option>
+            </select>
+        </div>
+        <input type="text" id="var-collection-custom" placeholder="Enter new collection name" class="new-field-input"
+            style="display: none; margin-top: var(--space-2);">
+    </div>
+
+    <!-- Step 2: Group -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">2. Group (Optional)</div>
+        <div class="input-group">
+            <label>Target Group</label>
+            <select id="var-group-select">
+                <option value="">(Root / No Group)</option>
+                <option value="NEW_GROUP">+ New Group...</option>
+            </select>
+        </div>
+        <input type="text" id="var-group-custom" placeholder="Enter new group name" class="new-field-input"
+            style="display: none; margin-top: var(--space-2);">
+    </div>
+
+    <!-- Step 3: Add Colors -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">3. Add Colors</div>
+
+        <div class="color-input-group">
+            <div class="flex-row" style="margin-bottom: var(--space-3);">
+                <div style="flex: 1;">
+                    <label>Color Name</label>
+                    <input type="text" id="new-color-name" placeholder="e.g. Primary, Brand, Success">
+                </div>
+                <div style="flex: 1;">
+                    <label>Base Color</label>
+                    <div style="display: flex; gap: var(--space-2);">
+                        <input type="text" id="new-color-hex" placeholder="#6366f1"
+                            style="flex: 1; font-family: 'SF Mono', Monaco, monospace;">
+                        <div id="new-color-swatch" class="color-preview-swatch"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="add-color-btn" class="secondary" style="width: 100%;">
+                <span>+</span> Add to Queue
+            </button>
+            <p id="add-error" class="error-message" style="display: none;">Invalid Input</p>
+        </div>
+    </div>
+
+    <!-- Color Queue -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="flex-between" style="margin-bottom: var(--space-4);">
+            <div class="section-title" style="margin: 0;">Colors Queue</div>
+            <span class="badge" id="queue-count-badge">0 colors</span>
+        </div>
+
+        <div id="color-queue" class="color-queue-list">
+            <div id="empty-queue-msg" class="empty-state">
+                <span class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    </svg></span>
+                <p>No colors added yet</p>
+                <span class="empty-hint">Add colors above to get started</span>
+            </div>
+        </div>
+
+        <button id="preview-scale-btn" class="primary big-btn" disabled
+            style="width: 100%; margin-top: var(--space-4);">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg></span> Preview Palettes
+        </button>
+    </div>
+
+    <!-- Preview Section -->
+    <div id="scale-preview-container" class="card preview-card" style="display: none;">
+        <div class="section-title">Palette Preview</div>
+        <div id="scale-list" class="scale-preview-grid"></div>
+
+        <button id="create-vars-btn" class="primary big-btn" style="width: 100%; margin-top: var(--space-6);">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                    <path d="M5 3v4" />
+                    <path d="M19 17v4" />
+                    <path d="M3 5h4" />
+                    <path d="M17 19h4" />
+                </svg></span> Create All Variables
+        </button>
+    </div>
+</div>
+
+<style>
+    /* Color Section Specific Styles */
+    .color-preview-swatch {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-md);
+        background: var(--bg-surface-hover);
+        border: 1px solid var(--border-default);
+        transition: all var(--transition-fast);
+        cursor: pointer;
+    }
+
+    .color-preview-swatch:hover {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-md);
+    }
+
+    .new-field-input {
+        background: var(--accent-primary-subtle) !important;
+        border-color: var(--accent-primary) !important;
+    }
+
+    .error-message {
+        color: var(--accent-error);
+        font-size: var(--font-size-xs);
+        margin-top: var(--space-2);
+    }
+
+    .color-queue-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        min-height: 60px;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8);
+        color: var(--text-tertiary);
+        text-align: center;
+    }
+
+    .empty-icon {
+        font-size: 32px;
+        margin-bottom: var(--space-3);
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        margin-bottom: var(--space-1);
+    }
+
+    .empty-hint {
+        font-size: var(--font-size-xs);
+        color: var(--text-quaternary);
+    }
+
+    .color-queue-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        transition: all var(--transition-fast);
+    }
+
+    .color-queue-item:hover {
+        border-color: var(--border-default);
+        background: var(--bg-surface-active);
+    }
+
+    .color-queue-item .swatch {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-default);
+    }
+
+    .color-queue-item .info {
+        flex: 1;
+    }
+
+    .color-queue-item .name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--text-primary);
+    }
+
+    .color-queue-item .hex {
+        font-size: var(--font-size-xs);
+        font-family: 'SF Mono', Monaco, monospace;
+        color: var(--text-tertiary);
+    }
+
+    .color-queue-item .remove-btn {
+        padding: var(--space-1);
+        background: transparent;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: all var(--transition-fast);
+    }
+
+    .color-queue-item .remove-btn:hover {
+        background: var(--accent-error-subtle);
+        color: var(--accent-error);
+    }
+
+    .scale-preview-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+
+    .scale-preview-item {
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        border: 1px solid var(--border-subtle);
+    }
+
+    .scale-preview-item .palette-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-3);
+    }
+
+    .scale-preview-item .palette-name {
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+    }
+
+    .scale-preview-item .palette-grid {
+        display: grid;
+        grid-template-columns: repeat(11, 1fr);
+        gap: var(--space-1);
+    }
+
+    .scale-preview-item .palette-step {
+        aspect-ratio: 1;
+        border-radius: var(--radius-sm);
+        position: relative;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .scale-preview-item .palette-step:hover {
+        transform: scale(1.1);
+        z-index: 10;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .scale-preview-item .step-label {
+        position: absolute;
+        bottom: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 9px;
+        font-weight: var(--font-weight-semibold);
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    .scale-preview-item .palette-step:hover .step-label {
+        opacity: 1;
+    }
+
+    .preview-card {
+        border: 1px solid var(--accent-primary);
+        background: linear-gradient(145deg, var(--accent-primary-muted), var(--bg-surface));
+    }
+</style>

@@ -1,0 +1,371 @@
+<div id="section-collections" class="section-content">
+    <!-- Header -->
+    <div class="card" style="margin-bottom: var(--space-6);">
+        <div class="card-header">
+            <div>
+                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
+                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                        </svg></span> Documentation</h2>
+                <p class="card-subtitle">View and generate visual documentation for your design system</p>
+            </div>
+            <span class="badge">Export</span>
+        </div>
+    </div>
+
+    <!-- Collection Selector -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">1. Select Collection</div>
+
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Collection</label>
+                <select id="collection-select">
+                    <option value="" disabled selected>Loading collections...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Group (Optional)</label>
+                <select id="group-select" disabled>
+                    <option value="">All Groups</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Text Styles Selector -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">2. Text Styles (Optional)</div>
+
+        <div class="form-group">
+            <label>Title Style</label>
+            <select id="title-style-select">
+                <option value="">Use default font</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Label Style</label>
+            <select id="label-style-select">
+                <option value="">Use default font</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Body Style</label>
+            <select id="body-style-select">
+                <option value="">Use default font</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Code Style (for technical values)</label>
+            <select id="code-style-select">
+                <option value="">Use default font</option>
+            </select>
+        </div>
+
+        <p class="hint-text"
+            style="margin-top: var(--space-2); font-size: var(--font-size-xs); color: var(--text-tertiary);">
+            💡 Create text styles in the Typography section first, or use default fonts
+        </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">3. Generate</div>
+
+        <div class="action-buttons">
+            <button id="convert-btn" class="action-card">
+                <span class="action-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    </svg></span>
+                <div class="action-info">
+                    <span class="action-title">List in UI</span>
+                    <span class="action-desc">Preview variables below</span>
+                </div>
+            </button>
+            <button id="generate-btn" class="action-card primary">
+                <span class="action-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="13.5" cy="6.5" r=".5" />
+                        <circle cx="17.5" cy="10.5" r=".5" />
+                        <circle cx="8.5" cy="7.5" r=".5" />
+                        <circle cx="6.5" cy="12.5" r=".5" />
+                        <path
+                            d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+                    </svg></span>
+                <div class="action-info">
+                    <span class="action-title">Generate on Canvas</span>
+                    <span class="action-desc">Create visual documentation</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+        <div class="section-title">Preview</div>
+        <div id="result" class="result-container">
+            <div class="empty-state">
+                <span class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path
+                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.29 7 12 12 20.71 7" />
+                        <line x1="12" x2="12" y1="22" y2="12" />
+                    </svg></span>
+                <p>Select a collection to see variables</p>
+                <span class="empty-hint">Choose a collection and group above, then click "List in UI"</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Collections Section Specific Styles */
+    .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-3);
+    }
+
+    .action-card {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        text-align: left;
+    }
+
+    .action-card:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .action-card.primary {
+        background: var(--gradient-accent);
+        border-color: transparent;
+        color: white;
+    }
+
+    .action-card.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg), var(--shadow-glow);
+    }
+
+    .action-icon {
+        font-size: 24px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .action-icon {
+        font-size: 24px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .action-card.primary .action-icon {
+        color: white;
+    }
+
+    .action-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .action-title {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .action-card.primary .action-title {
+        color: white;
+    }
+
+    .action-desc {
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.65);
+    }
+
+    .action-card.primary .action-desc {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .result-container {
+        min-height: 200px;
+        padding: var(--space-4);
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-lg);
+        overflow-y: auto;
+        max-height: 400px;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-12);
+        color: var(--text-tertiary);
+        text-align: center;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: var(--space-4);
+        opacity: 0.4;
+    }
+
+    .empty-state p {
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-medium);
+        margin-bottom: var(--space-2);
+        color: var(--text-secondary);
+    }
+
+    .empty-hint {
+        font-size: var(--font-size-sm);
+        color: var(--text-quaternary);
+    }
+
+    /* Variable List Styles */
+    .variable-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .variable-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-fast);
+    }
+
+    .variable-item:hover {
+        border-color: var(--border-default);
+    }
+
+    .variable-swatch {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-default);
+    }
+
+    .variable-info {
+        flex: 1;
+    }
+
+    .variable-name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--text-primary);
+    }
+
+    .variable-value {
+        font-size: var(--font-size-xs);
+        font-family: 'SF Mono', Monaco, monospace;
+        color: var(--text-tertiary);
+    }
+
+    /* Palette visualization styles */
+    .palette-card {
+        margin-bottom: var(--space-4);
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        border: 1px solid var(--border-subtle);
+    }
+
+    .palette-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-3);
+    }
+
+    .palette-name {
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+    }
+
+    .palette-count {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        background: var(--bg-surface-active);
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+    }
+
+    .palette-swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: var(--space-2);
+    }
+
+    .color-swatch {
+        aspect-ratio: 1;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: var(--space-2);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .color-swatch:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+    }
+
+    .swatch-label {
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .variable-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-2) var(--space-3);
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-2);
+    }
+
+    .variable-row .variable-name {
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+    }
+
+    .variable-row .variable-type {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        font-family: 'SF Mono', Monaco, monospace;
+    }
+</style>

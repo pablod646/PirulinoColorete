@@ -1,0 +1,174 @@
+<div id="section-measures" class="section-content">
+    <!-- Header -->
+    <div class="card" style="margin-bottom: var(--space-6);">
+        <div class="card-header">
+            <div>
+                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
+                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
+                            <path d="m14.5 12.5 2-2" />
+                            <path d="m11.5 9.5 2-2" />
+                            <path d="m8.5 6.5 2-2" />
+                            <path d="m17.5 15.5 2-2" />
+                        </svg></span> Measure Generator</h2>
+                <p class="card-subtitle">Create spacing, sizing, and dimension variables</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 1: Values -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">1. Define Values</div>
+
+        <div class="input-group">
+            <label>Values (comma separated, in pixels)</label>
+            <textarea id="measure-values" class="measure-textarea"
+                rows="3">0.5, 1, 2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96</textarea>
+            <p class="input-hint">Standard spacing scale. Edit to customize your system.</p>
+        </div>
+
+        <div class="measure-presets">
+            <span class="preset-label">Quick presets:</span>
+            <button class="preset-btn" data-preset="tailwind">Tailwind</button>
+            <button class="preset-btn" data-preset="material">Material</button>
+            <button class="preset-btn" data-preset="fibonacci">Fibonacci</button>
+        </div>
+
+        <button id="preview-measures-btn" class="secondary" style="width: 100%; margin-top: var(--space-4);">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg></span> Preview Measures
+        </button>
+    </div>
+
+    <!-- Preview Section -->
+    <div id="measure-preview-container" class="card" style="display: none; margin-bottom: var(--space-4);">
+        <div class="section-title">2. Preview</div>
+
+        <div id="measure-list" class="measure-preview-grid"></div>
+    </div>
+
+    <!-- Configuration -->
+    <div id="measure-config-container" class="card" style="display: none;">
+        <div class="section-title">3. Configuration</div>
+
+        <div class="flex-row" style="margin-bottom: var(--space-4);">
+            <div>
+                <label>Target Collection</label>
+                <select id="measure-collection-select">
+                    <option value="" disabled selected>Select Collection...</option>
+                </select>
+            </div>
+            <div>
+                <label>Target Group</label>
+                <select id="measure-group-select">
+                    <option value="">(Root / No Group)</option>
+                    <option value="NEW_GROUP">+ New Group...</option>
+                </select>
+            </div>
+        </div>
+
+        <input type="text" id="measure-group-custom" placeholder="e.g. Spacing" class="new-field-input"
+            style="display: none; margin-bottom: var(--space-4);">
+
+        <button id="create-measures-btn" class="primary big-btn" style="width: 100%;">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                    <path d="M5 3v4" />
+                    <path d="M19 17v4" />
+                    <path d="M3 5h4" />
+                    <path d="M17 19h4" />
+                </svg></span> Create Variables
+        </button>
+    </div>
+</div>
+
+<style>
+    /* Measures Section Specific Styles */
+    .measure-textarea {
+        font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+        font-size: var(--font-size-sm);
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .input-hint {
+        font-size: var(--font-size-xs);
+        color: var(--text-quaternary);
+        margin-top: var(--space-2);
+    }
+
+    .measure-presets {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .preset-label {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    .preset-btn {
+        padding: var(--space-1) var(--space-3);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        background: var(--bg-surface-hover);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-full);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .preset-btn:hover {
+        background: var(--accent-primary-subtle);
+        border-color: var(--accent-primary);
+        color: var(--accent-primary-hover);
+    }
+
+    .measure-preview-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        max-height: 200px;
+        overflow-y: auto;
+        padding: var(--space-2);
+    }
+
+    .measure-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+        background: var(--bg-surface-hover);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-sm);
+        font-family: 'SF Mono', Monaco, monospace;
+        color: var(--text-primary);
+        transition: all var(--transition-fast);
+    }
+
+    .measure-item:hover {
+        border-color: var(--accent-primary);
+        background: var(--accent-primary-subtle);
+    }
+
+    .measure-item .measure-bar {
+        height: 6px;
+        background: var(--gradient-accent);
+        border-radius: var(--radius-full);
+        min-width: 20px;
+        max-width: 100px;
+    }
+</style>

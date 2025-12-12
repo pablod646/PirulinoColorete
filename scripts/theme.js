@@ -125,12 +125,53 @@ function initTheme() {
             if (type === 'theme-loaded-for-edit') {
                 generatedThemeData = payload; // Important: update global data
 
-                // 1. Populate Dropdowns if availablePalettes sent
+                // Extract paletteData first for custom dropdowns
+                if (payload.paletteData) {
+                    paletteData = payload.paletteData;
+                    console.log('📊 Palette Data loaded for edit mode:', paletteData);
+                    Object.keys(paletteData).forEach(paletteName => {
+                        console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors');
+                    });
+                }
+
+                // 1. Populate Dropdowns - use availablePalettes OR generate from paletteData
+                let palettes = [];
                 if (payload.availablePalettes && payload.availablePalettes.length > 0) {
-                    const palettes = payload.availablePalettes;
+                    palettes = payload.availablePalettes;
+                } else if (payload.paletteData) {
+                    // Generate palettes from paletteData keys
+                    // The paletteData has keys like: accent, neutral, success, warning, error
+                    // But we need to also load the original palettes from the collection
+                    // For now, at least show what we have and mark them as detected
+                    console.log('⚠️ No availablePalettes, using detected palettes from theme tokens');
+
+                    // We'll show detected palette info but selectores need to load proper palettes
+                    // Enable dropdowns with "Detected" values
+                }
+
+                if (palettes.length > 0) {
                     const fill = (sel, placeholder) => {
                         sel.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
                         palettes.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.name;
+                            opt.textContent = p.name;
+                            sel.appendChild(opt);
+                        });
+                        sel.disabled = false;
+                    };
+
+                    fill(accentSelect, 'Select accent palette...');
+                    fill(neutralSelect, 'Select neutral palette...');
+                    fill(successSelect, 'Select success palette...');
+                    fill(warningSelect, 'Select warning palette...');
+                    fill(errorSelect, 'Select error palette...');
+                } else if (loadedPalettes && loadedPalettes.length > 0) {
+                    // Use previously loaded palettes if available
+                    console.log('📦 Using previously loaded palettes:', loadedPalettes.length);
+                    const fill = (sel, placeholder) => {
+                        sel.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
+                        loadedPalettes.forEach(p => {
                             const opt = document.createElement('option');
                             opt.value = p.name;
                             opt.textContent = p.name;
@@ -154,15 +195,6 @@ function initTheme() {
                     if (c.status.success && successSelect) successSelect.value = c.status.success;
                     if (c.status.warning && warningSelect) warningSelect.value = c.status.warning;
                     if (c.status.error && errorSelect) errorSelect.value = c.status.error;
-                }
-
-                // Extract paletteData for custom dropdowns
-                if (payload.paletteData) {
-                    paletteData = payload.paletteData;
-                    console.log('📊 Palette Data loaded for edit mode:', paletteData);
-                    Object.keys(paletteData).forEach(paletteName => {
-                        console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors');
-                    });
                 }
 
                 // 3. Show Config Section (Step 2)
@@ -196,22 +228,14 @@ function initTheme() {
 
         if (mode === 'generate') {
             modeGenerateBtn.classList.add('active');
-            modeGenerateBtn.style.background = 'white';
-            modeGenerateBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
             modeEditBtn.classList.remove('active');
-            modeEditBtn.style.background = 'transparent';
-            modeEditBtn.style.boxShadow = 'none';
 
             if (modeGenerateSection) modeGenerateSection.style.display = 'block';
             if (modeEditSection) modeEditSection.style.display = 'none';
             if (configSection) configSection.style.display = 'block'; // Show Step 2
         } else {
             modeEditBtn.classList.add('active');
-            modeEditBtn.style.background = 'white';
-            modeEditBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
             modeGenerateBtn.classList.remove('active');
-            modeGenerateBtn.style.background = 'transparent';
-            modeGenerateBtn.style.boxShadow = 'none';
 
             if (modeEditSection) modeEditSection.style.display = 'block';
             if (modeGenerateSection) modeGenerateSection.style.display = 'none';
@@ -328,23 +352,15 @@ function initTheme() {
     // Toggle Preview Mode
     viewLightBtn.onclick = () => {
         currentPreviewMode = 'light';
-        viewLightBtn.className = 'toggle-btn active';
-        viewLightBtn.style.background = 'white';
-        viewLightBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-        viewDarkBtn.className = 'toggle-btn';
-        viewDarkBtn.style.background = 'transparent';
-        viewDarkBtn.style.boxShadow = 'none';
+        viewLightBtn.classList.add('active');
+        viewDarkBtn.classList.remove('active');
         renderPreview();
     };
 
     viewDarkBtn.onclick = () => {
         currentPreviewMode = 'dark';
-        viewDarkBtn.className = 'toggle-btn active';
-        viewDarkBtn.style.background = 'white';
-        viewDarkBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-        viewLightBtn.className = 'toggle-btn';
-        viewLightBtn.style.background = 'transparent';
-        viewLightBtn.style.boxShadow = 'none';
+        viewDarkBtn.classList.add('active');
+        viewLightBtn.classList.remove('active');
         renderPreview();
     };
 
@@ -615,9 +631,16 @@ function initTheme() {
 
         // DEBUG: Log palette data to see what we're working with
         console.log('📊 Palette Data received:', paletteData);
-        Object.keys(paletteData).forEach(paletteName => {
-            console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors', paletteData[paletteName]);
-        });
+        if (paletteData && typeof paletteData === 'object') {
+            Object.keys(paletteData).forEach(paletteName => {
+                const colors = paletteData[paletteName];
+                if (colors && typeof colors === 'object') {
+                    console.log(`  ${paletteName}:`, Object.keys(colors).length, 'colors', colors);
+                }
+            });
+        } else {
+            console.warn('⚠️ Palette Data is not available');
+        }
 
         // Helper: Determine which palette a token should use
         const getPaletteForToken = (tokenName) => {
@@ -731,10 +754,7 @@ function initTheme() {
             const safeName = name.replace(/\//g, '-');
             row.id = `token-row-${safeName}`;
             row.className = 'token-row';
-            row.style.cssText = `
-                display: flex; flex-direction: column; gap: 4px; 
-                padding: 12px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;
-            `;
+            // Removed inline styles - using CSS class now
 
             const getScale = (n) => {
                 if (!n) return '500';
@@ -754,18 +774,18 @@ function initTheme() {
             const paletteColors = paletteData[paletteName] || {};
 
             row.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 11px; font-weight: 600; color: #374151;">${name.split('/')[1]}</span>
-                    <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase;">${paletteName}</span>
+                <div class="token-row-header">
+                    <span class="token-name">${name.split('/')[1]}</span>
+                    <span class="token-palette-badge">${paletteName}</span>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <label style="font-size: 10px; color: #666; width: 12px;">L</label>
-                    <div style="width: 16px; height: 16px; border-radius: 50%; background: ${token.light.hex}; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;" title="${token.light.hex}"></div>
+                <div class="token-mode-row">
+                    <label class="mode-label">L</label>
+                    <div class="color-preview" style="background: ${token.light.hex};" title="${token.light.hex}"></div>
                     ${generateCustomSelect(paletteColors, lightStep, overrideLight, name, 'light')}
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <label style="font-size: 10px; color: #666; width: 12px;">D</label>
-                    <div style="width: 16px; height: 16px; border-radius: 50%; background: ${token.dark.hex}; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;" title="${token.dark.hex}"></div>
+                <div class="token-mode-row">
+                    <label class="mode-label">D</label>
+                    <div class="color-preview" style="background: ${token.dark.hex};" title="${token.dark.hex}"></div>
                     ${generateCustomSelect(paletteColors, darkStep, overrideDark, name, 'dark')}
                 </div>
             `;

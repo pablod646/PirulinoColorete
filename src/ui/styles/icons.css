@@ -1,0 +1,198 @@
+/**
+ * Icon System Styles
+ * Professional SVG icons with consistent sizing and colors
+ */
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Size variants */
+.icon-xs {
+    width: 12px;
+    height: 12px;
+}
+
+.icon-sm {
+    width: 14px;
+    height: 14px;
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
+}
+
+.icon-md {
+    width: 18px;
+    height: 18px;
+}
+
+.icon-lg {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-xl {
+    width: 24px;
+    height: 24px;
+}
+
+/* Color variants */
+.icon-primary {
+    color: var(--text-primary);
+}
+
+.icon-secondary {
+    color: var(--text-secondary);
+}
+
+.icon-tertiary {
+    color: var(--text-tertiary);
+}
+
+.icon-accent {
+    color: var(--accent-primary);
+}
+
+.icon-success {
+    color: var(--accent-success);
+}
+
+.icon-warning {
+    color: var(--accent-warning);
+}
+
+.icon-error {
+    color: var(--accent-error);
+}
+
+/* Button icons */
+button .icon,
+.btn .icon {
+    margin-right: 6px;
+}
+
+button .icon:only-child,
+.btn .icon:only-child {
+    margin-right: 0;
+}
+
+/* Mode icon (larger for emphasis) */
+.mode-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-primary);
+}
+
+.mode-btn.active .mode-icon {
+    color: var(--accent-primary);
+}
+
+/* Semantic icon */
+.semantic-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-primary);
+}
+
+/* Summary icon in accordions */
+.summary-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+}
+
+details[open] .summary-icon {
+    color: var(--accent-primary);
+}
+
+/* Action icon */
+.action-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-tertiary);
+}
+
+/* Label icon */
+.label-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    margin-right: 4px;
+}
+
+/* Icon in card titles */
+.card-title .icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    color: var(--accent-primary);
+    vertical-align: text-bottom;
+}
+
+/* Icon animations */
+.icon-spin {
+    animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.icon-pulse {
+    animation: icon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes icon-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Hover effects */
+button:hover .icon,
+.btn:hover .icon {
+    transform: scale(1.05);
+    transition: transform var(--transition-fast);
+}
+
+button:active .icon,
+.btn:active .icon {
+    transform: scale(0.95);
+}
+
+/* Icon in toggle buttons */
+.mode-switch-btn .icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+}
+
+.mode-switch-btn.active .icon {
+    color: var(--accent-primary);
+}

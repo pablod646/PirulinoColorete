@@ -23,6 +23,27 @@ function initMeasures() {
         console.warn('⚠️ Measures UI create-btn not found. Structure check required.');
     }
 
+    // Presets Logic
+    const PRESETS = {
+        default: '0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128',
+        tailwind: '0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96', // Pixel values for tw scale
+        material: '0, 4, 8, 12, 16, 24, 32, 48, 64, 80, 96',
+        fibonacci: '1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144',
+        golden: '2, 3.24, 5.24, 8.47, 13.71, 22.18, 35.89, 58.07, 93.96, 152.03'
+    };
+
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    presetBtns.forEach(btn => {
+        btn.onclick = () => {
+            const key = btn.dataset.preset;
+            if (PRESETS[key] && measureValues) {
+                measureValues.value = PRESETS[key];
+                // Trigger preview if user wants immediate feedback? Maybe not to avoid spam.
+                // But visual feedback on the textarea is enough.
+            }
+        };
+    });
+
     // Message Listener
     window.addEventListener('plugin-message', (event) => {
         const { type, payload } = event.detail;
@@ -72,8 +93,21 @@ function initMeasures() {
             groupSelect.disabled = false;
 
         } else if (type === 'measures-created-success') {
-            alert('Measures created successfully!');
-            measurePreviewContainer.style.display = 'none';
+            alert('Measures created successfully! ✅');
+
+            // Reset UI state
+            if (measurePreviewContainer) measurePreviewContainer.style.display = 'none';
+
+            const configContainer = document.getElementById('measure-config-container');
+            if (configContainer) configContainer.style.display = 'none';
+
+            // Reset selection to force fresh choice next time
+            if (collectionSelect) collectionSelect.value = "";
+            if (groupSelect) {
+                groupSelect.value = "";
+                // Reset group input visibility
+                if (customGroupInput) customGroupInput.style.display = 'none';
+            }
         }
     });
 
@@ -105,7 +139,14 @@ function initMeasures() {
             measureList.appendChild(chip);
         });
 
-        measurePreviewContainer.style.display = 'block';
+        if (measurePreviewContainer) measurePreviewContainer.style.display = 'block';
+
+        const configContainer = document.getElementById('measure-config-container');
+        if (configContainer) {
+            configContainer.style.display = 'block';
+            // Scroll to bottom to show new controls
+            setTimeout(() => configContainer.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
 
         // Always request collections to ensure freshness
         console.log('📏 Requesting collections refresh from preview...');

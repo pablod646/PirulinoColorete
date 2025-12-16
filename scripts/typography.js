@@ -51,7 +51,9 @@ function initTypography() {
                 fontHeading.value = 'Inter';
                 fontBody.value = 'Inter';
             }
-            if (fonts.includes('Roboto Mono')) fontCode.value = 'Roboto Mono';
+            if (fonts.includes('Roboto Mono')) {
+                fontCode.value = 'Roboto Mono';
+            }
 
         } else if (type === 'load-collections') {
             typoCollection.innerHTML = '<option value="" disabled selected>Select Collection...</option>';

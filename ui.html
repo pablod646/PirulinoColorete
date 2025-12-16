@@ -1075,25 +1075,31 @@ details[open] summary {
     transition: all var(--transition-fast);
 }
 
-/* Editor Row Flash */
+/* Editor Row Flash - Más visible con borde brillante */
 @keyframes flashRow {
     0% {
         background-color: var(--accent-primary-subtle);
-        outline: 2px solid var(--accent-primary);
-        transform: scale(1.01);
+        box-shadow: 0 0 0 2px var(--accent-primary), 0 0 20px var(--accent-primary);
+        transform: scale(1.02);
+    }
+
+    50% {
+        background-color: var(--accent-primary-muted);
+        box-shadow: 0 0 0 2px var(--accent-primary), 0 0 10px var(--accent-primary);
     }
 
     100% {
         background-color: var(--bg-surface);
-        outline: none;
+        box-shadow: none;
         transform: scale(1);
     }
 }
 
 .editor-flash {
-    animation: flashRow 1.2s ease-out forwards !important;
+    animation: flashRow 1.5s ease-out forwards !important;
     z-index: 100;
     position: relative;
+    border-radius: var(--radius-md);
 }
 
 /* ========================================
@@ -1621,26 +1627,6 @@ button:active .icon,
             <div class="content-container">
                 <!-- Sections -->
 <div id="section-scale" class="section-content active">
-    <!-- Header -->
-    <div class="card" style="margin-bottom: var(--space-6);">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="13.5" cy="6.5" r=".5" />
-                            <circle cx="17.5" cy="10.5" r=".5" />
-                            <circle cx="8.5" cy="7.5" r=".5" />
-                            <circle cx="6.5" cy="12.5" r=".5" />
-                            <path
-                                d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-                        </svg></span> Color Palettes</h2>
-                <p class="card-subtitle">Generate Tailwind-style color scales from base colors</p>
-            </div>
-            <span class="badge">New</span>
-        </div>
-    </div>
-
     <!-- Step 1: Collection -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">1. Collection</div>
@@ -1667,6 +1653,15 @@ button:active .icon,
         </div>
         <input type="text" id="var-group-custom" placeholder="Enter new group name" class="new-field-input"
             style="display: none; margin-top: var(--space-2);">
+    </div>
+
+    <!-- Existing Palettes -->
+    <div id="existing-palettes-container" class="card" style="margin-bottom: var(--space-4); display: none;">
+        <div class="flex-between" style="margin-bottom: var(--space-3);">
+            <div class="section-title" style="margin: 0;">Existing Palettes</div>
+            <span class="badge" id="existing-palettes-count">0 palettes</span>
+        </div>
+        <div id="existing-palettes-list" class="existing-palettes-grid"></div>
     </div>
 
     <!-- Step 3: Add Colors -->
@@ -1785,6 +1780,12 @@ button:active .icon,
         color: var(--accent-error);
         font-size: var(--font-size-xs);
         margin-top: var(--space-2);
+    }
+
+    .existing-palettes-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
     }
 
     .color-queue-list {
@@ -1942,25 +1943,6 @@ button:active .icon,
     }
 </style>
 <div id="section-measures" class="section-content">
-    <!-- Header -->
-    <div class="card" style="margin-bottom: var(--space-6);">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
-                            <path d="m14.5 12.5 2-2" />
-                            <path d="m11.5 9.5 2-2" />
-                            <path d="m8.5 6.5 2-2" />
-                            <path d="m17.5 15.5 2-2" />
-                        </svg></span> Measure Generator</h2>
-                <p class="card-subtitle">Create spacing, sizing, and dimension variables</p>
-            </div>
-        </div>
-    </div>
-
     <!-- Step 1: Values -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">1. Define Values</div>
@@ -1974,9 +1956,11 @@ button:active .icon,
 
         <div class="measure-presets">
             <span class="preset-label">Quick presets:</span>
+            <button class="preset-btn" data-preset="default">Default</button>
             <button class="preset-btn" data-preset="tailwind">Tailwind</button>
             <button class="preset-btn" data-preset="material">Material</button>
             <button class="preset-btn" data-preset="fibonacci">Fibonacci</button>
+            <button class="preset-btn" data-preset="golden">Golden (ϕ)</button>
         </div>
 
         <button id="preview-measures-btn" class="secondary" style="width: 100%; margin-top: var(--space-4);">
@@ -2116,23 +2100,6 @@ button:active .icon,
     }
 </style>
 <div id="section-typography" class="section-content">
-    <!-- Header -->
-    <div class="card" style="margin-bottom: var(--space-6);">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="4 7 4 4 20 4 20 7" />
-                            <line x1="9" x2="15" y1="20" y2="20" />
-                            <line x1="12" x2="12" y1="4" y2="20" />
-                        </svg></span> Typography System</h2>
-                <p class="card-subtitle">Configure font families, weights, and scales for your design system</p>
-            </div>
-            <span class="badge badge-success">Pro</span>
-        </div>
-    </div>
-
     <!-- Step 1: Font Families -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">1. Font Families</div>
@@ -2146,7 +2113,6 @@ button:active .icon,
                 <select id="font-heading" class="font-select">
                     <option value="" disabled selected>Loading fonts...</option>
                 </select>
-                <div id="font-heading-preview" class="font-preview">The quick brown fox</div>
             </div>
 
             <div class="font-card">
@@ -2157,7 +2123,6 @@ button:active .icon,
                 <select id="font-body" class="font-select">
                     <option value="" disabled selected>Loading fonts...</option>
                 </select>
-                <div id="font-body-preview" class="font-preview">The quick brown fox</div>
             </div>
 
             <div class="font-card">
@@ -2168,7 +2133,6 @@ button:active .icon,
                 <select id="font-code" class="font-select">
                     <option value="" disabled selected>Loading fonts...</option>
                 </select>
-                <div id="font-code-preview" class="font-preview font-mono">const code = true;</div>
             </div>
         </div>
     </div>
@@ -2185,12 +2149,6 @@ button:active .icon,
                 </label>
                 <textarea id="typo-weights" class="scale-textarea"
                     rows="2">100, 200, 300, 400, 500, 600, 700, 800, 900</textarea>
-                <div class="weight-preview">
-                    <span style="font-weight: 300">Light</span>
-                    <span style="font-weight: 400">Regular</span>
-                    <span style="font-weight: 600">Semi</span>
-                    <span style="font-weight: 700">Bold</span>
-                </div>
             </div>
 
             <div class="scale-input-group">
@@ -2211,16 +2169,6 @@ button:active .icon,
                 <p class="input-hint">Maps to semantic names: 3xs, 2xs, xs, sm, base, lg, xl, 2xl, 3xl, 4xl, 5xl, 6xl,
                     7xl</p>
             </div>
-        </div>
-
-        <!-- Size Preview -->
-        <div class="size-preview-strip">
-            <div class="size-sample" style="font-size: 12px;">xs</div>
-            <div class="size-sample" style="font-size: 14px;">sm</div>
-            <div class="size-sample" style="font-size: 16px;">base</div>
-            <div class="size-sample" style="font-size: 18px;">lg</div>
-            <div class="size-sample" style="font-size: 24px;">2xl</div>
-            <div class="size-sample" style="font-size: 36px;">4xl</div>
         </div>
     </div>
 
@@ -2307,25 +2255,6 @@ button:active .icon,
         color: var(--text-primary);
     }
 
-    .font-preview {
-        margin-top: var(--space-3);
-        padding: var(--space-3);
-        background: var(--bg-surface);
-        border-radius: var(--radius-md);
-        font-size: var(--font-size-lg);
-        color: var(--text-secondary);
-        text-align: center;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .font-preview.font-mono {
-        font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-        font-size: var(--font-size-sm);
-    }
-
     .scale-inputs {
         display: flex;
         flex-direction: column;
@@ -2347,89 +2276,8 @@ button:active .icon,
         font-size: var(--font-size-sm);
         resize: vertical;
     }
-
-    .weight-preview {
-        display: flex;
-        gap: var(--space-4);
-        margin-top: var(--space-2);
-        padding: var(--space-2);
-        background: var(--bg-surface-hover);
-        border-radius: var(--radius-md);
-    }
-
-    .weight-preview span {
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-    }
-
-    .size-preview-strip {
-        display: flex;
-        align-items: baseline;
-        gap: var(--space-4);
-        margin-top: var(--space-4);
-        padding: var(--space-4);
-        background: var(--bg-surface-hover);
-        border-radius: var(--radius-lg);
-        overflow-x: auto;
-    }
-
-    .size-sample {
-        color: var(--text-primary);
-        white-space: nowrap;
-        font-weight: var(--font-weight-medium);
-    }
 </style>
 <div id="section-aliases" class="section-content">
-    <!-- Header -->
-    <div class="card" style="margin-bottom: var(--space-6);">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                        </svg></span> Responsive Semantics</h2>
-                <p class="card-subtitle">Generate semantic tokens that adapt to viewport size using Variable Modes</p>
-            </div>
-            <span class="badge badge-warning">Advanced</span>
-        </div>
-
-        <!-- Responsive Diagram -->
-        <div class="responsive-diagram">
-            <div class="device-preview">
-                <div class="device mobile">
-                    <span class="device-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
-                            <path d="M12 18h.01" />
-                        </svg></span>
-                    <span class="device-label">Mobile</span>
-                </div>
-                <div class="device tablet">
-                    <span class="device-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="20" height="14" x="2" y="5" rx="2" />
-                            <path d="M12 19v2" />
-                        </svg></span>
-                    <span class="device-label">Tablet</span>
-                </div>
-                <div class="device desktop">
-                    <span class="device-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="20" height="14" x="2" y="3" rx="2" />
-                            <line x1="8" x2="16" y1="21" y2="21" />
-                            <line x1="12" x2="12" y1="17" y2="21" />
-                        </svg></span>
-                    <span class="device-label">Desktop</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Step 1: Source Primitives -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">1. Source Primitives</div>
@@ -2546,51 +2394,6 @@ button:active .icon,
 
 <style>
     /* Aliases Section Specific Styles */
-    .responsive-diagram {
-        margin-top: var(--space-4);
-        padding: var(--space-4);
-        background: var(--bg-surface-hover);
-        border-radius: var(--radius-lg);
-    }
-
-    .device-preview {
-        display: flex;
-        justify-content: space-around;
-        align-items: flex-end;
-        gap: var(--space-4);
-    }
-
-    .device {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--space-2);
-        transition: all var(--transition-fast);
-    }
-
-    .device-icon {
-        font-size: 24px;
-        opacity: 0.6;
-    }
-
-    .device-label {
-        font-size: var(--font-size-xs);
-        color: var(--text-tertiary);
-        font-weight: var(--font-weight-medium);
-    }
-
-    .device.mobile .device-icon {
-        font-size: 20px;
-    }
-
-    .device.tablet .device-icon {
-        font-size: 28px;
-    }
-
-    .device.desktop .device-icon {
-        font-size: 36px;
-    }
-
     .step-description {
         font-size: var(--font-size-sm);
         color: var(--text-secondary);
@@ -2686,6 +2489,14 @@ button:active .icon,
 
     <!-- Mode: Generate -->
     <div id="theme-mode-generate">
+        <!-- Theme Name -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="section-title">Theme Name</div>
+            <div class="form-group">
+                <input type="text" id="theme-name" value="Theme" placeholder="e.g. My Product Theme">
+            </div>
+        </div>
+
         <!-- Step 1: Source -->
         <div class="card" style="margin-bottom: var(--space-4);">
             <div class="section-title">1. Source Palettes</div>
@@ -2798,20 +2609,6 @@ button:active .icon,
                 <select id="theme-error-palette" disabled></select>
             </div>
         </div>
-
-        <div class="separator"></div>
-
-        <div class="form-group">
-            <label>Theme Name</label>
-            <input type="text" id="theme-name" value="Theme" placeholder="e.g. My Product Theme">
-        </div>
-
-        <button id="generate-theme-btn" class="primary big-btn" disabled style="width: 100%;">
-            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg></span> Generate Theme
-        </button>
     </div>
 
     <!-- Step 3: Preview & Editor -->
@@ -3112,21 +2909,6 @@ button:active .icon,
     }
 </style>
 <div id="section-collections" class="section-content">
-    <!-- Header -->
-    <div class="card" style="margin-bottom: var(--space-6);">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                        </svg></span> Documentation</h2>
-                <p class="card-subtitle">View and generate visual documentation for your design system</p>
-            </div>
-            <span class="badge">Export</span>
-        </div>
-    </div>
-
     <!-- Collection Selector -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">1. Select Collection</div>
@@ -3666,6 +3448,11 @@ function initColors() {
     const progressMessage = document.getElementById('progress-message');
     const progressPercent = document.getElementById('progress-percent');
 
+    // Existing Palettes Elements
+    const existingPalettesContainer = document.getElementById('existing-palettes-container');
+    const existingPalettesList = document.getElementById('existing-palettes-list');
+    const existingPalettesCount = document.getElementById('existing-palettes-count');
+
     if (!addColorBtn) {
         console.error('❌ Critical Error: add-color-btn not found. DOM might not be ready.');
         return;
@@ -3751,6 +3538,22 @@ function initColors() {
             });
             groupSelect.disabled = false;
 
+            // Request existing palettes for this collection
+            const selectedCollection = collectionSelect.value;
+            if (selectedCollection && selectedCollection !== 'NEW_COLLECTION') {
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'get-existing-palettes',
+                        collectionId: selectedCollection,
+                        groupName: '' // Root initially
+                    }
+                }, '*');
+            }
+
+        } else if (type === 'existing-palettes-loaded') {
+            // Render existing palettes
+            renderExistingPalettes(payload);
+
         } else if (type === 'preview-scale-batch-result') {
             // Render Previews
             scaleList.innerHTML = '';
@@ -3827,10 +3630,96 @@ function initColors() {
         groupSelect.onchange = () => {
             if (groupSelect.value === 'NEW_GROUP') {
                 customGroupInput.style.display = 'block';
+                // Hide existing palettes when creating new group
+                if (existingPalettesContainer) {
+                    existingPalettesContainer.style.display = 'none';
+                }
             } else {
                 customGroupInput.style.display = 'none';
+                // Request existing palettes for selected group
+                const selectedCollection = collectionSelect.value;
+                if (selectedCollection && selectedCollection !== 'NEW_COLLECTION') {
+                    parent.postMessage({
+                        pluginMessage: {
+                            type: 'get-existing-palettes',
+                            collectionId: selectedCollection,
+                            groupName: groupSelect.value || ''
+                        }
+                    }, '*');
+                }
             }
         };
+    }
+
+    // Function to render existing palettes (uses same style as preview)
+    function renderExistingPalettes(palettes) {
+        if (!existingPalettesContainer || !existingPalettesList) return;
+
+        if (!palettes || Object.keys(palettes).length === 0) {
+            existingPalettesContainer.style.display = 'none';
+            return;
+        }
+
+        existingPalettesList.innerHTML = '';
+        const paletteNames = Object.keys(palettes);
+
+        if (existingPalettesCount) {
+            existingPalettesCount.textContent = `${paletteNames.length} palette${paletteNames.length !== 1 ? 's' : ''}`;
+        }
+
+        paletteNames.forEach(paletteName => {
+            const colors = palettes[paletteName];
+            if (!colors || colors.length === 0) return;
+
+            const row = document.createElement('div');
+            row.style.marginBottom = '16px';
+
+            // Extract just the palette name (last part of path)
+            const displayName = paletteName.split('/').pop();
+
+            const title = document.createElement('div');
+            title.style.fontWeight = '600';
+            title.style.marginBottom = '8px';
+            title.style.fontSize = '13px';
+            title.textContent = displayName;
+            row.appendChild(title);
+
+            const swatches = document.createElement('div');
+            swatches.style.display = 'flex';
+            swatches.style.borderRadius = '8px';
+            swatches.style.overflow = 'hidden';
+            swatches.style.height = '40px';
+
+            // Sort colors by step number
+            const sortedColors = [...colors].sort((a, b) => {
+                const aNum = parseInt(a.step.split('-').pop() || '0');
+                const bNum = parseInt(b.step.split('-').pop() || '0');
+                return aNum - bNum;
+            });
+
+            sortedColors.forEach(color => {
+                const stepNum = parseInt(color.step.split('-').pop() || '0');
+                const isDark = (stepNum >= 500);
+
+                const chip = document.createElement('div');
+                chip.style.flex = '1';
+                chip.style.backgroundColor = color.hex;
+                chip.style.display = 'flex';
+                chip.style.alignItems = 'center';
+                chip.style.justifyContent = 'center';
+                chip.style.color = isDark ? 'white' : 'black';
+                chip.style.fontSize = '10px';
+                chip.title = `${color.step}: ${color.hex}`;
+                chip.innerText = stepNum;
+
+                swatches.appendChild(chip);
+            });
+
+            row.appendChild(swatches);
+            existingPalettesList.appendChild(row);
+        });
+
+        existingPalettesContainer.style.display = 'block';
     }
 
     // Hex/Color Input Preview (Supports Hex, RGB, HSL, OKLCH, etc.)
@@ -3994,6 +3883,27 @@ function initMeasures() {
         console.warn('⚠️ Measures UI create-btn not found. Structure check required.');
     }
 
+    // Presets Logic
+    const PRESETS = {
+        default: '0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128',
+        tailwind: '0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96', // Pixel values for tw scale
+        material: '0, 4, 8, 12, 16, 24, 32, 48, 64, 80, 96',
+        fibonacci: '1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144',
+        golden: '2, 3.24, 5.24, 8.47, 13.71, 22.18, 35.89, 58.07, 93.96, 152.03'
+    };
+
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    presetBtns.forEach(btn => {
+        btn.onclick = () => {
+            const key = btn.dataset.preset;
+            if (PRESETS[key] && measureValues) {
+                measureValues.value = PRESETS[key];
+                // Trigger preview if user wants immediate feedback? Maybe not to avoid spam.
+                // But visual feedback on the textarea is enough.
+            }
+        };
+    });
+
     // Message Listener
     window.addEventListener('plugin-message', (event) => {
         const { type, payload } = event.detail;
@@ -4043,8 +3953,21 @@ function initMeasures() {
             groupSelect.disabled = false;
 
         } else if (type === 'measures-created-success') {
-            alert('Measures created successfully!');
-            measurePreviewContainer.style.display = 'none';
+            alert('Measures created successfully! ✅');
+
+            // Reset UI state
+            if (measurePreviewContainer) measurePreviewContainer.style.display = 'none';
+
+            const configContainer = document.getElementById('measure-config-container');
+            if (configContainer) configContainer.style.display = 'none';
+
+            // Reset selection to force fresh choice next time
+            if (collectionSelect) collectionSelect.value = "";
+            if (groupSelect) {
+                groupSelect.value = "";
+                // Reset group input visibility
+                if (customGroupInput) customGroupInput.style.display = 'none';
+            }
         }
     });
 
@@ -4076,7 +3999,14 @@ function initMeasures() {
             measureList.appendChild(chip);
         });
 
-        measurePreviewContainer.style.display = 'block';
+        if (measurePreviewContainer) measurePreviewContainer.style.display = 'block';
+
+        const configContainer = document.getElementById('measure-config-container');
+        if (configContainer) {
+            configContainer.style.display = 'block';
+            // Scroll to bottom to show new controls
+            setTimeout(() => configContainer.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
 
         // Always request collections to ensure freshness
         console.log('📏 Requesting collections refresh from preview...');
@@ -4200,7 +4130,9 @@ function initTypography() {
                 fontHeading.value = 'Inter';
                 fontBody.value = 'Inter';
             }
-            if (fonts.includes('Roboto Mono')) fontCode.value = 'Roboto Mono';
+            if (fonts.includes('Roboto Mono')) {
+                fontCode.value = 'Roboto Mono';
+            }
 
         } else if (type === 'load-collections') {
             typoCollection.innerHTML = '<option value="" disabled selected>Select Collection...</option>';
@@ -4432,7 +4364,6 @@ function initTheme() {
 
     // Main Actions
     const themeNameInput = document.getElementById('theme-name');
-    const generateBtn = document.getElementById('generate-theme-btn');
     const createThemeBtn = document.getElementById('create-theme-btn');
 
     // Preview Sections
@@ -4529,7 +4460,6 @@ function initTheme() {
             fill(warningSelect, 'Select warning palette...');
             fill(errorSelect, 'Select error palette...');
 
-            generateBtn.disabled = false;
             alert(`Loaded ${loadedPalettes.length} palettes!`);
 
         } else if (type === 'theme-generated' || type === 'theme-regenerated' || type === 'theme-loaded-for-edit') {
@@ -4623,7 +4553,6 @@ function initTheme() {
                 if (payload.themeName && themeNameInput) themeNameInput.value = payload.themeName;
                 if (createThemeBtn) createThemeBtn.textContent = 'Update Theme Collection'; // Rebrand button
                 if (createThemeBtn) createThemeBtn.disabled = false;
-                if (generateBtn) generateBtn.disabled = false; // Allow regeneration
 
             } else {
                 if (previewSection) previewSection.style.display = 'block';
@@ -4740,18 +4669,9 @@ function initTheme() {
         parent.postMessage({ pluginMessage: msg }, '*');
     };
 
-    // Attach listeners for Validated Live Preview
     [accentSelect, neutralSelect, successSelect, warningSelect, errorSelect].forEach(sel => {
         if (sel) sel.onchange = triggerRegeneration;
     });
-
-    generateBtn.onclick = () => {
-        if (!accentSelect.value || !neutralSelect.value) {
-            alert('Accent and Neutral palettes are required');
-            return;
-        }
-        triggerRegeneration();
-    };
 
     createThemeBtn.onclick = () => {
         if (!generatedThemeData) return;
@@ -4994,6 +4914,25 @@ function initTheme() {
                                     if (parentDetails && !parentDetails.open) {
                                         console.log('📂 Opening parent accordion');
                                         parentDetails.open = true;
+                                    }
+
+                                    // Add "Back to Preview" button to the summary
+                                    if (parentDetails) {
+                                        const summary = parentDetails.querySelector('summary');
+                                        // Remove any existing back button first
+                                        document.querySelectorAll('.back-to-preview-btn').forEach(b => b.remove());
+
+                                        if (summary && !summary.querySelector('.back-to-preview-btn')) {
+                                            const backBtn = document.createElement('button');
+                                            backBtn.className = 'back-to-preview-btn secondary btn-sm';
+                                            backBtn.style.cssText = 'margin-left: auto; padding: 4px 8px; font-size: 11px;';
+                                            backBtn.innerHTML = `<span class="icon" style="margin-right: 4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></span>Preview`;
+                                            backBtn.onclick = (evt) => {
+                                                evt.stopPropagation();
+                                                previewBoard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            };
+                                            summary.appendChild(backBtn);
+                                        }
                                     }
 
                                     // Use scrollIntoView which works better with accordions

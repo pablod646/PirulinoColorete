@@ -18,7 +18,6 @@ function initTheme() {
 
     // Main Actions
     const themeNameInput = document.getElementById('theme-name');
-    const generateBtn = document.getElementById('generate-theme-btn');
     const createThemeBtn = document.getElementById('create-theme-btn');
 
     // Preview Sections
@@ -115,7 +114,6 @@ function initTheme() {
             fill(warningSelect, 'Select warning palette...');
             fill(errorSelect, 'Select error palette...');
 
-            generateBtn.disabled = false;
             alert(`Loaded ${loadedPalettes.length} palettes!`);
 
         } else if (type === 'theme-generated' || type === 'theme-regenerated' || type === 'theme-loaded-for-edit') {
@@ -209,7 +207,6 @@ function initTheme() {
                 if (payload.themeName && themeNameInput) themeNameInput.value = payload.themeName;
                 if (createThemeBtn) createThemeBtn.textContent = 'Update Theme Collection'; // Rebrand button
                 if (createThemeBtn) createThemeBtn.disabled = false;
-                if (generateBtn) generateBtn.disabled = false; // Allow regeneration
 
             } else {
                 if (previewSection) previewSection.style.display = 'block';
@@ -326,18 +323,9 @@ function initTheme() {
         parent.postMessage({ pluginMessage: msg }, '*');
     };
 
-    // Attach listeners for Validated Live Preview
     [accentSelect, neutralSelect, successSelect, warningSelect, errorSelect].forEach(sel => {
         if (sel) sel.onchange = triggerRegeneration;
     });
-
-    generateBtn.onclick = () => {
-        if (!accentSelect.value || !neutralSelect.value) {
-            alert('Accent and Neutral palettes are required');
-            return;
-        }
-        triggerRegeneration();
-    };
 
     createThemeBtn.onclick = () => {
         if (!generatedThemeData) return;
@@ -580,6 +568,25 @@ function initTheme() {
                                     if (parentDetails && !parentDetails.open) {
                                         console.log('📂 Opening parent accordion');
                                         parentDetails.open = true;
+                                    }
+
+                                    // Add "Back to Preview" button to the summary
+                                    if (parentDetails) {
+                                        const summary = parentDetails.querySelector('summary');
+                                        // Remove any existing back button first
+                                        document.querySelectorAll('.back-to-preview-btn').forEach(b => b.remove());
+
+                                        if (summary && !summary.querySelector('.back-to-preview-btn')) {
+                                            const backBtn = document.createElement('button');
+                                            backBtn.className = 'back-to-preview-btn secondary btn-sm';
+                                            backBtn.style.cssText = 'margin-left: auto; padding: 4px 8px; font-size: 11px;';
+                                            backBtn.innerHTML = `<span class="icon" style="margin-right: 4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></span>Preview`;
+                                            backBtn.onclick = (evt) => {
+                                                evt.stopPropagation();
+                                                previewBoard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            };
+                                            summary.appendChild(backBtn);
+                                        }
                                     }
 
                                     // Use scrollIntoView which works better with accordions

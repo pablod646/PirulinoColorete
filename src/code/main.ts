@@ -798,6 +798,36 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             { name: 'Typography/Weight/bold', source: 'Bold' },
         ];
 
+        // NEW: Effects System Maps
+        const opacityMap = [
+            { name: 'Effects/Opacity/0', value: 0 },
+            { name: 'Effects/Opacity/5', value: 0.05 },
+            { name: 'Effects/Opacity/10', value: 0.1 },
+            { name: 'Effects/Opacity/25', value: 0.25 },
+            { name: 'Effects/Opacity/50', value: 0.5 },
+            { name: 'Effects/Opacity/75', value: 0.75 },
+            { name: 'Effects/Opacity/90', value: 0.9 },
+            { name: 'Effects/Opacity/95', value: 0.95 },
+            { name: 'Effects/Opacity/100', value: 1 },
+        ];
+
+        const blurMap = [
+            { name: 'Effects/Blur/none', value: 0 },
+            { name: 'Effects/Blur/sm', value: 4 },
+            { name: 'Effects/Blur/md', value: 8 },
+            { name: 'Effects/Blur/lg', value: 16 },
+            { name: 'Effects/Blur/xl', value: 24 },
+            { name: 'Effects/Blur/2xl', value: 40 },
+        ];
+
+        const durationMap = [
+            { name: 'Effects/Duration/instant', value: 0 },
+            { name: 'Effects/Duration/fast', value: 150 },
+            { name: 'Effects/Duration/normal', value: 300 },
+            { name: 'Effects/Duration/slow', value: 500 },
+            { name: 'Effects/Duration/slower', value: 700 },
+        ];
+
         // Process Typography Font Sizes
         for (const item of textMap) {
             const v = await findOrCreateVar(item.name);
@@ -813,6 +843,21 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setMode(tabletId, item.tablet);
             setMode(mobileId, item.mobile);
         }
+
+        // Process Effects (Opacity, Blur, Duration) - Created as generic FLOAT variables
+        const processEffects = async (map: { name: string, value: number }[]) => {
+            for (const item of map) {
+                let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
+                if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
+                v.setValueForMode(desktopId, item.value);
+                v.setValueForMode(tabletId, item.value);
+                v.setValueForMode(mobileId, item.value);
+            }
+        };
+
+        await processEffects(opacityMap);
+        await processEffects(blurMap);
+        await processEffects(durationMap);
 
         // Process Spacing
         for (const item of spaceMap) {
@@ -874,8 +919,32 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             }
         }
 
+        // Process Shadows (Effect Styles)
+        // Note: Figma doesn't fully support shadow variables yet, so we use Styles.
+        const shadowStyles = [
+            { name: 'Effects/Shadow/xs', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.05 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
+            { name: 'Effects/Shadow/sm', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 1 }, radius: 3, spread: 0, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
+            { name: 'Effects/Shadow/md', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 4 }, radius: 6, spread: -1, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
+            { name: 'Effects/Shadow/lg', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 10 }, radius: 15, spread: -3, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
+            { name: 'Effects/Shadow/xl', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 20 }, radius: 25, spread: -5, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
+            { name: 'Effects/Shadow/2xl', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 25 }, radius: 50, spread: -12, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
+            { name: 'Effects/Shadow/inner', effects: [{ type: 'INNER_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.05 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0, visible: true, blendMode: 'NORMAL' }] },
+        ];
+
+        const localStyles = await figma.getLocalEffectStylesAsync();
+
+        for (const styleDef of shadowStyles) {
+            let style = localStyles.find(s => s.name === styleDef.name);
+            if (!style) {
+                style = figma.createEffectStyle();
+                style.name = styleDef.name;
+            }
+            // Cast to Effect[] to handle strict typing
+            style.effects = styleDef.effects as Effect[];
+        }
+
         figma.ui.postMessage({ type: 'progress-end' });
-        figma.notify('Semantic tokens created successfully!');
+        figma.notify('Semantic tokens & Effects created successfully!');
         figma.ui.postMessage({ type: 'aliases-created' });
     } catch (err) {
         console.error(err);
@@ -1672,6 +1741,78 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             case 'get-groups-for-theme':
                 await getGroupsCustom(msg.collectionId as string, 'load-groups-theme');
                 break;
+
+            case 'get-existing-palettes': {
+                const collectionId = msg.collectionId as string;
+                const groupName = msg.groupName as string;
+
+                try {
+                    const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+                    if (!collection) {
+                        figma.ui.postMessage({ type: 'existing-palettes-loaded', payload: {} });
+                        return;
+                    }
+
+                    const variables: Variable[] = [];
+                    for (const id of collection.variableIds) {
+                        const variable = await figma.variables.getVariableByIdAsync(id);
+                        if (variable && variable.resolvedType === 'COLOR') {
+                            variables.push(variable);
+                        }
+                    }
+
+                    // Filter by group if specified
+                    const filtered = groupName && groupName !== ''
+                        ? variables.filter(v => v.name.startsWith(groupName + '/'))
+                        : variables;
+
+                    // Group color variables by palette
+                    const palettes: Record<string, Array<{ name: string; step: string; hex: string }>> = {};
+
+                    for (const v of filtered) {
+                        const parts = v.name.split('/');
+                        // Palette name is all parts except the last one (which is the step)
+                        const paletteName = parts.length >= 2 ? parts.slice(0, -1).join('/') : parts[0];
+
+                        if (!palettes[paletteName]) {
+                            palettes[paletteName] = [];
+                        }
+
+                        // Get color value from default mode
+                        const modeId = Object.keys(v.valuesByMode)[0];
+                        const value = v.valuesByMode[modeId];
+
+                        let hexColor = '#000000';
+                        if (value && typeof value === 'object' && 'r' in value) {
+                            const r = Math.round((value as RGBA).r * 255);
+                            const g = Math.round((value as RGBA).g * 255);
+                            const b = Math.round((value as RGBA).b * 255);
+                            hexColor = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                        }
+
+                        palettes[paletteName].push({
+                            name: v.name,
+                            step: parts[parts.length - 1],
+                            hex: hexColor
+                        });
+                    }
+
+                    // Sort each palette by step number
+                    for (const paletteName in palettes) {
+                        palettes[paletteName].sort((a, b) => {
+                            const aNum = parseInt(a.step.split('-')[1] || '0');
+                            const bNum = parseInt(b.step.split('-')[1] || '0');
+                            return aNum - bNum;
+                        });
+                    }
+
+                    figma.ui.postMessage({ type: 'existing-palettes-loaded', payload: palettes });
+                } catch (error) {
+                    console.error('Error loading existing palettes:', error);
+                    figma.ui.postMessage({ type: 'existing-palettes-loaded', payload: {} });
+                }
+                break;
+            }
 
             case 'preview-scale': {
                 const color = parseColor(msg.color as string);

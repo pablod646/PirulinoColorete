@@ -1,23 +1,4 @@
 <div id="section-measures" class="section-content">
-    <!-- Header -->
-    <div class="card" style="margin-bottom: var(--space-6);">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title"><span class="icon icon-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
-                            <path d="m14.5 12.5 2-2" />
-                            <path d="m11.5 9.5 2-2" />
-                            <path d="m8.5 6.5 2-2" />
-                            <path d="m17.5 15.5 2-2" />
-                        </svg></span> Measure Generator</h2>
-                <p class="card-subtitle">Create spacing, sizing, and dimension variables</p>
-            </div>
-        </div>
-    </div>
-
     <!-- Step 1: Values -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">1. Define Values</div>
@@ -31,9 +12,11 @@
 
         <div class="measure-presets">
             <span class="preset-label">Quick presets:</span>
+            <button class="preset-btn" data-preset="default">Default</button>
             <button class="preset-btn" data-preset="tailwind">Tailwind</button>
             <button class="preset-btn" data-preset="material">Material</button>
             <button class="preset-btn" data-preset="fibonacci">Fibonacci</button>
+            <button class="preset-btn" data-preset="golden">Golden (ϕ)</button>
         </div>
 
         <button id="preview-measures-btn" class="secondary" style="width: 100%; margin-top: var(--space-4);">

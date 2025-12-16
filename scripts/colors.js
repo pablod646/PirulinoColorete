@@ -27,6 +27,11 @@ function initColors() {
     const progressMessage = document.getElementById('progress-message');
     const progressPercent = document.getElementById('progress-percent');
 
+    // Existing Palettes Elements
+    const existingPalettesContainer = document.getElementById('existing-palettes-container');
+    const existingPalettesList = document.getElementById('existing-palettes-list');
+    const existingPalettesCount = document.getElementById('existing-palettes-count');
+
     if (!addColorBtn) {
         console.error('❌ Critical Error: add-color-btn not found. DOM might not be ready.');
         return;
@@ -112,6 +117,22 @@ function initColors() {
             });
             groupSelect.disabled = false;
 
+            // Request existing palettes for this collection
+            const selectedCollection = collectionSelect.value;
+            if (selectedCollection && selectedCollection !== 'NEW_COLLECTION') {
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'get-existing-palettes',
+                        collectionId: selectedCollection,
+                        groupName: '' // Root initially
+                    }
+                }, '*');
+            }
+
+        } else if (type === 'existing-palettes-loaded') {
+            // Render existing palettes
+            renderExistingPalettes(payload);
+
         } else if (type === 'preview-scale-batch-result') {
             // Render Previews
             scaleList.innerHTML = '';
@@ -188,10 +209,96 @@ function initColors() {
         groupSelect.onchange = () => {
             if (groupSelect.value === 'NEW_GROUP') {
                 customGroupInput.style.display = 'block';
+                // Hide existing palettes when creating new group
+                if (existingPalettesContainer) {
+                    existingPalettesContainer.style.display = 'none';
+                }
             } else {
                 customGroupInput.style.display = 'none';
+                // Request existing palettes for selected group
+                const selectedCollection = collectionSelect.value;
+                if (selectedCollection && selectedCollection !== 'NEW_COLLECTION') {
+                    parent.postMessage({
+                        pluginMessage: {
+                            type: 'get-existing-palettes',
+                            collectionId: selectedCollection,
+                            groupName: groupSelect.value || ''
+                        }
+                    }, '*');
+                }
             }
         };
+    }
+
+    // Function to render existing palettes (uses same style as preview)
+    function renderExistingPalettes(palettes) {
+        if (!existingPalettesContainer || !existingPalettesList) return;
+
+        if (!palettes || Object.keys(palettes).length === 0) {
+            existingPalettesContainer.style.display = 'none';
+            return;
+        }
+
+        existingPalettesList.innerHTML = '';
+        const paletteNames = Object.keys(palettes);
+
+        if (existingPalettesCount) {
+            existingPalettesCount.textContent = `${paletteNames.length} palette${paletteNames.length !== 1 ? 's' : ''}`;
+        }
+
+        paletteNames.forEach(paletteName => {
+            const colors = palettes[paletteName];
+            if (!colors || colors.length === 0) return;
+
+            const row = document.createElement('div');
+            row.style.marginBottom = '16px';
+
+            // Extract just the palette name (last part of path)
+            const displayName = paletteName.split('/').pop();
+
+            const title = document.createElement('div');
+            title.style.fontWeight = '600';
+            title.style.marginBottom = '8px';
+            title.style.fontSize = '13px';
+            title.textContent = displayName;
+            row.appendChild(title);
+
+            const swatches = document.createElement('div');
+            swatches.style.display = 'flex';
+            swatches.style.borderRadius = '8px';
+            swatches.style.overflow = 'hidden';
+            swatches.style.height = '40px';
+
+            // Sort colors by step number
+            const sortedColors = [...colors].sort((a, b) => {
+                const aNum = parseInt(a.step.split('-').pop() || '0');
+                const bNum = parseInt(b.step.split('-').pop() || '0');
+                return aNum - bNum;
+            });
+
+            sortedColors.forEach(color => {
+                const stepNum = parseInt(color.step.split('-').pop() || '0');
+                const isDark = (stepNum >= 500);
+
+                const chip = document.createElement('div');
+                chip.style.flex = '1';
+                chip.style.backgroundColor = color.hex;
+                chip.style.display = 'flex';
+                chip.style.alignItems = 'center';
+                chip.style.justifyContent = 'center';
+                chip.style.color = isDark ? 'white' : 'black';
+                chip.style.fontSize = '10px';
+                chip.title = `${color.step}: ${color.hex}`;
+                chip.innerText = stepNum;
+
+                swatches.appendChild(chip);
+            });
+
+            row.appendChild(swatches);
+            existingPalettesList.appendChild(row);
+        });
+
+        existingPalettesContainer.style.display = 'block';
     }
 
     // Hex/Color Input Preview (Supports Hex, RGB, HSL, OKLCH, etc.)

@@ -47,6 +47,14 @@
 
     <!-- Mode: Generate -->
     <div id="theme-mode-generate">
+        <!-- Theme Name -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="section-title">Theme Name</div>
+            <div class="form-group">
+                <input type="text" id="theme-name" value="Theme" placeholder="e.g. My Product Theme">
+            </div>
+        </div>
+
         <!-- Step 1: Source -->
         <div class="card" style="margin-bottom: var(--space-4);">
             <div class="section-title">1. Source Palettes</div>
@@ -159,20 +167,6 @@
                 <select id="theme-error-palette" disabled></select>
             </div>
         </div>
-
-        <div class="separator"></div>
-
-        <div class="form-group">
-            <label>Theme Name</label>
-            <input type="text" id="theme-name" value="Theme" placeholder="e.g. My Product Theme">
-        </div>
-
-        <button id="generate-theme-btn" class="primary big-btn" disabled style="width: 100%;">
-            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg></span> Generate Theme
-        </button>
     </div>
 
     <!-- Step 3: Preview & Editor -->

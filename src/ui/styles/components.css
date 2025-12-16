@@ -596,25 +596,31 @@ details[open] summary {
     transition: all var(--transition-fast);
 }
 
-/* Editor Row Flash */
+/* Editor Row Flash - Más visible con borde brillante */
 @keyframes flashRow {
     0% {
         background-color: var(--accent-primary-subtle);
-        outline: 2px solid var(--accent-primary);
-        transform: scale(1.01);
+        box-shadow: 0 0 0 2px var(--accent-primary), 0 0 20px var(--accent-primary);
+        transform: scale(1.02);
+    }
+
+    50% {
+        background-color: var(--accent-primary-muted);
+        box-shadow: 0 0 0 2px var(--accent-primary), 0 0 10px var(--accent-primary);
     }
 
     100% {
         background-color: var(--bg-surface);
-        outline: none;
+        box-shadow: none;
         transform: scale(1);
     }
 }
 
 .editor-flash {
-    animation: flashRow 1.2s ease-out forwards !important;
+    animation: flashRow 1.5s ease-out forwards !important;
     z-index: 100;
     position: relative;
+    border-radius: var(--radius-md);
 }
 
 /* ========================================

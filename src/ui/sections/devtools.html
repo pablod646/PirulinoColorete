@@ -1,0 +1,321 @@
+<div id="section-devtools" class="section-content">
+    <!-- Step 1: Select Source -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">1. Select Source</div>
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Collection</label>
+                <select id="devtools-collection">
+                    <option value="" disabled selected>Select collection...</option>
+                    <option value="ALL">All Collections</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Group (Optional)</label>
+                <select id="devtools-group" disabled>
+                    <option value="">All Groups</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Export Format -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">2. Export Format</div>
+        <div class="format-grid">
+            <label class="format-option active">
+                <input type="radio" name="export-format" value="json" checked>
+                <span class="format-icon">{ }</span>
+                <span class="format-name">JSON</span>
+                <span class="format-desc">Design Tokens</span>
+            </label>
+            <label class="format-option">
+                <input type="radio" name="export-format" value="css">
+                <span class="format-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m18 16 4-4-4-4" />
+                        <path d="m6 8-4 4 4 4" />
+                        <path d="m14.5 4-5 16" />
+                    </svg>
+                </span>
+                <span class="format-name">CSS</span>
+                <span class="format-desc">Custom Properties</span>
+            </label>
+            <label class="format-option">
+                <input type="radio" name="export-format" value="scss">
+                <span class="format-icon">$</span>
+                <span class="format-name">SCSS</span>
+                <span class="format-desc">Variables</span>
+            </label>
+            <label class="format-option">
+                <input type="radio" name="export-format" value="tailwind">
+                <span class="format-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624C13.666 10.618 15.027 12 18.001 12c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C16.337 6.182 14.976 4.8 12.001 4.8zm-6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624 1.177 1.194 2.538 2.576 5.512 2.576 3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C10.337 13.382 8.976 12 6.001 12z" />
+                    </svg>
+                </span>
+                <span class="format-name">Tailwind</span>
+                <span class="format-desc">Config Theme</span>
+            </label>
+            <label class="format-option">
+                <input type="radio" name="export-format" value="typescript">
+                <span class="format-icon">TS</span>
+                <span class="format-name">TypeScript</span>
+                <span class="format-desc">Constants</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Step 3: Options -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">3. Options</div>
+        <div class="options-grid">
+            <label class="checkbox-option">
+                <input type="checkbox" id="opt-include-modes" checked>
+                <span class="checkbox-label">Include modes (light/dark)</span>
+            </label>
+            <label class="checkbox-option">
+                <input type="checkbox" id="opt-resolve-refs" checked>
+                <span class="checkbox-label">Resolve alias references</span>
+            </label>
+            <label class="checkbox-option">
+                <input type="checkbox" id="opt-include-metadata">
+                <span class="checkbox-label">Include metadata (type, description)</span>
+            </label>
+        </div>
+
+        <div class="sub-label">Naming Convention</div>
+        <div class="naming-options">
+            <label class="radio-pill">
+                <input type="radio" name="naming-convention" value="kebab" checked>
+                <span>kebab-case</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="naming-convention" value="camel">
+                <span>camelCase</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="naming-convention" value="snake">
+                <span>snake_case</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="naming-convention" value="original">
+                <span>Original</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Step 4: Generate -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <button id="generate-export-btn" class="primary big-btn" style="width: 100%;">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg></span>
+            Generate Export
+        </button>
+    </div>
+
+    <!-- Output Preview -->
+    <div id="export-preview-container" class="card" style="display: none;">
+        <div class="flex-between" style="margin-bottom: var(--space-3);">
+            <div class="section-title" style="margin: 0;">Output Preview</div>
+            <div class="export-actions">
+                <button id="copy-export-btn" class="secondary btn-sm">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg></span>
+                    Copy
+                </button>
+                <button id="download-export-btn" class="primary btn-sm">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg></span>
+                    Download
+                </button>
+            </div>
+        </div>
+        <div class="export-stats">
+            <span class="stat-badge" id="export-vars-count">0 variables</span>
+            <span class="stat-badge" id="export-format-badge">JSON</span>
+        </div>
+        <pre id="export-output"
+            class="code-preview"><code>// Select a collection and click "Generate Export"</code></pre>
+    </div>
+</div>
+
+<style>
+    /* Dev Tools Specific Styles */
+    .format-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: var(--space-2);
+    }
+
+    .format-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-3);
+        background: var(--bg-surface-hover);
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        text-align: center;
+    }
+
+    .format-option:hover {
+        border-color: var(--border-default);
+    }
+
+    .format-option.active,
+    .format-option:has(input:checked) {
+        border-color: var(--accent-primary);
+        background: var(--accent-primary-subtle);
+    }
+
+    .format-option input {
+        display: none;
+    }
+
+    .format-icon {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .format-name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+    }
+
+    .format-desc {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    .options-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .checkbox-option {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-3);
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .checkbox-option:hover {
+        background: var(--bg-surface-active);
+    }
+
+    .checkbox-option input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent-primary);
+    }
+
+    .checkbox-label {
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+    }
+
+    .naming-options {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+    }
+
+    .radio-pill {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .radio-pill input {
+        display: none;
+    }
+
+    .radio-pill span {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        background: var(--bg-surface-hover);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-full);
+        color: var(--text-secondary);
+        transition: all var(--transition-fast);
+    }
+
+    .radio-pill:hover span {
+        border-color: var(--border-default);
+    }
+
+    .radio-pill input:checked+span {
+        background: var(--accent-primary);
+        border-color: var(--accent-primary);
+        color: white;
+    }
+
+    .export-actions {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    .export-stats {
+        display: flex;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+    }
+
+    .stat-badge {
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        background: var(--bg-surface-active);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+    }
+
+    .code-preview {
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: var(--space-4);
+        overflow: auto;
+        max-height: 400px;
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .code-preview code {
+        color: inherit;
+    }
+</style>

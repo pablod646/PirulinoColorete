@@ -6,7 +6,8 @@ const sectionTitles = {
     'aliases': { title: 'Responsive Semantics', desc: 'Generate semantic tokens that adapt to viewport size.' },
     'theme': { title: 'Theme Generator', desc: 'Create intelligent Light/Dark themes from your color primitives.' },
     'components': { title: 'Atomic Component System', desc: 'Create visual components using your existing tokens and variables.' },
-    'collections': { title: 'Documentation', desc: 'View and manage your variable collections.' }
+    'collections': { title: 'Documentation', desc: 'View and manage your variable collections.' },
+    'devtools': { title: "Dev's Tools", desc: 'Export your design tokens for developers in multiple formats.' }
 };
 
 function initNavigation() {
@@ -46,7 +47,7 @@ function initNavigation() {
             }
 
             // Load collections when entering sections that require them
-            if (['theme', 'measures', 'scale', 'typography', 'aliases', 'collections'].includes(section)) {
+            if (['theme', 'measures', 'scale', 'typography', 'aliases', 'collections', 'devtools'].includes(section)) {
                 console.log(`Using common loader for ${section}`);
                 parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
             }

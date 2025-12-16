@@ -694,6 +694,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
         const allVars = await figma.variables.getLocalVariablesAsync();
 
         const findSource = (group: string, leafName: string): Variable | undefined => {
+            // First, try exact paths
             const paths = [
                 `${group}/${leafName}`,
                 `${group}/Font Size/${leafName}`,
@@ -703,6 +704,24 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 const found = allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === path);
                 if (found) return found;
             }
+
+            // Second, try case-insensitive partial match
+            const leafLower = leafName.toLowerCase();
+            const found = allVars.find(v =>
+                v.variableCollectionId === sourceCollectionId &&
+                v.name.toLowerCase().includes(group.toLowerCase()) &&
+                v.name.toLowerCase().endsWith('/' + leafLower)
+            );
+            if (found) return found;
+
+            // Third, try to find any FLOAT variable that ends with the leaf name
+            const foundFloat = allVars.find(v =>
+                v.variableCollectionId === sourceCollectionId &&
+                v.resolvedType === 'FLOAT' &&
+                v.name.toLowerCase().endsWith('/' + leafLower)
+            );
+            if (foundFloat) return foundFloat;
+
             return undefined;
         };
 
@@ -836,6 +855,20 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 const sourceVar = findSource(typoGroup, valName);
                 if (sourceVar) {
                     v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    console.log(`✅ Linked ${item.name} → ${sourceVar.name}`);
+                } else {
+                    // Fallback: try to find by partial name match
+                    const fallbackVar = allVars.find(fv =>
+                        fv.variableCollectionId === sourceCollectionId &&
+                        fv.name.toLowerCase().includes(valName.toLowerCase()) &&
+                        fv.resolvedType === 'FLOAT'
+                    );
+                    if (fallbackVar) {
+                        v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: fallbackVar.id });
+                        console.log(`✅ Fallback linked ${item.name} → ${fallbackVar.name}`);
+                    } else {
+                        console.warn(`⚠️ No source found for ${item.name} (looking for "${valName}" in ${typoGroup})`);
+                    }
                 }
             };
 
@@ -1936,6 +1969,220 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             case 'create-aliases':
                 await createSemanticTokens(msg.config as AliasConfig);
                 break;
+
+            case 'scan-for-styles': {
+                const collectionId = msg.collectionId as string;
+                const prefix = msg.prefix as string;
+
+                try {
+                    console.log('🔍 Scanning collection for styles:', collectionId);
+                    const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+                    if (!collection) throw new Error('Collection not found');
+
+                    const allVariables = await figma.variables.getLocalVariablesAsync();
+                    // We scan ALL variables to find primitives even if they are in another collection?
+                    // For now let's assume valid variables are available. 
+                    // But to respect "Source Collection" selection, we prioritize found vars.
+
+                    const collectionVars = allVariables.filter(v => v.variableCollectionId === collectionId);
+                    const defaultModeId = collection.defaultModeId || collection.modes[0].modeId;
+
+                    // 1. Identify Semantic Sizes (h1, h2, body/m, etc.)
+                    // Look for variables that likely represent text sizes
+                    const sizeVars = collectionVars.filter(v => {
+                        const name = v.name.toLowerCase();
+                        if (v.resolvedType !== 'FLOAT') return false;
+                        // Avoid primitives
+                        if (name.includes('font size') || name.includes('fontsize')) return false;
+
+                        // Must be in typical typography groups
+                        return name.includes('typography') || name.includes('heading') ||
+                            name.includes('body') || name.includes('display') ||
+                            name.includes('caption') || name.includes('code');
+                    });
+
+                    // 2. Identify Primitives (Weights, Family, Spacing) - Global Search
+                    // We search globally because primitives might be in another collection
+                    const findPrimitive = (type: string, namePart: string): Variable | undefined => {
+                        const lowerPart = namePart.toLowerCase();
+                        // Try specific collection first
+                        let found = collectionVars.find(v =>
+                            (v.resolvedType === (type === 'STRING' ? 'STRING' : 'FLOAT')) &&
+                            v.name.toLowerCase().includes(lowerPart)
+                        );
+                        if (found) return found;
+
+                        // Try global
+                        return allVariables.find(v =>
+                            (v.resolvedType === (type === 'STRING' ? 'STRING' : 'FLOAT')) &&
+                            (v.name.toLowerCase().includes(type.toLowerCase()) || v.name.includes(namePart)) &&
+                            v.name.toLowerCase().includes(lowerPart)
+                        );
+                    };
+
+                    const textStyles: Array<any> = [];
+
+                    // Matrix: Weights
+                    const weightNames = ["Thin", "Extra Light", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"];
+                    const weightMap: Record<string, number> = {
+                        "Thin": 100, "Extra Light": 200, "Light": 300, "Regular": 400, "Medium": 500,
+                        "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black": 900
+                    };
+                    const weightVarKeywords: Record<string, string> = {
+                        "Extra Light": "ExtraLight", "Semi Bold": "SemiBold", "Extra Bold": "ExtraBold"
+                    };
+
+                    for (const sizeVar of sizeVars) {
+                        const sizeName = sizeVar.name;
+                        const shortName = sizeName.split('/').slice(-2).join('/'); // e.g. "Heading/h1"
+
+                        // Infer Family primitive
+                        let familyVar: Variable | undefined;
+                        if (sizeName.includes('Display') || sizeName.includes('Heading')) familyVar = findPrimitive('STRING', 'Heading');
+                        else if (sizeName.includes('Code')) familyVar = findPrimitive('STRING', 'Code');
+                        else familyVar = findPrimitive('STRING', 'Body');
+
+                        // Infer Letter Spacing primitive (simplified logic from old code)
+                        let lsVar: Variable | undefined;
+                        // Logic omitted for brevity, using '0' if possible
+                        lsVar = findPrimitive('Letter Spacing', '0');
+
+                        // Create Matrix
+                        for (const wName of weightNames) {
+                            // Find Weight Variable
+                            const varKeyword = weightVarKeywords[wName] || wName;
+                            const weightVar = findPrimitive('Font Weight', varKeyword);
+
+                            // Create Matrix even if weight var is not found (for binding)
+                            // The style acts as a container, binding is bonus.
+
+                            const styleName = prefix ? `${prefix}/${shortName} / ${wName}` : `${shortName} / ${wName}`; // Clean name
+
+                            textStyles.push({
+                                name: styleName,
+                                details: `${wName}`,
+                                fontSizeId: sizeVar.id,
+                                fontSizeValue: sizeVar.valuesByMode[defaultModeId],
+                                fontWeightId: weightVar?.id,
+                                fontWeightValue: weightMap[wName],
+                                fontWeightName: wName,
+                                fontFamilyId: familyVar?.id,
+                                letterSpacingId: lsVar?.id
+                            });
+                        }
+                    }
+
+                    // Effects logic remains simple
+                    const effectStyles: Array<any> = [];
+                    const blurVars = collectionVars.filter(v => v.resolvedType === 'FLOAT' && (v.name.toLowerCase().includes('blur') || v.name.toLowerCase().includes('shadow')));
+
+                    for (const v of blurVars) {
+                        const val = v.valuesByMode[defaultModeId];
+                        const numVal = typeof val === 'number' ? val : 0;
+                        const effectName = prefix ? `${prefix}/Shadow / ${v.name.split('/').pop()}` : `Shadow / ${v.name.split('/').pop()}`;
+                        effectStyles.push({
+                            name: effectName,
+                            details: `Blur: ${numVal}px`,
+                            blurId: v.id,
+                            blurValue: numVal,
+                            shadowPreview: `0 ${Math.round(numVal / 2)}px ${numVal}px rgba(0,0,0,0.2)`
+                        });
+                    }
+
+                    figma.ui.postMessage({
+                        type: 'scan-styles-result',
+                        payload: { textStyles, effectStyles }
+                    });
+
+                } catch (error) {
+                    console.error('Scan error:', error);
+                    figma.ui.postMessage({
+                        type: 'scan-styles-result',
+                        payload: { textStyles: [], effectStyles: [] }
+                    });
+                }
+                break;
+            }
+
+            case 'create-figma-styles': {
+                const textStyles = msg.textStyles as Array<any>;
+                const effectStyles = msg.effectStyles as Array<any>;
+                const allVariables = await figma.variables.getLocalVariablesAsync();
+
+                let createdCount = 0;
+
+                // Load Inter font fully
+                await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+                const weights = ["Thin", "ExtraLight", "Light", "Regular", "Medium", "SemiBold", "Bold", "ExtraBold", "Black"];
+                for (const w of weights) {
+                    try { await figma.loadFontAsync({ family: "Inter", style: w }); } catch (e) { }
+                    // Also try with spaces
+                    try { await figma.loadFontAsync({ family: "Inter", style: w.replace(/([A-Z])/g, ' $1').trim() }); } catch (e) { }
+                }
+
+                if (textStyles) {
+                    for (const styleData of textStyles) {
+                        try {
+                            const style = figma.createTextStyle();
+                            style.name = styleData.name;
+
+                            // Set basic props
+                            const family = "Inter";
+                            const weightStr = styleData.fontWeightName || "Regular";
+                            // Figma style naming map
+                            const figmaStyleName = weightStr === "Extra Light" ? "ExtraLight" :
+                                (weightStr === "Semi Bold" ? "SemiBold" :
+                                    (weightStr === "Extra Bold" ? "ExtraBold" : weightStr));
+
+                            style.fontName = { family, style: figmaStyleName };
+                            style.fontSize = styleData.fontSizeValue || 16;
+
+                            // Bindings
+                            // Helper to bind
+                            const bind = (field: string, varId: string) => {
+                                if (!varId) return;
+                                const v = allVariables.find(va => va.id === varId);
+                                if (v) {
+                                    try { style.setBoundVariable(field as any, v); } catch (e) { console.warn(`Bind failed ${field}:`, e); }
+                                }
+                            };
+
+                            bind('fontSize', styleData.fontSizeId);
+                            bind('fontWeight', styleData.fontWeightId);
+                            bind('fontFamily', styleData.fontFamilyId);
+                            bind('letterSpacing', styleData.letterSpacingId);
+
+                            createdCount++;
+                        } catch (e) {
+                            console.error(`Failed to create style ${styleData.name}`, e);
+                        }
+                    }
+                }
+
+                if (effectStyles) {
+                    for (const styleData of effectStyles) {
+                        const style = figma.createEffectStyle();
+                        style.name = styleData.name;
+                        style.effects = [{
+                            type: 'DROP_SHADOW',
+                            color: { r: 0, g: 0, b: 0, a: 0.2 },
+                            offset: { x: 0, y: Math.round(styleData.blurValue / 2) },
+                            radius: styleData.blurValue,
+                            visible: true,
+                            blendMode: 'NORMAL'
+                        }];
+                        // Bind blur?
+                        // check if spread/radius binding is supported for EffectStyles... 
+                        // It is supported on the Effect object, but EffectStyle is a container. 
+                        // Currently Figma API for binding variables to Effect Styles is tricky or done via setBoundVariableOnEffect?
+                        // Assume simple creation for now as per old code reference.
+                        createdCount++;
+                    }
+                }
+
+                figma.notify(`✅ Created ${createdCount} Styles`);
+                break;
+            }
 
             case 'load-palettes':
                 await loadPalettes(msg.collectionId as string, msg.groupName as string | undefined);

@@ -548,10 +548,21 @@
                 `${group}/Font Weight/${leafName}`
               ];
               for (const path of paths) {
-                const found = allVars.find((v) => v.variableCollectionId === sourceCollectionId && v.name === path);
-                if (found)
-                  return found;
+                const found2 = allVars.find((v) => v.variableCollectionId === sourceCollectionId && v.name === path);
+                if (found2)
+                  return found2;
               }
+              const leafLower = leafName.toLowerCase();
+              const found = allVars.find(
+                (v) => v.variableCollectionId === sourceCollectionId && v.name.toLowerCase().includes(group.toLowerCase()) && v.name.toLowerCase().endsWith("/" + leafLower)
+              );
+              if (found)
+                return found;
+              const foundFloat = allVars.find(
+                (v) => v.variableCollectionId === sourceCollectionId && v.resolvedType === "FLOAT" && v.name.toLowerCase().endsWith("/" + leafLower)
+              );
+              if (foundFloat)
+                return foundFloat;
               return void 0;
             };
             const findOrCreateVar = (path) => __async(this, null, function* () {
@@ -662,6 +673,17 @@
                 const sourceVar = findSource(typoGroup, valName);
                 if (sourceVar) {
                   v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                  console.log(`\u2705 Linked ${item.name} \u2192 ${sourceVar.name}`);
+                } else {
+                  const fallbackVar = allVars.find(
+                    (fv) => fv.variableCollectionId === sourceCollectionId && fv.name.toLowerCase().includes(valName.toLowerCase()) && fv.resolvedType === "FLOAT"
+                  );
+                  if (fallbackVar) {
+                    v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: fallbackVar.id });
+                    console.log(`\u2705 Fallback linked ${item.name} \u2192 ${fallbackVar.name}`);
+                  } else {
+                    console.warn(`\u26A0\uFE0F No source found for ${item.name} (looking for "${valName}" in ${typoGroup})`);
+                  }
                 }
               };
               setMode(desktopId, item.desktop);
@@ -1579,6 +1601,177 @@
             case "create-aliases":
               yield createSemanticTokens(msg.config);
               break;
+            case "scan-for-styles": {
+              const collectionId = msg.collectionId;
+              const prefix = msg.prefix;
+              try {
+                console.log("\u{1F50D} Scanning collection for styles:", collectionId);
+                const collection = yield figma.variables.getVariableCollectionByIdAsync(collectionId);
+                if (!collection)
+                  throw new Error("Collection not found");
+                const allVariables = yield figma.variables.getLocalVariablesAsync();
+                const collectionVars = allVariables.filter((v) => v.variableCollectionId === collectionId);
+                const defaultModeId = collection.defaultModeId || collection.modes[0].modeId;
+                const sizeVars = collectionVars.filter((v) => {
+                  const name = v.name.toLowerCase();
+                  if (v.resolvedType !== "FLOAT")
+                    return false;
+                  if (name.includes("font size") || name.includes("fontsize"))
+                    return false;
+                  return name.includes("typography") || name.includes("heading") || name.includes("body") || name.includes("display") || name.includes("caption") || name.includes("code");
+                });
+                const findPrimitive = (type, namePart) => {
+                  const lowerPart = namePart.toLowerCase();
+                  let found = collectionVars.find(
+                    (v) => v.resolvedType === (type === "STRING" ? "STRING" : "FLOAT") && v.name.toLowerCase().includes(lowerPart)
+                  );
+                  if (found)
+                    return found;
+                  return allVariables.find(
+                    (v) => v.resolvedType === (type === "STRING" ? "STRING" : "FLOAT") && (v.name.toLowerCase().includes(type.toLowerCase()) || v.name.includes(namePart)) && v.name.toLowerCase().includes(lowerPart)
+                  );
+                };
+                const textStyles = [];
+                const weightNames = ["Thin", "Extra Light", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"];
+                const weightMap = {
+                  "Thin": 100,
+                  "Extra Light": 200,
+                  "Light": 300,
+                  "Regular": 400,
+                  "Medium": 500,
+                  "Semi Bold": 600,
+                  "Bold": 700,
+                  "Extra Bold": 800,
+                  "Black": 900
+                };
+                const weightVarKeywords = {
+                  "Extra Light": "ExtraLight",
+                  "Semi Bold": "SemiBold",
+                  "Extra Bold": "ExtraBold"
+                };
+                for (const sizeVar of sizeVars) {
+                  const sizeName = sizeVar.name;
+                  const shortName = sizeName.split("/").slice(-2).join("/");
+                  let familyVar;
+                  if (sizeName.includes("Display") || sizeName.includes("Heading"))
+                    familyVar = findPrimitive("STRING", "Heading");
+                  else if (sizeName.includes("Code"))
+                    familyVar = findPrimitive("STRING", "Code");
+                  else
+                    familyVar = findPrimitive("STRING", "Body");
+                  let lsVar;
+                  lsVar = findPrimitive("Letter Spacing", "0");
+                  for (const wName of weightNames) {
+                    const varKeyword = weightVarKeywords[wName] || wName;
+                    const weightVar = findPrimitive("Font Weight", varKeyword);
+                    const styleName = prefix ? `${prefix}/${shortName} / ${wName}` : `${shortName} / ${wName}`;
+                    textStyles.push({
+                      name: styleName,
+                      details: `${wName}`,
+                      fontSizeId: sizeVar.id,
+                      fontSizeValue: sizeVar.valuesByMode[defaultModeId],
+                      fontWeightId: weightVar == null ? void 0 : weightVar.id,
+                      fontWeightValue: weightMap[wName],
+                      fontWeightName: wName,
+                      fontFamilyId: familyVar == null ? void 0 : familyVar.id,
+                      letterSpacingId: lsVar == null ? void 0 : lsVar.id
+                    });
+                  }
+                }
+                const effectStyles = [];
+                const blurVars = collectionVars.filter((v) => v.resolvedType === "FLOAT" && (v.name.toLowerCase().includes("blur") || v.name.toLowerCase().includes("shadow")));
+                for (const v of blurVars) {
+                  const val = v.valuesByMode[defaultModeId];
+                  const numVal = typeof val === "number" ? val : 0;
+                  const effectName = prefix ? `${prefix}/Shadow / ${v.name.split("/").pop()}` : `Shadow / ${v.name.split("/").pop()}`;
+                  effectStyles.push({
+                    name: effectName,
+                    details: `Blur: ${numVal}px`,
+                    blurId: v.id,
+                    blurValue: numVal,
+                    shadowPreview: `0 ${Math.round(numVal / 2)}px ${numVal}px rgba(0,0,0,0.2)`
+                  });
+                }
+                figma.ui.postMessage({
+                  type: "scan-styles-result",
+                  payload: { textStyles, effectStyles }
+                });
+              } catch (error) {
+                console.error("Scan error:", error);
+                figma.ui.postMessage({
+                  type: "scan-styles-result",
+                  payload: { textStyles: [], effectStyles: [] }
+                });
+              }
+              break;
+            }
+            case "create-figma-styles": {
+              const textStyles = msg.textStyles;
+              const effectStyles = msg.effectStyles;
+              const allVariables = yield figma.variables.getLocalVariablesAsync();
+              let createdCount = 0;
+              yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
+              const weights = ["Thin", "ExtraLight", "Light", "Regular", "Medium", "SemiBold", "Bold", "ExtraBold", "Black"];
+              for (const w of weights) {
+                try {
+                  yield figma.loadFontAsync({ family: "Inter", style: w });
+                } catch (e) {
+                }
+                try {
+                  yield figma.loadFontAsync({ family: "Inter", style: w.replace(/([A-Z])/g, " $1").trim() });
+                } catch (e) {
+                }
+              }
+              if (textStyles) {
+                for (const styleData of textStyles) {
+                  try {
+                    const style = figma.createTextStyle();
+                    style.name = styleData.name;
+                    const family = "Inter";
+                    const weightStr = styleData.fontWeightName || "Regular";
+                    const figmaStyleName = weightStr === "Extra Light" ? "ExtraLight" : weightStr === "Semi Bold" ? "SemiBold" : weightStr === "Extra Bold" ? "ExtraBold" : weightStr;
+                    style.fontName = { family, style: figmaStyleName };
+                    style.fontSize = styleData.fontSizeValue || 16;
+                    const bind = (field, varId) => {
+                      if (!varId)
+                        return;
+                      const v = allVariables.find((va) => va.id === varId);
+                      if (v) {
+                        try {
+                          style.setBoundVariable(field, v);
+                        } catch (e) {
+                          console.warn(`Bind failed ${field}:`, e);
+                        }
+                      }
+                    };
+                    bind("fontSize", styleData.fontSizeId);
+                    bind("fontWeight", styleData.fontWeightId);
+                    bind("fontFamily", styleData.fontFamilyId);
+                    bind("letterSpacing", styleData.letterSpacingId);
+                    createdCount++;
+                  } catch (e) {
+                    console.error(`Failed to create style ${styleData.name}`, e);
+                  }
+                }
+              }
+              if (effectStyles) {
+                for (const styleData of effectStyles) {
+                  const style = figma.createEffectStyle();
+                  style.name = styleData.name;
+                  style.effects = [{
+                    type: "DROP_SHADOW",
+                    color: { r: 0, g: 0, b: 0, a: 0.2 },
+                    offset: { x: 0, y: Math.round(styleData.blurValue / 2) },
+                    radius: styleData.blurValue,
+                    visible: true,
+                    blendMode: "NORMAL"
+                  }];
+                  createdCount++;
+                }
+              }
+              figma.notify(`\u2705 Created ${createdCount} Styles`);
+              break;
+            }
             case "load-palettes":
               yield loadPalettes(msg.collectionId, msg.groupName);
               break;

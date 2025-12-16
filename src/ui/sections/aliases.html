@@ -1,114 +1,153 @@
 <div id="section-aliases" class="section-content">
-    <!-- Step 1: Source Primitives -->
-    <div class="card" style="margin-bottom: var(--space-4);">
-        <div class="section-title">1. Source Primitives</div>
-        <p class="step-description">Select the collection containing your base measures and typography values.</p>
+    <!-- Mode Toggle -->
+    <div class="tab-toggle" style="margin-bottom: var(--space-6);">
+        <button id="mode-tokens" class="toggle-btn active">Create Tokens</button>
+        <button id="mode-styles" class="toggle-btn">Figma Styles</button>
+    </div>
 
-        <div class="source-grid">
-            <div class="input-group">
-                <label>
-                    <span class="label-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg></span>
-                    Primitives Collection
-                </label>
+    <!-- ==================== MODE: CREATE TOKENS ==================== -->
+    <div id="aliases-mode-tokens">
+        <!-- Step 1: Source Collection -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="section-title">1. Source Collection</div>
+            <p class="step-description">Select the collection containing your primitive measures and typography
+                variables.</p>
+            <div class="form-group">
+                <label>Collection</label>
                 <select id="alias-source-collection">
                     <option value="" disabled selected>Select Collection...</option>
                 </select>
             </div>
-
-            <div class="input-group">
-                <label>
-                    <span class="label-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
-                            <path d="m14.5 12.5 2-2" />
-                            <path d="m11.5 9.5 2-2" />
-                            <path d="m8.5 6.5 2-2" />
-                            <path d="m17.5 15.5 2-2" />
-                        </svg></span>
-                    Measures Group
-                </label>
-                <select id="alias-measures-group" disabled>
-                    <option value="">(Loading...)</option>
-                </select>
-            </div>
-
-            <div class="input-group">
-                <label>
-                    <span class="label-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="4 7 4 4 20 4 20 7" />
-                            <line x1="9" x2="15" y1="20" y2="20" />
-                            <line x1="12" x2="12" y1="4" y2="20" />
-                        </svg></span>
-                    Typography Group
-                </label>
-                <select id="alias-typo-group" disabled>
-                    <option value="">(Loading...)</option>
-                </select>
+            <div class="source-grid">
+                <div class="form-group">
+                    <label>Measures Group</label>
+                    <select id="alias-measures-group" disabled>
+                        <option value="" disabled selected>Select Measures Group...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Typography Group</label>
+                    <select id="alias-typo-group" disabled>
+                        <option value="" disabled selected>Select Typography Group...</option>
+                    </select>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Step 2: Target -->
-    <div class="card" style="margin-bottom: var(--space-4);">
-        <div class="section-title">2. Target Collection</div>
-
-        <div class="input-group">
-            <label>New Collection Name</label>
-            <input type="text" id="alias-target-name" value="Tokens" placeholder="e.g. Tokens">
-            <p class="input-hint">This collection will have Desktop, Tablet, and Mobile modes automatically.</p>
+        <!-- Step 2: Target -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="section-title">2. Target Collection</div>
+            <p class="step-description">Name for the new semantic tokens collection.</p>
+            <div class="form-group">
+                <label>Collection Name</label>
+                <input type="text" id="alias-target-name" placeholder="Tokens" value="Tokens">
+            </div>
         </div>
 
+        <!-- Create Button -->
         <button id="create-aliases-btn" class="primary big-btn" style="width: 100%;">
             <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg></span> Generate Responsive Tokens
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg></span> Create Semantic Tokens
         </button>
     </div>
 
-    <!-- Step 3: Text Styles -->
-    <div class="card card-dashed">
-        <div class="section-title">3. Text Styles (Atomic Matrix)</div>
-        <p class="step-description">Creates Figma Text Styles (e.g. "H1 / Bold", "H1 / Light") derived from your
-            responsive tokens.</p>
+    <!-- ==================== MODE: FIGMA STYLES ==================== -->
+    <div id="aliases-mode-styles" style="display: none;">
+        <!-- Step 1: Select Source -->
+        <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="section-title">1. Select Source Collection</div>
+            <p class="step-description">Choose a collection with your design tokens. We'll automatically detect what
+                styles can be created.</p>
 
-        <div class="text-style-preview">
-            <div class="style-sample">
-                <span class="style-name">H1 / Bold</span>
-                <span class="style-value" style="font-size: 32px; font-weight: 700;">Heading</span>
-            </div>
-            <div class="style-sample">
-                <span class="style-name">Body / Regular</span>
-                <span class="style-value" style="font-size: 16px; font-weight: 400;">Body text</span>
-            </div>
-            <div class="style-sample">
-                <span class="style-name">Caption / Medium</span>
-                <span class="style-value" style="font-size: 12px; font-weight: 500;">Caption</span>
+            <div class="form-group">
+                <label>Collection</label>
+                <select id="styles-source-collection">
+                    <option value="" disabled selected>Select Collection...</option>
+                </select>
             </div>
         </div>
 
-        <button id="create-styles-btn" class="secondary big-btn" disabled
-            style="width: 100%; margin-top: var(--space-4);">
+        <!-- Step 2: Configuration (Hidden) -->
+        <div class="card" style="margin-bottom: var(--space-4); display: none;">
+            <div class="section-title">2. Style Name Prefix</div>
+            <div class="form-group">
+                <label>Prefix</label>
+                <input type="text" id="styles-prefix" placeholder="Tokens" value="">
+                <span class="input-hint">Styles will be named: Prefix/H1 / Bold, etc.</span>
+            </div>
+        </div>
+
+        <!-- Scan Button -->
+        <button id="scan-styles-btn" class="secondary" disabled style="width: 100%; margin-bottom: var(--space-4);">
             <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="13.5" cy="6.5" r=".5" />
-                    <circle cx="17.5" cy="10.5" r=".5" />
-                    <circle cx="8.5" cy="7.5" r=".5" />
-                    <circle cx="6.5" cy="12.5" r=".5" />
-                    <path
-                        d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-                </svg></span> Generate Text Styles
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                </svg></span> Scan Collection
+        </button>
+
+        <!-- No Styles Warning -->
+        <div id="styles-no-vars-warning" class="warning-card" style="display: none;">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+                <strong>No compatible variables found</strong>
+                <p>The selected collection doesn't contain variables that can be converted to Figma styles.</p>
+                <button id="go-to-tokens-btn" class="secondary btn-sm" style="margin-top: var(--space-3);">
+                    <span class="icon">→</span> Go to Create Tokens
+                </button>
+            </div>
+        </div>
+
+        <!-- Styles Categories -->
+        <div id="styles-categories" style="display: none;">
+            <!-- Text Styles -->
+            <div id="text-styles-section" class="styles-section" style="display: none;">
+                <div class="styles-section-header">
+                    <div class="styles-section-info">
+                        <span class="styles-section-icon">📝</span>
+                        <div>
+                            <strong>Text Styles</strong>
+                            <span class="styles-section-count">0 styles</span>
+                        </div>
+                    </div>
+                    <div class="styles-section-actions">
+                        <button class="ghost btn-sm select-all-text">Select All</button>
+                        <button class="ghost btn-sm deselect-all-text">Deselect</button>
+                    </div>
+                </div>
+                <div id="text-styles-list" class="styles-list"></div>
+            </div>
+
+            <!-- Effect Styles (Shadows) -->
+            <div id="effect-styles-section" class="styles-section" style="display: none;">
+                <div class="styles-section-header">
+                    <div class="styles-section-info">
+                        <span class="styles-section-icon">🌑</span>
+                        <div>
+                            <strong>Effect Styles (Shadows)</strong>
+                            <span class="styles-section-count">0 styles</span>
+                        </div>
+                    </div>
+                    <div class="styles-section-actions">
+                        <button class="ghost btn-sm select-all-effects">Select All</button>
+                        <button class="ghost btn-sm deselect-all-effects">Deselect</button>
+                    </div>
+                </div>
+                <div id="effect-styles-list" class="styles-list"></div>
+            </div>
+        </div>
+
+        <!-- Create Button -->
+        <button id="create-styles-btn" class="primary big-btn" disabled
+            style="width: 100%; margin-top: var(--space-4); display: none;">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                </svg></span> Create Selected Styles (<span id="selected-styles-count">0</span>)
         </button>
     </div>
 </div>
@@ -121,43 +160,150 @@
         margin-bottom: var(--space-4);
     }
 
+    .input-hint {
+        display: block;
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        margin-top: var(--space-2);
+    }
+
     .source-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--space-4);
     }
 
-    .card-dashed {
-        border-style: dashed;
-        border-color: var(--border-default);
+    .warning-card {
+        display: flex;
+        gap: var(--space-4);
+        padding: var(--space-4);
+        background: var(--accent-warning-subtle);
+        border: 1px solid var(--accent-warning);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-4);
     }
 
-    .text-style-preview {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        padding: var(--space-4);
+    .warning-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .warning-content {
+        flex: 1;
+    }
+
+    .warning-content strong {
+        display: block;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+    }
+
+    .warning-content p {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Styles Sections */
+    .styles-section {
         background: var(--bg-surface-hover);
         border-radius: var(--radius-lg);
-        margin-top: var(--space-3);
+        padding: var(--space-4);
+        margin-bottom: var(--space-4);
     }
 
-    .style-sample {
+    .styles-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-3);
+        padding-bottom: var(--space-3);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .styles-section-info {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: var(--space-2) var(--space-3);
-        background: var(--bg-surface);
-        border-radius: var(--radius-md);
+        gap: var(--space-3);
     }
 
-    .style-name {
+    .styles-section-icon {
+        font-size: 20px;
+    }
+
+    .styles-section-info strong {
+        display: block;
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+    }
+
+    .styles-section-count {
         font-size: var(--font-size-xs);
-        font-family: 'SF Mono', Monaco, monospace;
         color: var(--text-tertiary);
     }
 
-    .style-value {
+    .styles-section-actions {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    .styles-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .style-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-fast);
+    }
+
+    .style-item:hover {
+        border-color: var(--border-default);
+    }
+
+    .style-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent-primary);
+        flex-shrink: 0;
+    }
+
+    .style-item .style-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .style-item .style-name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
         color: var(--text-primary);
+        display: block;
+    }
+
+    .style-item .style-details {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    .style-item .style-preview {
+        font-family: 'Inter', sans-serif;
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .style-item .shadow-preview {
+        width: 32px;
+        height: 32px;
+        background: var(--bg-surface);
+        border-radius: var(--radius-sm);
     }
 </style>

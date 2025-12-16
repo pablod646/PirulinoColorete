@@ -70,7 +70,7 @@ function loadStyles() {
 // Section Loading
 // ============================================
 function loadSections() {
-    const sections = ['colors', 'measures', 'typography', 'aliases', 'theme', 'collections'];
+    const sections = ['colors', 'measures', 'typography', 'aliases', 'theme', 'collections', 'devtools'];
     let sectionsHTML = '';
 
     const sectionsDir = USE_NEW_UI
@@ -109,6 +109,7 @@ function loadScripts() {
         'aliases.js',
         'theme.js',
         'collections.js',
+        'devtools.js',
         'navigation.js'
     ];
 
@@ -176,6 +177,10 @@ ${stylesCSS}
             <div class="nav-item" data-section="collections">
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span>
                 <span class="nav-item-label">Documentation</span>
+            </div>
+            <div class="nav-item" data-section="devtools">
+                <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+                <span class="nav-item-label">Dev's Tools</span>
             </div>
         </nav>
     </div>

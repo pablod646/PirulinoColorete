@@ -4770,6 +4770,11 @@ function initAliases() {
 
                 // --- Step 1: Build Hierarchy Tree ---
                 styles.forEach((style, index) => {
+                    // Filter out primitive groups that don't make sense as composite styles
+                    if (style.name.startsWith('Weight/') || style.name.startsWith('Family/') || style.name.startsWith('Line Height/')) {
+                        return;
+                    }
+
                     const originalIndex = style.originalIndex !== undefined ? style.originalIndex : index;
 
                     const separatorIndex = style.name.lastIndexOf(' / ');
@@ -4800,6 +4805,85 @@ function initAliases() {
                         originalIndex
                     });
                 });
+
+                // --- Step 1.5: Global Weight Shortcuts ---
+                // Extract unique weights across all styles
+                const allWeights = new Set();
+                styles.forEach(s => {
+                    // Re-parse weight name consistent with logic below
+                    const separatorIndex = s.name.lastIndexOf(' / ');
+                    let weightName = separatorIndex !== -1 ? s.name.substring(separatorIndex + 3) : s.name.split('/').pop();
+                    allWeights.add(weightName);
+                });
+
+                if (allWeights.size > 0) {
+                    const shortcutsContainer = document.createElement('div');
+                    shortcutsContainer.className = 'weight-shortcuts';
+                    shortcutsContainer.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; align-items: center;';
+
+                    const label = document.createElement('span');
+                    label.textContent = 'Shortcuts:';
+                    label.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-right: 4px;';
+                    shortcutsContainer.appendChild(label);
+
+                    const weightOrder = {
+                        'thin': 10,
+                        'extralight': 20, 'extra light': 20,
+                        'light': 30,
+                        'regular': 40, 'normal': 40,
+                        'medium': 50,
+                        'semibold': 60, 'semi bold': 60,
+                        'bold': 70,
+                        'extrabold': 80, 'extra bold': 80,
+                        'black': 90,
+                        'heavy': 95
+                    };
+
+                    Array.from(allWeights).sort((a, b) => {
+                        const wa = weightOrder[a.toLowerCase()] || 100; // Default to end if unknown
+                        const wb = weightOrder[b.toLowerCase()] || 100;
+                        if (wa !== wb) return wa - wb;
+                        return a.localeCompare(b); // Fallback to alphabetical
+                    }).forEach(weight => {
+                        const chip = document.createElement('label');
+                        chip.style.cssText = 'display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; background: var(--bg-subtle); border-radius: 4px; border: 1px solid transparent; transition: all 0.1s; user-select: none;';
+
+                        // Hover effect
+                        chip.onmouseenter = () => { chip.style.borderColor = 'var(--border-subtle)'; };
+                        chip.onmouseleave = () => { chip.style.borderColor = 'transparent'; };
+
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.checked = true; // Default all on
+                        cb.style.margin = '0';
+
+                        // GLOBAL TOGGLE LOGIC
+                        cb.onclick = (e) => {
+                            const isChecked = e.target.checked;
+                            // Find all variant checkboxes that match this weight name.
+                            // We can identify them by the text content of their sibling label.
+                            // Or better/robust: add a data attribute to the variant row or input during render.
+
+                            // Let's assume we will add data-weight attribute to the inputs in render below.
+                            const allStyleInputs = container.querySelectorAll(`input[data-weight="${weight}"]`);
+                            allStyleInputs.forEach(input => {
+                                input.checked = isChecked;
+                                // Optional: Update visual parent state? (Group checkboxes)
+                                // Ideally we'd trigger a massive update or use event bubbling but manual is faster here.
+                            });
+                            updateSelectedCount();
+                        };
+
+                        const span = document.createElement('span');
+                        span.textContent = weight;
+
+                        chip.appendChild(cb);
+                        chip.appendChild(span);
+                        shortcutsContainer.appendChild(chip);
+                    });
+
+                    container.appendChild(shortcutsContainer);
+                }
 
                 // --- Step 2: Render Sections & Grids ---
 
@@ -4948,6 +5032,7 @@ function initAliases() {
                             cbVariant.checked = true;
                             cbVariant.dataset.type = type;
                             cbVariant.dataset.index = style.originalIndex;
+                            cbVariant.dataset.weight = style.weightName; // ADDED FOR GLOBAL SHORTCUTS
                             cbVariant.style.margin = '0';
                             cbVariant.onchange = updateSelectedCount;
 

@@ -138,10 +138,34 @@ function initDevTools() {
         return div.innerHTML;
     }
 
-    // Copy to clipboard
+    // Copy to clipboard (with fallback for Figma sandbox)
     copyBtn.onclick = () => {
         if (!exportedData) return;
-        navigator.clipboard.writeText(exportedData).then(() => {
+
+        // Try modern clipboard API first, fallback to execCommand
+        const copyToClipboard = (text) => {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for Figma sandbox
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    return Promise.resolve();
+                } catch (err) {
+                    return Promise.reject(err);
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+        };
+
+        copyToClipboard(exportedData).then(() => {
             const originalText = copyBtn.innerHTML;
             copyBtn.innerHTML = '<span class="icon">✓</span> Copied!';
             copyBtn.classList.add('success');
@@ -149,6 +173,9 @@ function initDevTools() {
                 copyBtn.innerHTML = originalText;
                 copyBtn.classList.remove('success');
             }, 2000);
+        }).catch(err => {
+            console.error('Copy failed:', err);
+            alert('Copy failed. Please select and copy manually.');
         });
     };
 

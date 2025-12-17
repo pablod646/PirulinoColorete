@@ -3356,6 +3356,30 @@ button:active .icon,
                 <span>Original</span>
             </label>
         </div>
+
+        <div class="sub-label">Color Format</div>
+        <div class="naming-options">
+            <label class="radio-pill">
+                <input type="radio" name="color-format" value="hex" checked>
+                <span>HEX</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="color-format" value="rgba">
+                <span>RGBA</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="color-format" value="hsl">
+                <span>HSL</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="color-format" value="oklch">
+                <span>OKLCH</span>
+            </label>
+            <label class="radio-pill">
+                <input type="radio" name="color-format" value="p3">
+                <span>P3</span>
+            </label>
+        </div>
     </div>
 
     <!-- Step 4: Generate -->
@@ -5810,6 +5834,7 @@ function initDevTools() {
 
         const format = document.querySelector('input[name="export-format"]:checked').value;
         const naming = document.querySelector('input[name="naming-convention"]:checked').value;
+        const colorFormat = document.querySelector('input[name="color-format"]:checked').value;
 
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<span class="icon animate-spin">⏳</span> Generating...';
@@ -5822,6 +5847,7 @@ function initDevTools() {
                 options: {
                     format,
                     naming,
+                    colorFormat,
                     includeModes: optIncludeModes.checked,
                     resolveRefs: optResolveRefs.checked,
                     includeMetadata: optIncludeMetadata.checked

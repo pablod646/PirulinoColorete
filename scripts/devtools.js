@@ -90,6 +90,7 @@ function initDevTools() {
 
         const format = document.querySelector('input[name="export-format"]:checked').value;
         const naming = document.querySelector('input[name="naming-convention"]:checked').value;
+        const colorFormat = document.querySelector('input[name="color-format"]:checked').value;
 
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<span class="icon animate-spin">⏳</span> Generating...';
@@ -102,6 +103,7 @@ function initDevTools() {
                 options: {
                     format,
                     naming,
+                    colorFormat,
                     includeModes: optIncludeModes.checked,
                     resolveRefs: optResolveRefs.checked,
                     includeMetadata: optIncludeMetadata.checked

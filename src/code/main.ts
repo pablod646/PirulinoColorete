@@ -93,6 +93,15 @@ interface PluginMessage {
     [key: string]: unknown;
 }
 
+interface ExportOptions {
+    format: 'json' | 'css' | 'scss' | 'tailwind' | 'typescript';
+    naming: 'kebab' | 'camel' | 'snake' | 'original';
+    colorFormat: 'hex' | 'rgba' | 'hsl' | 'oklch' | 'p3';
+    includeModes: boolean;
+    resolveRefs: boolean;
+    includeMetadata: boolean;
+}
+
 // ============================================
 // PLUGIN INITIALIZATION
 // ============================================
@@ -572,6 +581,400 @@ async function createMeasureVariables(values: number[], config: MeasureVariableC
         figma.ui.postMessage({ type: 'progress-end' });
         figma.notify('Error creating measures: ' + (err as Error).message);
     }
+}
+
+// ============================================
+// EXPORT VARIABLES FUNCTION
+// ============================================
+
+async function exportVariables(
+    collectionId: string | null,
+    groupName: string | null,
+    options: ExportOptions
+): Promise<void> {
+    try {
+        figma.ui.postMessage({ type: 'progress-start', payload: 'Exporting variables...' });
+
+        const collections = await figma.variables.getLocalVariableCollectionsAsync();
+        const allVariables = await figma.variables.getLocalVariablesAsync();
+
+        // Filter by collection if specified
+        let targetCollections = collections;
+        if (collectionId) {
+            targetCollections = collections.filter(c => c.id === collectionId);
+        }
+
+        // Gather all variables with their collection and mode info
+        interface ExportVar {
+            name: string;
+            type: string;
+            collection: string;
+            values: Record<string, unknown>;
+            isAlias: boolean;
+            aliasPath?: string;
+            description?: string;
+        }
+
+        const exportVars: ExportVar[] = [];
+
+        for (const collection of targetCollections) {
+            const collectionVars = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+            // Filter by group if specified
+            const filtered = groupName
+                ? collectionVars.filter(v => v.name.startsWith(groupName + '/') || v.name === groupName)
+                : collectionVars;
+
+            for (const variable of filtered) {
+                const values: Record<string, unknown> = {};
+                let isAlias = false;
+                let aliasPath: string | undefined;
+
+                for (const mode of collection.modes) {
+                    const rawValue = variable.valuesByMode[mode.modeId];
+
+                    // Check if it's an alias
+                    if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
+                        isAlias = true;
+                        if (options.resolveRefs) {
+                            // Resolve the alias to its actual value
+                            const aliasVar = allVariables.find(v => v.id === (rawValue as { id: string }).id);
+                            if (aliasVar) {
+                                aliasPath = aliasVar.name;
+                                const aliasValue = aliasVar.valuesByMode[Object.keys(aliasVar.valuesByMode)[0]];
+                                values[mode.name] = formatValue(aliasValue, variable.resolvedType, options.colorFormat);
+                            }
+                        } else {
+                            // Keep as reference
+                            const aliasVar = allVariables.find(v => v.id === (rawValue as { id: string }).id);
+                            if (aliasVar) {
+                                values[mode.name] = `{${aliasVar.name}}`;
+                                aliasPath = aliasVar.name;
+                            }
+                        }
+                    } else {
+                        values[mode.name] = formatValue(rawValue, variable.resolvedType, options.colorFormat);
+                    }
+                }
+
+                if (options.includeModes || Object.keys(values).length === 1) {
+                    exportVars.push({
+                        name: variable.name,
+                        type: variable.resolvedType,
+                        collection: collection.name,
+                        values,
+                        isAlias,
+                        aliasPath,
+                        description: variable.description || undefined
+                    });
+                } else {
+                    // Only include default mode value
+                    const defaultMode = collection.modes[0]?.name;
+                    if (defaultMode && values[defaultMode] !== undefined) {
+                        exportVars.push({
+                            name: variable.name,
+                            type: variable.resolvedType,
+                            collection: collection.name,
+                            values: { default: values[defaultMode] },
+                            isAlias,
+                            aliasPath,
+                            description: variable.description || undefined
+                        });
+                    }
+                }
+            }
+        }
+
+        // Format output based on selected format
+        let output: string;
+
+        switch (options.format) {
+            case 'json':
+                output = formatAsJSON(exportVars, options);
+                break;
+            case 'css':
+                output = formatAsCSS(exportVars, options);
+                break;
+            case 'scss':
+                output = formatAsSCSS(exportVars, options);
+                break;
+            case 'tailwind':
+                output = formatAsTailwind(exportVars, options);
+                break;
+            case 'typescript':
+                output = formatAsTypeScript(exportVars, options);
+                break;
+            default:
+                output = formatAsJSON(exportVars, options);
+        }
+
+        figma.ui.postMessage({
+            type: 'export-variables-result',
+            payload: {
+                output,
+                count: exportVars.length,
+                format: options.format
+            }
+        });
+
+        figma.ui.postMessage({ type: 'progress-end' });
+        figma.notify(`Exported ${exportVars.length} variables!`);
+
+    } catch (err) {
+        console.error('Export error:', err);
+        figma.ui.postMessage({ type: 'progress-end' });
+        figma.ui.postMessage({
+            type: 'export-variables-result',
+            payload: { output: `// Error: ${(err as Error).message}`, count: 0, format: options.format }
+        });
+        figma.notify('Error exporting: ' + (err as Error).message);
+    }
+}
+
+function formatValue(value: unknown, type: string, colorFormat: string = 'hex'): unknown {
+    if (value === null || value === undefined) return null;
+
+    if (type === 'COLOR' && typeof value === 'object' && 'r' in value) {
+        const c = value as { r: number; g: number; b: number; a?: number };
+        const alpha = c.a !== undefined ? c.a : 1;
+
+        switch (colorFormat) {
+            case 'hex':
+                return rgbToHex(c.r, c.g, c.b);
+
+            case 'rgba':
+                return `rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, ${alpha.toFixed(2)})`;
+
+            case 'hsl': {
+                // Convert RGB to HSL
+                const max = Math.max(c.r, c.g, c.b);
+                const min = Math.min(c.r, c.g, c.b);
+                const l = (max + min) / 2;
+                let h = 0, s = 0;
+
+                if (max !== min) {
+                    const d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    switch (max) {
+                        case c.r: h = ((c.g - c.b) / d + (c.g < c.b ? 6 : 0)) / 6; break;
+                        case c.g: h = ((c.b - c.r) / d + 2) / 6; break;
+                        case c.b: h = ((c.r - c.g) / d + 4) / 6; break;
+                    }
+                }
+
+                if (alpha < 1) {
+                    return `hsla(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%, ${alpha.toFixed(2)})`;
+                }
+                return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+            }
+
+            case 'oklch':
+                return rgbToOklchString(c.r, c.g, c.b);
+
+            case 'p3':
+                return rgbToP3(c.r, c.g, c.b);
+
+            default:
+                return rgbToHex(c.r, c.g, c.b);
+        }
+    }
+
+    return value;
+}
+
+function transformName(name: string, convention: string): string {
+    // Build name from all path parts: group-subgroup-name
+    // e.g., "Typography/Font Family/Heading" -> "typography-font-family-heading"
+    // e.g., "Colors/Teal/Teal-500" -> "color-teal-500" (dedupe when leaf starts with parent)
+    const parts = name.split('/');
+
+    // Process parts: remove trailing 's' from first part, deduplicate adjacent similar names
+    const processedParts: string[] = [];
+
+    for (let i = 0; i < parts.length; i++) {
+        let part = parts[i];
+
+        // Remove trailing 's' from first part (category): "Colors" -> "Color"
+        if (i === 0 && part.endsWith('s') && part.length > 1) {
+            part = part.slice(0, -1);
+        }
+
+        // Skip if this part is redundantly included in the next part
+        // e.g., skip "Teal" if next part is "Teal-500"
+        if (i < parts.length - 1) {
+            const nextPart = parts[i + 1].toLowerCase();
+            const currentLower = part.toLowerCase();
+            if (nextPart.startsWith(currentLower + '-') || nextPart.startsWith(currentLower + '_')) {
+                continue; // Skip this part, it's redundant
+            }
+        }
+
+        processedParts.push(part);
+    }
+
+    const combinedName = processedParts.join('-');
+
+    switch (convention) {
+        case 'kebab':
+            return combinedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        case 'camel':
+            return combinedName
+                .split(/[^a-zA-Z0-9]+/)
+                .map((word, i) => i === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join('');
+        case 'snake':
+            return combinedName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        default:
+            return combinedName;
+    }
+}
+
+function formatAsJSON(vars: Array<{ name: string; type: string; collection: string; values: Record<string, unknown>; description?: string }>, options: ExportOptions): string {
+    const result: Record<string, unknown> = {};
+
+    for (const v of vars) {
+        const key = transformName(v.name, options.naming);
+        const entry: Record<string, unknown> = {};
+
+        // If single mode or not including modes, flatten
+        const modeKeys = Object.keys(v.values);
+        if (modeKeys.length === 1) {
+            entry.value = v.values[modeKeys[0]];
+        } else {
+            entry.values = v.values;
+        }
+
+        if (options.includeMetadata) {
+            entry.type = v.type.toLowerCase();
+            if (v.description) entry.description = v.description;
+        }
+
+        result[key] = Object.keys(entry).length === 1 && 'value' in entry ? entry.value : entry;
+    }
+
+    return JSON.stringify(result, null, 2);
+}
+
+function formatAsCSS(vars: Array<{ name: string; values: Record<string, unknown> }>, options: ExportOptions): string {
+    const lines: string[] = [];
+    const byMode: Record<string, string[]> = {};
+
+    for (const v of vars) {
+        const varName = `--${transformName(v.name, options.naming)}`;
+
+        for (const [mode, value] of Object.entries(v.values)) {
+            if (!byMode[mode]) byMode[mode] = [];
+            byMode[mode].push(`  ${varName}: ${value};`);
+        }
+    }
+
+    // Output by mode
+    for (const [mode, cssVars] of Object.entries(byMode)) {
+        if (mode === 'default' || mode === 'Desktop' || Object.keys(byMode).length === 1) {
+            lines.push(':root {');
+            lines.push(...cssVars);
+            lines.push('}');
+        } else {
+            const selector = mode.toLowerCase() === 'dark' ? '[data-theme="dark"]' : `[data-mode="${mode.toLowerCase()}"]`;
+            lines.push('');
+            lines.push(`${selector} {`);
+            lines.push(...cssVars);
+            lines.push('}');
+        }
+    }
+
+    return lines.join('\n');
+}
+
+function formatAsSCSS(vars: Array<{ name: string; values: Record<string, unknown> }>, options: ExportOptions): string {
+    const lines: string[] = ['// Design Tokens - Generated by PirulinoColorete', ''];
+
+    for (const v of vars) {
+        const varName = `$${transformName(v.name, options.naming)}`;
+        const modeKeys = Object.keys(v.values);
+
+        if (modeKeys.length === 1) {
+            lines.push(`${varName}: ${v.values[modeKeys[0]]};`);
+        } else {
+            // Create a map for multi-mode variables
+            lines.push(`${varName}: (`);
+            for (const [mode, value] of Object.entries(v.values)) {
+                lines.push(`  ${mode.toLowerCase()}: ${value},`);
+            }
+            lines.push(');');
+        }
+    }
+
+    return lines.join('\n');
+}
+
+function formatAsTailwind(vars: Array<{ name: string; type: string; values: Record<string, unknown> }>, options: ExportOptions): string {
+    const colors: Record<string, unknown> = {};
+    const spacing: Record<string, unknown> = {};
+    const fontSize: Record<string, unknown> = {};
+    const borderRadius: Record<string, unknown> = {};
+    const borderWidth: Record<string, unknown> = {};
+    const other: Record<string, unknown> = {};
+
+    for (const v of vars) {
+        const key = transformName(v.name, options.naming);
+        const value = Object.values(v.values)[0]; // Use first mode value
+        const nameLower = v.name.toLowerCase();
+
+        if (v.type === 'COLOR') {
+            colors[key] = value;
+        } else if (nameLower.includes('spacing') || nameLower.includes('gap') || nameLower.includes('padding')) {
+            spacing[key] = typeof value === 'number' ? `${value}px` : value;
+        } else if (nameLower.includes('font-size') || nameLower.includes('size')) {
+            fontSize[key] = typeof value === 'number' ? `${value}px` : value;
+        } else if (nameLower.includes('radius')) {
+            borderRadius[key] = typeof value === 'number' ? `${value}px` : value;
+        } else if (nameLower.includes('border') && nameLower.includes('width')) {
+            borderWidth[key] = typeof value === 'number' ? `${value}px` : value;
+        } else {
+            other[key] = value;
+        }
+    }
+
+    const config: Record<string, unknown> = {
+        theme: {
+            extend: {}
+        }
+    };
+
+    const extend = config.theme as { extend: Record<string, unknown> };
+    if (Object.keys(colors).length) extend.extend.colors = colors;
+    if (Object.keys(spacing).length) extend.extend.spacing = spacing;
+    if (Object.keys(fontSize).length) extend.extend.fontSize = fontSize;
+    if (Object.keys(borderRadius).length) extend.extend.borderRadius = borderRadius;
+    if (Object.keys(borderWidth).length) extend.extend.borderWidth = borderWidth;
+
+    return `// tailwind.config.js\nmodule.exports = ${JSON.stringify(config, null, 2)}`;
+}
+
+function formatAsTypeScript(vars: Array<{ name: string; type: string; values: Record<string, unknown>; description?: string }>, options: ExportOptions): string {
+    const lines: string[] = ['// Design Tokens - Generated by PirulinoColorete', ''];
+
+    lines.push('export const tokens = {');
+
+    for (const v of vars) {
+        const key = transformName(v.name, options.naming);
+        const modeKeys = Object.keys(v.values);
+        const value = modeKeys.length === 1 ? v.values[modeKeys[0]] : v.values;
+
+        if (v.description && options.includeMetadata) {
+            lines.push(`  /** ${v.description} */`);
+        }
+
+        const valueStr = typeof value === 'string' ? `"${value}"` : JSON.stringify(value);
+        lines.push(`  ${key}: ${valueStr},`);
+    }
+
+    lines.push('} as const;');
+    lines.push('');
+    lines.push('export type TokenKey = keyof typeof tokens;');
+
+    return lines.join('\n');
 }
 
 async function createTypographyVariables(data: TypographyData): Promise<void> {
@@ -2065,6 +2468,28 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
 
             case 'create-aliases':
                 await createSemanticTokens(msg.config as AliasConfig);
+                break;
+
+            case 'get-groups-for-devtools': {
+                const collectionId = msg.collectionId as string;
+                const vars = await figma.variables.getLocalVariablesAsync();
+                const groups = new Set<string>();
+                vars.filter(v => v.variableCollectionId === collectionId).forEach(v => {
+                    const parts = v.name.split('/');
+                    if (parts.length > 1) {
+                        groups.add(parts[0]);
+                    }
+                });
+                figma.ui.postMessage({ type: 'load-groups-devtools', payload: Array.from(groups).sort() });
+                break;
+            }
+
+            case 'export-variables':
+                await exportVariables(
+                    msg.collectionId as string | null,
+                    msg.groupName as string | null,
+                    msg.options as ExportOptions
+                );
                 break;
 
 

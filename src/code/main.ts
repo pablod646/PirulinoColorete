@@ -1476,12 +1476,129 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setModeVal(mobileId, item.mobile);
         }
 
-        // 6. Spacing Aliases (Responsive Gaps) - Existing Preserved
+        // 6. Spacing Aliases (Responsive Gaps)
         const spaceMap = [
-            { name: 'Spacing/Gap/3xs', desktop: '2px', tablet: '2px', mobile: '2px' },
+            { name: 'Spacing/Gap/3xs', desktop: '2px', tablet: '2px', mobile: '1px' },
+            { name: 'Spacing/Gap/2xs', desktop: '4px', tablet: '4px', mobile: '2px' },
+            { name: 'Spacing/Gap/xs', desktop: '8px', tablet: '6px', mobile: '4px' },
+            { name: 'Spacing/Gap/sm', desktop: '12px', tablet: '10px', mobile: '8px' },
+            { name: 'Spacing/Gap/md', desktop: '16px', tablet: '14px', mobile: '12px' },
+            { name: 'Spacing/Gap/lg', desktop: '24px', tablet: '20px', mobile: '16px' },
+            { name: 'Spacing/Gap/xl', desktop: '32px', tablet: '28px', mobile: '24px' },
+            { name: 'Spacing/Gap/2xl', desktop: '48px', tablet: '40px', mobile: '32px' },
+            { name: 'Spacing/Gap/3xl', desktop: '64px', tablet: '56px', mobile: '48px' },
+            { name: 'Spacing/Gap/4xl', desktop: '96px', tablet: '80px', mobile: '64px' },
         ];
 
+        for (const item of spaceMap) {
+            const v = await findOrCreateVar(item.name);
 
+            const setSpaceMode = (modeId: string, val: string): void => {
+                const safeName = val.replace('.', '_');
+                const sourceVar = findSource(measureGroup, safeName);
+                if (sourceVar) {
+                    v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                }
+            };
+
+            setSpaceMode(desktopId, item.desktop);
+            setSpaceMode(tabletId, item.tablet);
+            setSpaceMode(mobileId, item.mobile);
+        }
+
+        // 7. Padding Aliases (Responsive - 4 directions)
+        const paddingScale = [
+            { size: '3xs', desktop: '2px', tablet: '2px', mobile: '1px' },
+            { size: '2xs', desktop: '4px', tablet: '4px', mobile: '2px' },
+            { size: 'xs', desktop: '8px', tablet: '6px', mobile: '4px' },
+            { size: 'sm', desktop: '12px', tablet: '10px', mobile: '8px' },
+            { size: 'md', desktop: '16px', tablet: '14px', mobile: '12px' },
+            { size: 'lg', desktop: '24px', tablet: '20px', mobile: '16px' },
+            { size: 'xl', desktop: '32px', tablet: '28px', mobile: '24px' },
+            { size: '2xl', desktop: '48px', tablet: '40px', mobile: '32px' },
+            { size: '3xl', desktop: '64px', tablet: '56px', mobile: '48px' },
+            { size: '4xl', desktop: '96px', tablet: '80px', mobile: '64px' },
+        ];
+
+        const directions = ['top', 'right', 'bottom', 'left'];
+
+        // Padding
+        for (const dir of directions) {
+            for (const scale of paddingScale) {
+                const v = await findOrCreateVar(`Spacing/Padding/${dir}/${scale.size}`);
+
+                const setMode = (modeId: string, val: string): void => {
+                    const safeName = val.replace('.', '_');
+                    const sourceVar = findSource(measureGroup, safeName);
+                    if (sourceVar) {
+                        v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    }
+                };
+
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+            }
+        }
+
+        // 8. Margin Aliases (Responsive - 4 directions)
+        for (const dir of directions) {
+            for (const scale of paddingScale) { // Reuse same scale
+                const v = await findOrCreateVar(`Spacing/Margin/${dir}/${scale.size}`);
+
+                const setMode = (modeId: string, val: string): void => {
+                    const safeName = val.replace('.', '_');
+                    const sourceVar = findSource(measureGroup, safeName);
+                    if (sourceVar) {
+                        v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    }
+                };
+
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+            }
+        }
+
+        // 9. Axis-based Padding (X = horizontal, Y = vertical)
+        const axes = ['x', 'y'];
+
+        for (const axis of axes) {
+            for (const scale of paddingScale) {
+                const v = await findOrCreateVar(`Spacing/Padding/${axis}/${scale.size}`);
+
+                const setMode = (modeId: string, val: string): void => {
+                    const safeName = val.replace('.', '_');
+                    const sourceVar = findSource(measureGroup, safeName);
+                    if (sourceVar) {
+                        v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    }
+                };
+
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+            }
+        }
+
+        // 10. Axis-based Margin (X = horizontal, Y = vertical)
+        for (const axis of axes) {
+            for (const scale of paddingScale) {
+                const v = await findOrCreateVar(`Spacing/Margin/${axis}/${scale.size}`);
+
+                const setMode = (modeId: string, val: string): void => {
+                    const safeName = val.replace('.', '_');
+                    const sourceVar = findSource(measureGroup, safeName);
+                    if (sourceVar) {
+                        v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    }
+                };
+
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+            }
+        }
 
         // NEW: Effects System Maps
         // Opacity (0-1) - Usually hardcoded as it is a multiplier, but could be aliased if primitives exist.

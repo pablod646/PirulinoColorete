@@ -1162,8 +1162,104 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setModeVal(mobileId, item.mobile);
             }
             const spaceMap = [
-              { name: "Spacing/Gap/3xs", desktop: "2px", tablet: "2px", mobile: "2px" }
+              { name: "Spacing/Gap/3xs", desktop: "2px", tablet: "2px", mobile: "1px" },
+              { name: "Spacing/Gap/2xs", desktop: "4px", tablet: "4px", mobile: "2px" },
+              { name: "Spacing/Gap/xs", desktop: "8px", tablet: "6px", mobile: "4px" },
+              { name: "Spacing/Gap/sm", desktop: "12px", tablet: "10px", mobile: "8px" },
+              { name: "Spacing/Gap/md", desktop: "16px", tablet: "14px", mobile: "12px" },
+              { name: "Spacing/Gap/lg", desktop: "24px", tablet: "20px", mobile: "16px" },
+              { name: "Spacing/Gap/xl", desktop: "32px", tablet: "28px", mobile: "24px" },
+              { name: "Spacing/Gap/2xl", desktop: "48px", tablet: "40px", mobile: "32px" },
+              { name: "Spacing/Gap/3xl", desktop: "64px", tablet: "56px", mobile: "48px" },
+              { name: "Spacing/Gap/4xl", desktop: "96px", tablet: "80px", mobile: "64px" }
             ];
+            for (const item of spaceMap) {
+              const v = yield findOrCreateVar(item.name);
+              const setSpaceMode = (modeId, val) => {
+                const safeName = val.replace(".", "_");
+                const sourceVar = findSource(measureGroup, safeName);
+                if (sourceVar) {
+                  v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                }
+              };
+              setSpaceMode(desktopId, item.desktop);
+              setSpaceMode(tabletId, item.tablet);
+              setSpaceMode(mobileId, item.mobile);
+            }
+            const paddingScale = [
+              { size: "3xs", desktop: "2px", tablet: "2px", mobile: "1px" },
+              { size: "2xs", desktop: "4px", tablet: "4px", mobile: "2px" },
+              { size: "xs", desktop: "8px", tablet: "6px", mobile: "4px" },
+              { size: "sm", desktop: "12px", tablet: "10px", mobile: "8px" },
+              { size: "md", desktop: "16px", tablet: "14px", mobile: "12px" },
+              { size: "lg", desktop: "24px", tablet: "20px", mobile: "16px" },
+              { size: "xl", desktop: "32px", tablet: "28px", mobile: "24px" },
+              { size: "2xl", desktop: "48px", tablet: "40px", mobile: "32px" },
+              { size: "3xl", desktop: "64px", tablet: "56px", mobile: "48px" },
+              { size: "4xl", desktop: "96px", tablet: "80px", mobile: "64px" }
+            ];
+            const directions = ["top", "right", "bottom", "left"];
+            for (const dir of directions) {
+              for (const scale of paddingScale) {
+                const v = yield findOrCreateVar(`Spacing/Padding/${dir}/${scale.size}`);
+                const setMode = (modeId, val) => {
+                  const safeName = val.replace(".", "_");
+                  const sourceVar = findSource(measureGroup, safeName);
+                  if (sourceVar) {
+                    v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                  }
+                };
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+              }
+            }
+            for (const dir of directions) {
+              for (const scale of paddingScale) {
+                const v = yield findOrCreateVar(`Spacing/Margin/${dir}/${scale.size}`);
+                const setMode = (modeId, val) => {
+                  const safeName = val.replace(".", "_");
+                  const sourceVar = findSource(measureGroup, safeName);
+                  if (sourceVar) {
+                    v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                  }
+                };
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+              }
+            }
+            const axes = ["x", "y"];
+            for (const axis of axes) {
+              for (const scale of paddingScale) {
+                const v = yield findOrCreateVar(`Spacing/Padding/${axis}/${scale.size}`);
+                const setMode = (modeId, val) => {
+                  const safeName = val.replace(".", "_");
+                  const sourceVar = findSource(measureGroup, safeName);
+                  if (sourceVar) {
+                    v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                  }
+                };
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+              }
+            }
+            for (const axis of axes) {
+              for (const scale of paddingScale) {
+                const v = yield findOrCreateVar(`Spacing/Margin/${axis}/${scale.size}`);
+                const setMode = (modeId, val) => {
+                  const safeName = val.replace(".", "_");
+                  const sourceVar = findSource(measureGroup, safeName);
+                  if (sourceVar) {
+                    v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                  }
+                };
+                setMode(desktopId, scale.desktop);
+                setMode(tabletId, scale.tablet);
+                setMode(mobileId, scale.mobile);
+              }
+            }
             const opacityMap = [
               { name: "Effects/Opacity/0", value: 0 },
               { name: "Effects/Opacity/5", value: 0.05 },

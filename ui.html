@@ -1954,7 +1954,7 @@ button:active .icon,
         <div class="input-group">
             <label>Values (comma separated, in pixels)</label>
             <textarea id="measure-values" class="measure-textarea"
-                rows="3">0.5, 1, 2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96</textarea>
+                rows="3">0, 0.5, 1, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96</textarea>
             <p class="input-hint">Standard spacing scale. Edit to customize your system.</p>
         </div>
 
@@ -2160,7 +2160,8 @@ button:active .icon,
                     <span class="label-icon">↔️</span>
                     Letter Spacing (%)
                 </label>
-                <textarea id="typo-spacing" class="scale-textarea" rows="2">-2, -1, 0, 1, 2, 4, 8, 10</textarea>
+                <textarea id="typo-spacing" class="scale-textarea"
+                    rows="2">-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5</textarea>
             </div>
 
             <div class="scale-input-group">
@@ -2326,6 +2327,21 @@ button:active .icon,
             <div class="form-group">
                 <label>Collection Name</label>
                 <input type="text" id="alias-target-name" placeholder="Tokens" value="Tokens">
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="alias-creation-progress" style="display: none; margin-bottom: var(--space-4);">
+            <div
+                style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                <span id="alias-progress-message">Initializing...</span>
+                <span id="alias-progress-percent">0%</span>
+            </div>
+            <div
+                style="height: 6px; background: var(--bg-surface-active); border-radius: var(--radius-full); overflow: hidden;">
+                <div id="alias-progress-bar-fill"
+                    style="height: 100%; width: 0%; background: var(--accent-primary); transition: width 0.3s ease;">
+                </div>
             </div>
         </div>
 
@@ -4174,7 +4190,7 @@ function initMeasures() {
 
     // Presets Logic
     const PRESETS = {
-        default: '0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128',
+        default: '0, 0.5, 1, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96',
         tailwind: '0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96', // Pixel values for tw scale
         material: '0, 4, 8, 12, 16, 24, 32, 48, 64, 80, 96',
         fibonacci: '1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144',
@@ -4527,6 +4543,12 @@ function initAliases() {
     const targetNameInput = document.getElementById('alias-target-name');
     const createBtn = document.getElementById('create-aliases-btn');
 
+    // Progress Bar Elements
+    const progressDiv = document.getElementById('alias-creation-progress');
+    const progressBarFill = document.getElementById('alias-progress-bar-fill');
+    const progressMessage = document.getElementById('alias-progress-message');
+    const progressPercent = document.getElementById('alias-progress-percent');
+
     if (!createBtn) {
         console.warn('⚠️ Aliases UI elements not found');
         return;
@@ -4564,6 +4586,37 @@ function initAliases() {
             fill(measureGroup, 'Select Measures Group...');
             fill(typoGroup, 'Select Typography Group...');
             console.log('🔗 Aliases: Loaded groups for tokens mode');
+
+        } else if (type === 'progress-start') {
+            if (progressDiv) {
+                progressDiv.style.display = 'block';
+                progressBarFill.style.width = '0%';
+                progressMessage.textContent = payload || 'Starting...';
+                progressPercent.textContent = '0%';
+                createBtn.disabled = true;
+                createBtn.style.opacity = '0.5';
+            }
+
+        } else if (type === 'progress-update') {
+            if (progressDiv && payload) {
+                const percent = Math.round((payload.current / payload.total) * 100);
+                progressBarFill.style.width = `${percent}%`;
+                progressMessage.textContent = payload.message;
+                progressPercent.textContent = `${percent}%`;
+            }
+
+        } else if (type === 'progress-end') {
+            if (progressDiv) {
+                progressBarFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+                progressMessage.textContent = 'Done!';
+
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    createBtn.disabled = false;
+                    createBtn.style.opacity = '1';
+                }, 1500);
+            }
         }
     });
 

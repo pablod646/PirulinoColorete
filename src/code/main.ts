@@ -630,12 +630,41 @@ async function createTypographyVariables(data: TypographyData): Promise<void> {
             variable.setValueForMode(modeId, w);
         }
 
-        // Letter Spacing
+        // Letter Spacing - Use semantic names
+        // 0 = normal, negative = tighter, positive = wider
+        const letterSpacingNames: Record<number, string> = {
+            [-6]: 'ultra-tight',
+            [-5]: 'extra-tight',
+            [-4]: 'very-tight',
+            [-3]: 'tight',
+            [-2]: 'semi-tight',
+            [-1]: 'slightly-tight',
+            [0]: 'normal',
+            [1]: 'slightly-wide',
+            [2]: 'semi-wide',
+            [3]: 'wide',
+            [4]: 'very-wide',
+            [5]: 'extra-wide',
+            [6]: 'ultra-wide',
+        };
+
         for (const s of spacing) {
-            const safeName = s.toString().replace(/\./g, '_').replace('%', '');
-            const path = buildPath('Letter Spacing', safeName);
+            // Use semantic name if available, else fallback to descriptive pattern
+            let humanName = letterSpacingNames[s];
+            if (!humanName) {
+                if (s < 0) {
+                    humanName = `tight-${Math.abs(s)}`;
+                } else if (s > 0) {
+                    humanName = `wide-${s}`;
+                } else {
+                    humanName = 'normal';
+                }
+            }
+            const path = buildPath('Letter Spacing', humanName);
             const variable = await findOrCreate(path, 'FLOAT');
-            variable.setValueForMode(modeId, s);
+            // Convert percentage to decimal (e.g., 5 -> 0.05), 0 stays 0
+            const actualValue = s === 0 ? 0 : s / 100;
+            variable.setValueForMode(modeId, actualValue);
         }
 
         // Font Sizes
@@ -753,25 +782,21 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
 
 
         // 2. Letter Spacing Aliases (Letter-Spacing)
-        // Responsive semantic tokens using T-shirt sizing (talles)
-        // Mapping to primitives (-2 to 10 range as requested)
+        // 5-step scale: tighter, tight, normal, wide, wider
+        // Now using SEMANTIC names that match the primitives
         const letterSpacingMap = [
-            { name: 'Typography/Letter-Spacing/3xs', desktop: '-4', tablet: '-3', mobile: '-2' },
-            { name: 'Typography/Letter-Spacing/2xs', desktop: '-2', tablet: '-2', mobile: '-1' },
-            { name: 'Typography/Letter-Spacing/xs', desktop: '-1', tablet: '0', mobile: '0' },
-            { name: 'Typography/Letter-Spacing/sm', desktop: '0', tablet: '0', mobile: '0' }, // Base/Normal
-            { name: 'Typography/Letter-Spacing/md', desktop: '2', tablet: '1', mobile: '0' },
-            { name: 'Typography/Letter-Spacing/lg', desktop: '4', tablet: '2', mobile: '1' },
-            { name: 'Typography/Letter-Spacing/xl', desktop: '6', tablet: '4', mobile: '2' },
-            { name: 'Typography/Letter-Spacing/2xl', desktop: '8', tablet: '6', mobile: '4' },
-            { name: 'Typography/Letter-Spacing/3xl', desktop: '10', tablet: '8', mobile: '6' },
+            { name: 'Typography/Letter-Spacing/tighter', desktop: 'very-tight', tablet: 'tight', mobile: 'semi-tight' },
+            { name: 'Typography/Letter-Spacing/tight', desktop: 'semi-tight', tablet: 'slightly-tight', mobile: 'slightly-tight' },
+            { name: 'Typography/Letter-Spacing/normal', desktop: 'normal', tablet: 'normal', mobile: 'normal' },
+            { name: 'Typography/Letter-Spacing/wide', desktop: 'very-wide', tablet: 'semi-wide', mobile: 'slightly-wide' },
+            { name: 'Typography/Letter-Spacing/wider', desktop: 'extra-wide', tablet: 'very-wide', mobile: 'wide' }
         ];
 
         for (const item of letterSpacingMap) {
             const v = await findOrCreateVar(item.name);
 
             const setModeVal = (modeId: string, val: string) => {
-                // Look for primitive "Letter Spacing/val"
+                // Look for primitive "Letter Spacing/val" (semantic name)
                 const sourceVar = findSource(typoGroup, val);
                 if (sourceVar) {
                     v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
@@ -814,24 +839,30 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             }
         }
 
-        // 4. Border Width (Stroke) Aliases (Using Measures)
+        // 4. Border Width (Stroke) Aliases - RESPONSIVE
+        // Reduced border widths on smaller screens for better visual balance
         const borderMap = [
-            { name: 'Border Width/none', val: '0px' },
-            { name: 'Border Width/hairline', val: '0_5px' }, // 0.5px
-            { name: 'Border Width/thin', val: '1px' },
-            { name: 'Border Width/medium', val: '2px' },
-            { name: 'Border Width/thick', val: '4px' },
-            { name: 'Border Width/heavy', val: '8px' },
+            { name: 'Border Width/none', desktop: '0px', tablet: '0px', mobile: '0px' },
+            { name: 'Border Width/hairline', desktop: '0_5px', tablet: '0_5px', mobile: '0_5px' },
+            { name: 'Border Width/thin', desktop: '1px', tablet: '1px', mobile: '1px' },
+            { name: 'Border Width/medium', desktop: '2px', tablet: '2px', mobile: '1px' },
+            { name: 'Border Width/thick', desktop: '4px', tablet: '2px', mobile: '2px' },
+            { name: 'Border Width/heavy', desktop: '8px', tablet: '4px', mobile: '2px' },
         ];
 
         for (const item of borderMap) {
             const v = await findOrCreateVar(item.name);
-            const sourceVar = findSource(measureGroup, item.val);
-            if (sourceVar) {
-                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-            }
+
+            const setModeVal = (modeId: string, val: string) => {
+                const sourceVar = findSource(measureGroup, val);
+                if (sourceVar) {
+                    v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                }
+            };
+
+            setModeVal(desktopId, item.desktop);
+            setModeVal(tabletId, item.tablet);
+            setModeVal(mobileId, item.mobile);
         }
 
         // 5. Semantic Text Aliases (Responsive) - Existing Refined

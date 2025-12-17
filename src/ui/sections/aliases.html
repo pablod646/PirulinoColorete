@@ -46,6 +46,21 @@
             </div>
         </div>
 
+        <!-- Progress Bar -->
+        <div id="alias-creation-progress" style="display: none; margin-bottom: var(--space-4);">
+            <div
+                style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                <span id="alias-progress-message">Initializing...</span>
+                <span id="alias-progress-percent">0%</span>
+            </div>
+            <div
+                style="height: 6px; background: var(--bg-surface-active); border-radius: var(--radius-full); overflow: hidden;">
+                <div id="alias-progress-bar-fill"
+                    style="height: 100%; width: 0%; background: var(--accent-primary); transition: width 0.3s ease;">
+                </div>
+            </div>
+        </div>
+
         <!-- Create Button -->
         <button id="create-aliases-btn" class="primary big-btn" style="width: 100%;">
             <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"

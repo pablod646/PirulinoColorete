@@ -11,6 +11,12 @@ function initAliases() {
     const targetNameInput = document.getElementById('alias-target-name');
     const createBtn = document.getElementById('create-aliases-btn');
 
+    // Progress Bar Elements
+    const progressDiv = document.getElementById('alias-creation-progress');
+    const progressBarFill = document.getElementById('alias-progress-bar-fill');
+    const progressMessage = document.getElementById('alias-progress-message');
+    const progressPercent = document.getElementById('alias-progress-percent');
+
     if (!createBtn) {
         console.warn('⚠️ Aliases UI elements not found');
         return;
@@ -48,6 +54,37 @@ function initAliases() {
             fill(measureGroup, 'Select Measures Group...');
             fill(typoGroup, 'Select Typography Group...');
             console.log('🔗 Aliases: Loaded groups for tokens mode');
+
+        } else if (type === 'progress-start') {
+            if (progressDiv) {
+                progressDiv.style.display = 'block';
+                progressBarFill.style.width = '0%';
+                progressMessage.textContent = payload || 'Starting...';
+                progressPercent.textContent = '0%';
+                createBtn.disabled = true;
+                createBtn.style.opacity = '0.5';
+            }
+
+        } else if (type === 'progress-update') {
+            if (progressDiv && payload) {
+                const percent = Math.round((payload.current / payload.total) * 100);
+                progressBarFill.style.width = `${percent}%`;
+                progressMessage.textContent = payload.message;
+                progressPercent.textContent = `${percent}%`;
+            }
+
+        } else if (type === 'progress-end') {
+            if (progressDiv) {
+                progressBarFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+                progressMessage.textContent = 'Done!';
+
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    createBtn.disabled = false;
+                    createBtn.style.opacity = '1';
+                }, 1500);
+            }
         }
     });
 

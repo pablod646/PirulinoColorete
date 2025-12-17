@@ -1610,6 +1610,10 @@ button:active .icon,
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
                 <span class="nav-item-label">Theme</span>
             </div>
+            <div class="nav-item" data-section="atoms">
+                <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+                <span class="nav-item-label">Atoms</span>
+            </div>
             <div class="nav-item" data-section="collections">
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span>
                 <span class="nav-item-label">Documentation</span>
@@ -2890,6 +2894,349 @@ button:active .icon,
 
     .summary-icon {
         font-size: var(--font-size-md);
+    }
+</style>
+<div class="section-content" id="section-atoms">
+    <!-- Source Configuration -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">1. Source Variables</div>
+        <p class="step-description">Select the collections containing your design tokens</p>
+
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Theme Collection</label>
+                <select id="atoms-theme-collection">
+                    <option value="" disabled selected>Select theme...</option>
+                </select>
+                <p class="input-hint">Colors, surfaces, borders, etc.</p>
+            </div>
+            <div class="form-group">
+                <label>Aliases Collection</label>
+                <select id="atoms-aliases-collection">
+                    <option value="" disabled selected>Select aliases...</option>
+                </select>
+                <p class="input-hint">Spacing, typography, responsive tokens</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Component Selection -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">2. Select Components</div>
+        <p class="step-description">Choose which components to generate</p>
+
+        <div class="component-selection">
+            <!-- Buttons Section -->
+            <div class="component-group">
+                <div class="component-group-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-buttons" checked>
+                        <span class="checkmark"></span>
+                        <strong>🔘 Buttons</strong>
+                    </label>
+                </div>
+                <div class="component-options" id="button-options">
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-variant" value="primary" checked>
+                        <span class="checkmark"></span> Primary
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-variant" value="secondary" checked>
+                        <span class="checkmark"></span> Secondary
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-variant" value="ghost" checked>
+                        <span class="checkmark"></span> Ghost
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-variant" value="destructive" checked>
+                        <span class="checkmark"></span> Destructive
+                    </label>
+                </div>
+                <div class="component-sizes" style="margin-top: var(--space-2);">
+                    <span class="label-text">Sizes:</span>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-size" value="sm" checked>
+                        <span class="checkmark"></span> SM
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-size" value="md" checked>
+                        <span class="checkmark"></span> MD
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-size" value="lg" checked>
+                        <span class="checkmark"></span> LG
+                    </label>
+                </div>
+            </div>
+
+            <!-- Inputs Section -->
+            <div class="component-group">
+                <div class="component-group-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-inputs" checked>
+                        <span class="checkmark"></span>
+                        <strong>📝 Form Inputs</strong>
+                    </label>
+                </div>
+                <div class="component-options" id="input-options">
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-variant" value="text" checked>
+                        <span class="checkmark"></span> Text Input
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-variant" value="textarea" checked>
+                        <span class="checkmark"></span> Textarea
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-variant" value="select" checked>
+                        <span class="checkmark"></span> Select
+                    </label>
+                </div>
+                <div class="component-states" style="margin-top: var(--space-2);">
+                    <span class="label-text">States:</span>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-state" value="default" checked>
+                        <span class="checkmark"></span> Default
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-state" value="focus" checked>
+                        <span class="checkmark"></span> Focus
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-state" value="error" checked>
+                        <span class="checkmark"></span> Error
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-state" value="success" checked>
+                        <span class="checkmark"></span> Success
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-state" value="disabled" checked>
+                        <span class="checkmark"></span> Disabled
+                    </label>
+                </div>
+            </div>
+
+            <!-- Badges Section -->
+            <div class="component-group">
+                <div class="component-group-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-badges" checked>
+                        <span class="checkmark"></span>
+                        <strong>🏷️ Badges/Tags</strong>
+                    </label>
+                </div>
+                <div class="component-options" id="badge-options">
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-variant" value="neutral" checked>
+                        <span class="checkmark"></span> Neutral
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-variant" value="primary" checked>
+                        <span class="checkmark"></span> Primary
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-variant" value="success" checked>
+                        <span class="checkmark"></span> Success
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-variant" value="warning" checked>
+                        <span class="checkmark"></span> Warning
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-variant" value="error" checked>
+                        <span class="checkmark"></span> Error
+                    </label>
+                </div>
+                <div class="component-sizes" style="margin-top: var(--space-2);">
+                    <span class="label-text">Sizes:</span>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-size" value="sm" checked>
+                        <span class="checkmark"></span> SM
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="badge-size" value="md" checked>
+                        <span class="checkmark"></span> MD
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Component Naming -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">3. Naming & Output</div>
+
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Component Prefix</label>
+                <input type="text" id="atoms-prefix" value="" placeholder="e.g. DS/">
+            </div>
+            <div class="form-group">
+                <label>Output Location</label>
+                <select id="atoms-output">
+                    <option value="page">New Page</option>
+                    <option value="frame">New Frame (Current Page)</option>
+                    <option value="selection">Next to Selection</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top: var(--space-3);">
+            <label class="checkbox-label">
+                <input type="checkbox" id="atoms-as-components" checked>
+                <span class="checkmark"></span>
+                Create as Components (not just frames)
+            </label>
+        </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">Preview</div>
+        <div id="atoms-preview" class="atoms-preview">
+            <div class="preview-placeholder">
+                <span>Configure options above to see component preview</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div class="card">
+        <button id="generate-atoms-btn" class="primary" style="width: 100%;">
+            <span class="icon">⚡</span> Generate Components
+        </button>
+
+        <!-- Progress Bar -->
+        <div id="atoms-progress" class="progress-container" style="display: none; margin-top: var(--space-3);">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%;"></div>
+            </div>
+            <span class="progress-text">Generating...</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .component-selection {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .component-group {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+        border: 1px solid var(--border-subtle);
+    }
+
+    .component-group-header {
+        margin-bottom: var(--space-2);
+    }
+
+    .component-options,
+    .component-sizes,
+    .component-states {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        align-items: center;
+    }
+
+    .checkbox-label.small {
+        font-size: var(--text-xs);
+    }
+
+    .label-text {
+        font-size: var(--text-xs);
+        color: var(--text-secondary);
+        margin-right: var(--space-2);
+    }
+
+    .atoms-preview {
+        min-height: 120px;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: var(--space-4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .preview-placeholder {
+        color: var(--text-tertiary);
+        font-size: var(--text-sm);
+        text-align: center;
+    }
+
+    .atoms-preview .preview-components {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .atoms-preview .preview-btn {
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        cursor: default;
+    }
+
+    .atoms-preview .preview-btn.primary {
+        background: var(--accent-primary);
+        color: white;
+    }
+
+    .atoms-preview .preview-btn.secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-default);
+    }
+
+    .atoms-preview .preview-btn.ghost {
+        background: transparent;
+        color: var(--accent-primary);
+    }
+
+    .atoms-preview .preview-input {
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-default);
+        background: var(--bg-primary);
+        font-size: var(--text-sm);
+        min-width: 120px;
+    }
+
+    .atoms-preview .preview-badge {
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-full);
+        font-size: var(--text-xs);
+        font-weight: 500;
+    }
+
+    .atoms-preview .preview-badge.primary {
+        background: var(--accent-primary);
+        color: white;
+    }
+
+    .atoms-preview .preview-badge.success {
+        background: #10b981;
+        color: white;
+    }
+
+    .atoms-preview .preview-badge.warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .atoms-preview .preview-badge.error {
+        background: #ef4444;
+        color: white;
     }
 </style>
 <div id="section-collections" class="section-content">
@@ -5618,6 +5965,211 @@ if (document.readyState === 'loading') {
 }
 
 
+/* --- atoms.js --- */
+// Atoms Section - Generate Atomic Components
+(function () {
+    'use strict';
+
+    // Elements
+    const themeCollectionSelect = document.getElementById('atoms-theme-collection');
+    const aliasesCollectionSelect = document.getElementById('atoms-aliases-collection');
+    const generateBtn = document.getElementById('generate-atoms-btn');
+    const previewContainer = document.getElementById('atoms-preview');
+
+    // Component checkboxes
+    const genButtons = document.getElementById('gen-buttons');
+    const genInputs = document.getElementById('gen-inputs');
+    const genBadges = document.getElementById('gen-badges');
+
+    // Output options
+    const prefixInput = document.getElementById('atoms-prefix');
+    const outputSelect = document.getElementById('atoms-output');
+    const asComponentsCheckbox = document.getElementById('atoms-as-components');
+
+    // Load collections on init
+    function init() {
+        parent.postMessage({ pluginMessage: { type: 'get-collections' } }, '*');
+    }
+
+    // Handle messages from plugin
+    window.addEventListener('message', (event) => {
+        const msg = event.data.pluginMessage;
+        if (!msg) return;
+
+        switch (msg.type) {
+            case 'load-collections':
+                populateCollections(msg.payload);
+                break;
+            case 'atoms-generation-progress':
+                updateProgress(msg.payload);
+                break;
+            case 'atoms-generation-complete':
+                hideProgress();
+                showNotification(`Generated ${msg.payload.count} components!`, 'success');
+                break;
+            case 'atoms-generation-error':
+                hideProgress();
+                showNotification('Error: ' + msg.payload, 'error');
+                break;
+        }
+    });
+
+    function populateCollections(collections) {
+        if (!themeCollectionSelect || !aliasesCollectionSelect) return;
+
+        const defaultTheme = '<option value="" disabled selected>Select theme...</option>';
+        const defaultAliases = '<option value="" disabled selected>Select aliases...</option>';
+
+        const options = collections.map(c =>
+            `<option value="${c.id}">${c.name}</option>`
+        ).join('');
+
+        themeCollectionSelect.innerHTML = defaultTheme + options;
+        aliasesCollectionSelect.innerHTML = defaultAliases + options;
+    }
+
+    if (generateBtn) {
+        generateBtn.addEventListener('click', () => {
+            const config = buildConfig();
+            if (!validateConfig(config)) return;
+
+            showProgress();
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'generate-atoms',
+                    config
+                }
+            }, '*');
+        });
+    }
+
+    function buildConfig() {
+        // Collect button variants
+        const buttonVariants = [];
+        document.querySelectorAll('input[name="btn-variant"]:checked').forEach(cb => {
+            buttonVariants.push(cb.value);
+        });
+
+        // Collect button sizes
+        const buttonSizes = [];
+        document.querySelectorAll('input[name="btn-size"]:checked').forEach(cb => {
+            buttonSizes.push(cb.value);
+        });
+
+        // Collect input variants
+        const inputVariants = [];
+        document.querySelectorAll('input[name="input-variant"]:checked').forEach(cb => {
+            inputVariants.push(cb.value);
+        });
+
+        // Collect input states
+        const inputStates = [];
+        document.querySelectorAll('input[name="input-state"]:checked').forEach(cb => {
+            inputStates.push(cb.value);
+        });
+
+        // Collect badge variants
+        const badgeVariants = [];
+        document.querySelectorAll('input[name="badge-variant"]:checked').forEach(cb => {
+            badgeVariants.push(cb.value);
+        });
+
+        // Collect badge sizes
+        const badgeSizes = [];
+        document.querySelectorAll('input[name="badge-size"]:checked').forEach(cb => {
+            badgeSizes.push(cb.value);
+        });
+
+        return {
+            themeCollectionId: themeCollectionSelect ? themeCollectionSelect.value : '',
+            aliasesCollectionId: aliasesCollectionSelect ? aliasesCollectionSelect.value : '',
+            prefix: prefixInput ? prefixInput.value : '',
+            output: outputSelect ? outputSelect.value : 'frame',
+            asComponents: asComponentsCheckbox ? asComponentsCheckbox.checked : true,
+            components: {
+                buttons: genButtons && genButtons.checked ? { variants: buttonVariants, sizes: buttonSizes } : null,
+                inputs: genInputs && genInputs.checked ? { variants: inputVariants, states: inputStates } : null,
+                badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null
+            }
+        };
+    }
+
+    function validateConfig(config) {
+        if (!config.themeCollectionId) {
+            showNotification('Please select a Theme collection', 'error');
+            return false;
+        }
+
+        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges;
+        if (!hasComponents) {
+            showNotification('Please select at least one component type', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    function updatePreview() {
+        if (!previewContainer) return;
+
+        let html = '<div class="preview-components">';
+
+        if (genButtons && genButtons.checked) {
+            html += '<div class="preview-btn primary">Primary</div>';
+            html += '<div class="preview-btn secondary">Secondary</div>';
+            html += '<div class="preview-btn ghost">Ghost</div>';
+        }
+
+        if (genInputs && genInputs.checked) {
+            html += '<input type="text" class="preview-input" placeholder="Text input" readonly>';
+        }
+
+        if (genBadges && genBadges.checked) {
+            html += '<span class="preview-badge primary">New</span>';
+            html += '<span class="preview-badge success">Success</span>';
+            html += '<span class="preview-badge warning">Warning</span>';
+            html += '<span class="preview-badge error">Error</span>';
+        }
+
+        html += '</div>';
+        previewContainer.innerHTML = html;
+    }
+
+    function showProgress() {
+        const progress = document.getElementById('atoms-progress');
+        if (progress) progress.style.display = 'block';
+        if (generateBtn) generateBtn.disabled = true;
+    }
+
+    function hideProgress() {
+        const progress = document.getElementById('atoms-progress');
+        if (progress) progress.style.display = 'none';
+        if (generateBtn) generateBtn.disabled = false;
+    }
+
+    function updateProgress(data) {
+        const fill = document.querySelector('#atoms-progress .progress-fill');
+        const text = document.querySelector('#atoms-progress .progress-text');
+        if (fill) fill.style.width = `${data.percent}%`;
+        if (text) text.textContent = data.message || 'Generating...';
+    }
+
+    function showNotification(message, type) {
+        console.log(`[${type}] ${message}`);
+        // Could use figma.notify via postMessage
+    }
+
+    // Toggle component options visibility
+    if (genButtons) genButtons.addEventListener('change', updatePreview);
+    if (genInputs) genInputs.addEventListener('change', updatePreview);
+    if (genBadges) genBadges.addEventListener('change', updatePreview);
+
+    // Initialize
+    init();
+    updatePreview();
+})();
+
+
 /* --- collections.js --- */
 // Collections (Documentation) Section Logic
 console.log('📚 Collections script loaded');
@@ -5964,7 +6516,7 @@ const sectionTitles = {
     'typography': { title: 'Typography System', desc: 'Define font families, sizes, and weights.' },
     'aliases': { title: 'Responsive Semantics', desc: 'Generate semantic tokens that adapt to viewport size.' },
     'theme': { title: 'Theme Generator', desc: 'Create intelligent Light/Dark themes from your color primitives.' },
-    'components': { title: 'Atomic Component System', desc: 'Create visual components using your existing tokens and variables.' },
+    'atoms': { title: 'Atomic Components', desc: 'Generate Buttons, Inputs, and Badges using your design tokens.' },
     'collections': { title: 'Documentation', desc: 'View and manage your variable collections.' },
     'devtools': { title: "Dev's Tools", desc: 'Export your design tokens for developers in multiple formats.' }
 };
@@ -6006,7 +6558,7 @@ function initNavigation() {
             }
 
             // Load collections when entering sections that require them
-            if (['theme', 'measures', 'scale', 'typography', 'aliases', 'collections', 'devtools'].includes(section)) {
+            if (['theme', 'measures', 'scale', 'typography', 'aliases', 'collections', 'devtools', 'atoms'].includes(section)) {
                 console.log(`Using common loader for ${section}`);
                 parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
             }

@@ -70,7 +70,7 @@ function loadStyles() {
 // Section Loading
 // ============================================
 function loadSections() {
-    const sections = ['colors', 'measures', 'typography', 'aliases', 'theme', 'collections', 'devtools'];
+    const sections = ['colors', 'measures', 'typography', 'aliases', 'theme', 'atoms', 'collections', 'devtools'];
     let sectionsHTML = '';
 
     const sectionsDir = USE_NEW_UI
@@ -108,6 +108,7 @@ function loadScripts() {
         'typography.js',
         'aliases.js',
         'theme.js',
+        'atoms.js',
         'collections.js',
         'devtools.js',
         'navigation.js'
@@ -173,6 +174,10 @@ ${stylesCSS}
             <div class="nav-item" data-section="theme">
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
                 <span class="nav-item-label">Theme</span>
+            </div>
+            <div class="nav-item" data-section="atoms">
+                <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+                <span class="nav-item-label">Atoms</span>
             </div>
             <div class="nav-item" data-section="collections">
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span>

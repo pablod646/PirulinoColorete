@@ -102,6 +102,20 @@ interface ExportOptions {
     includeMetadata: boolean;
 }
 
+interface AtomsConfig {
+    themeCollectionId: string;
+    aliasesCollectionId: string;
+    prefix: string;
+    output: 'page' | 'frame' | 'selection';
+    asComponents: boolean;
+    components: {
+        buttons: { variants: string[]; sizes: string[] } | null;
+        inputs: { variants: string[]; states: string[] } | null;
+        badges: { variants: string[]; sizes: string[] } | null;
+    };
+}
+
+
 // ============================================
 // PLUGIN INITIALIZATION
 // ============================================
@@ -1138,6 +1152,545 @@ function formatAsTypeScript(vars: Array<{ name: string; type: string; values: Re
     lines.push('export type TokenKey = keyof typeof tokens;');
 
     return lines.join('\n');
+}
+
+// ============================================
+// ATOMIC COMPONENTS GENERATION
+// ============================================
+
+async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
+    try {
+        figma.ui.postMessage({ type: 'progress-start', payload: 'Generating atomic components...' });
+
+        const allVariables = await figma.variables.getLocalVariablesAsync();
+        const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+        // Find theme collection
+        const themeCollection = collections.find(c => c.id === config.themeCollectionId);
+        if (!themeCollection) {
+            throw new Error('Theme collection not found');
+        }
+
+        // Get theme variables
+        const themeVars = allVariables.filter(v => v.variableCollectionId === config.themeCollectionId);
+        const aliasesVars = config.aliasesCollectionId
+            ? allVariables.filter(v => v.variableCollectionId === config.aliasesCollectionId)
+            : [];
+
+        // Helper to find a variable by partial name
+        const findVar = (searchTerms: string[], type?: VariableResolvedDataType): Variable | undefined => {
+            const vars = [...themeVars, ...aliasesVars];
+            for (const term of searchTerms) {
+                const found = vars.find(v => {
+                    const match = v.name.toLowerCase().includes(term.toLowerCase());
+                    if (type) return match && v.resolvedType === type;
+                    return match;
+                });
+                if (found) return found;
+            }
+            return undefined;
+        };
+
+        // Create output container
+        let container: FrameNode | PageNode;
+
+        if (config.output === 'page') {
+            container = figma.createPage();
+            container.name = `${config.prefix}Components`;
+            figma.currentPage = container as PageNode;
+        } else {
+            container = figma.createFrame();
+            container.name = `${config.prefix}Components`;
+            container.layoutMode = 'VERTICAL';
+            container.primaryAxisSizingMode = 'AUTO';
+            container.counterAxisSizingMode = 'AUTO';
+            container.itemSpacing = 48;
+            container.paddingTop = 48;
+            container.paddingBottom = 48;
+            container.paddingLeft = 48;
+            container.paddingRight = 48;
+            container.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }];
+        }
+
+        let componentCount = 0;
+
+        // ============================================
+        // BUTTONS
+        // ============================================
+        if (config.components.buttons) {
+            const { variants, sizes } = config.components.buttons;
+
+            figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 10, message: 'Creating buttons...' } });
+
+            const buttonsFrame = figma.createFrame();
+            buttonsFrame.name = `${config.prefix}Buttons`;
+            buttonsFrame.layoutMode = 'VERTICAL';
+            buttonsFrame.primaryAxisSizingMode = 'AUTO';
+            buttonsFrame.counterAxisSizingMode = 'AUTO';
+            buttonsFrame.itemSpacing = 24;
+            buttonsFrame.fills = [];
+
+            for (const variant of variants) {
+                const variantFrame = figma.createFrame();
+                variantFrame.name = `Button/${variant}`;
+                variantFrame.layoutMode = 'HORIZONTAL';
+                variantFrame.primaryAxisSizingMode = 'AUTO';
+                variantFrame.counterAxisSizingMode = 'AUTO';
+                variantFrame.itemSpacing = 16;
+                variantFrame.fills = [];
+
+                for (const size of sizes) {
+                    const states = ['default', 'hover', 'active', 'disabled'];
+
+                    for (const state of states) {
+                        const btn = await createButton(variant, size, state, config, findVar);
+                        variantFrame.appendChild(btn);
+                        componentCount++;
+                    }
+                }
+
+                buttonsFrame.appendChild(variantFrame);
+            }
+
+            if (config.output === 'page') {
+                (container as PageNode).appendChild(buttonsFrame);
+            } else {
+                (container as FrameNode).appendChild(buttonsFrame);
+            }
+        }
+
+        // ============================================
+        // INPUTS
+        // ============================================
+        if (config.components.inputs) {
+            const { variants, states } = config.components.inputs;
+
+            figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 40, message: 'Creating inputs...' } });
+
+            const inputsFrame = figma.createFrame();
+            inputsFrame.name = `${config.prefix}Inputs`;
+            inputsFrame.layoutMode = 'VERTICAL';
+            inputsFrame.primaryAxisSizingMode = 'AUTO';
+            inputsFrame.counterAxisSizingMode = 'AUTO';
+            inputsFrame.itemSpacing = 24;
+            inputsFrame.fills = [];
+
+            for (const variant of variants) {
+                const variantFrame = figma.createFrame();
+                variantFrame.name = `Input/${variant}`;
+                variantFrame.layoutMode = 'HORIZONTAL';
+                variantFrame.primaryAxisSizingMode = 'AUTO';
+                variantFrame.counterAxisSizingMode = 'AUTO';
+                variantFrame.itemSpacing = 16;
+                variantFrame.fills = [];
+
+                for (const state of states) {
+                    const input = await createInput(variant, state, config, findVar);
+                    variantFrame.appendChild(input);
+                    componentCount++;
+                }
+
+                inputsFrame.appendChild(variantFrame);
+            }
+
+            if (config.output === 'page') {
+                (container as PageNode).appendChild(inputsFrame);
+            } else {
+                (container as FrameNode).appendChild(inputsFrame);
+            }
+        }
+
+        // ============================================
+        // BADGES
+        // ============================================
+        if (config.components.badges) {
+            const { variants, sizes } = config.components.badges;
+
+            figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 70, message: 'Creating badges...' } });
+
+            const badgesFrame = figma.createFrame();
+            badgesFrame.name = `${config.prefix}Badges`;
+            badgesFrame.layoutMode = 'HORIZONTAL';
+            badgesFrame.primaryAxisSizingMode = 'AUTO';
+            badgesFrame.counterAxisSizingMode = 'AUTO';
+            badgesFrame.itemSpacing = 16;
+            badgesFrame.fills = [];
+
+            for (const variant of variants) {
+                for (const size of sizes) {
+                    const badge = await createBadge(variant, size, config, findVar);
+                    badgesFrame.appendChild(badge);
+                    componentCount++;
+                }
+            }
+
+            if (config.output === 'page') {
+                (container as PageNode).appendChild(badgesFrame);
+            } else {
+                (container as FrameNode).appendChild(badgesFrame);
+            }
+        }
+
+        figma.ui.postMessage({ type: 'progress-end' });
+        figma.ui.postMessage({ type: 'atoms-generation-complete', payload: { count: componentCount } });
+        figma.notify(`Generated ${componentCount} atomic components!`);
+
+    } catch (err) {
+        console.error('Error generating components:', err);
+        figma.ui.postMessage({ type: 'progress-end' });
+        figma.ui.postMessage({ type: 'atoms-generation-error', payload: (err as Error).message });
+        figma.notify('Error: ' + (err as Error).message);
+    }
+}
+
+// Helper: Create Button component
+async function createButton(
+    variant: string,
+    size: string,
+    state: string,
+    config: AtomsConfig,
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+): Promise<FrameNode | ComponentNode> {
+    const btn = config.asComponents
+        ? figma.createComponent()
+        : figma.createFrame();
+
+    btn.name = `Button/${variant}/${size}/${state}`;
+    btn.layoutMode = 'HORIZONTAL';
+    btn.primaryAxisSizingMode = 'AUTO';
+    btn.counterAxisSizingMode = 'AUTO';
+    btn.primaryAxisAlignItems = 'CENTER';
+    btn.counterAxisAlignItems = 'CENTER';
+
+    // Size-based padding - try to bind to alias variables
+    const paddingVarMap: Record<string, string[]> = {
+        sm: ['padding/y/xs', 'gap/xs'],
+        md: ['padding/y/sm', 'gap/sm'],
+        lg: ['padding/y/md', 'gap/md']
+    };
+    const hPaddingVarMap: Record<string, string[]> = {
+        sm: ['padding/x/sm', 'gap/sm'],
+        md: ['padding/x/md', 'gap/md'],
+        lg: ['padding/x/lg', 'gap/lg']
+    };
+
+    // Try to bind vertical padding
+    const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap['md'], 'FLOAT');
+    if (vPaddingVar) {
+        btn.setBoundVariable('paddingTop', vPaddingVar);
+        btn.setBoundVariable('paddingBottom', vPaddingVar);
+    } else {
+        const paddingFallback: Record<string, number> = { sm: 8, md: 12, lg: 16 };
+        btn.paddingTop = paddingFallback[size] || 12;
+        btn.paddingBottom = paddingFallback[size] || 12;
+    }
+
+    // Try to bind horizontal padding
+    const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap['md'], 'FLOAT');
+    if (hPaddingVar) {
+        btn.setBoundVariable('paddingLeft', hPaddingVar);
+        btn.setBoundVariable('paddingRight', hPaddingVar);
+    } else {
+        const hPaddingFallback: Record<string, number> = { sm: 12, md: 16, lg: 24 };
+        btn.paddingLeft = hPaddingFallback[size] || 16;
+        btn.paddingRight = hPaddingFallback[size] || 16;
+    }
+
+    // Try to bind corner radius
+    const radiusVar = findVar(['radius/md', 'radius/sm'], 'FLOAT');
+    if (radiusVar) {
+        btn.setBoundVariable('topLeftRadius', radiusVar);
+        btn.setBoundVariable('topRightRadius', radiusVar);
+        btn.setBoundVariable('bottomLeftRadius', radiusVar);
+        btn.setBoundVariable('bottomRightRadius', radiusVar);
+    } else {
+        btn.cornerRadius = 8;
+    }
+
+    // Background color based on variant and state
+    let bgVarTerms: string[] = [];
+    let textVarTerms: string[] = [];
+
+    if (variant === 'primary') {
+        if (state === 'hover') bgVarTerms = ['action/primaryhover', 'primaryhover'];
+        else if (state === 'active') bgVarTerms = ['action/primaryactive', 'primaryactive'];
+        else if (state === 'disabled') bgVarTerms = ['action/primarydisabled', 'primarydisabled'];
+        else bgVarTerms = ['action/primary'];
+        textVarTerms = ['text/inverse', 'inverse'];
+    } else if (variant === 'secondary') {
+        if (state === 'hover') bgVarTerms = ['action/secondaryhover', 'secondaryhover'];
+        else bgVarTerms = ['action/secondary'];
+        textVarTerms = ['text/primary'];
+    } else if (variant === 'ghost') {
+        if (state === 'hover') bgVarTerms = ['action/ghosthover', 'ghosthover'];
+        else bgVarTerms = ['action/ghost', 'background/primary'];
+        textVarTerms = ['text/brand', 'action/primary'];
+    } else if (variant === 'destructive') {
+        if (state === 'hover') bgVarTerms = ['action/destructivehover', 'destructivehover'];
+        else bgVarTerms = ['action/destructive'];
+        textVarTerms = ['text/inverse', 'inverse'];
+    }
+
+    // Apply background
+    const bgVar = findVar(bgVarTerms, 'COLOR');
+    if (bgVar) {
+        btn.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', bgVar)];
+    } else {
+        btn.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.6, b: 0.9 } }];
+    }
+
+    // Add border for secondary/ghost
+    if (variant === 'secondary' || variant === 'ghost') {
+        const borderVar = findVar(['border/default'], 'COLOR');
+        if (borderVar) {
+            btn.strokes = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }, 'color', borderVar)];
+            btn.strokeWeight = 1;
+        }
+    }
+
+    // Opacity for disabled
+    if (state === 'disabled') {
+        btn.opacity = 0.5;
+    }
+
+    // Text
+    const text = figma.createText();
+    await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
+    text.fontName = { family: 'Inter', style: 'Medium' };
+    text.characters = variant.charAt(0).toUpperCase() + variant.slice(1);
+
+    const fontSizeMap: Record<string, number> = { sm: 12, md: 14, lg: 16 };
+    text.fontSize = fontSizeMap[size] || 14;
+
+    // Text color
+    const textVar = findVar(textVarTerms, 'COLOR');
+    if (textVar) {
+        text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', textVar)];
+    }
+
+    btn.appendChild(text);
+    return btn;
+}
+
+// Helper: Create Input component
+async function createInput(
+    variant: string,
+    state: string,
+    config: AtomsConfig,
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+): Promise<FrameNode | ComponentNode> {
+    const input = config.asComponents
+        ? figma.createComponent()
+        : figma.createFrame();
+
+    input.name = `Input/${variant}/${state}`;
+    input.layoutMode = 'HORIZONTAL';
+    input.primaryAxisSizingMode = 'FIXED';
+    input.counterAxisSizingMode = 'AUTO';
+    input.resize(240, input.height);
+
+    // Try to bind padding
+    const vPaddingVar = findVar(['padding/y/sm', 'gap/sm'], 'FLOAT');
+    if (vPaddingVar) {
+        input.setBoundVariable('paddingTop', vPaddingVar);
+        input.setBoundVariable('paddingBottom', vPaddingVar);
+    } else {
+        input.paddingTop = 12;
+        input.paddingBottom = 12;
+    }
+
+    const hPaddingVar = findVar(['padding/x/md', 'gap/md'], 'FLOAT');
+    if (hPaddingVar) {
+        input.setBoundVariable('paddingLeft', hPaddingVar);
+        input.setBoundVariable('paddingRight', hPaddingVar);
+    } else {
+        input.paddingLeft = 16;
+        input.paddingRight = 16;
+    }
+
+    // Try to bind corner radius
+    const radiusVar = findVar(['radius/md', 'radius/sm'], 'FLOAT');
+    if (radiusVar) {
+        input.setBoundVariable('topLeftRadius', radiusVar);
+        input.setBoundVariable('topRightRadius', radiusVar);
+        input.setBoundVariable('bottomLeftRadius', radiusVar);
+        input.setBoundVariable('bottomRightRadius', radiusVar);
+    } else {
+        input.cornerRadius = 8;
+    }
+
+    // Background
+    const bgVar = findVar(['surface/card', 'surface/primary', 'background/primary'], 'COLOR');
+    if (bgVar) {
+        input.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', bgVar)];
+    } else {
+        input.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    }
+
+    // Border based on state
+    let borderTerms: string[] = ['border/default'];
+    if (state === 'focus') borderTerms = ['border/focus'];
+    else if (state === 'error') borderTerms = ['border/error', 'status/error'];
+    else if (state === 'success') borderTerms = ['border/success', 'status/success'];
+    else if (state === 'disabled') borderTerms = ['border/disabled'];
+
+    const borderVar = findVar(borderTerms, 'COLOR');
+    if (borderVar) {
+        input.strokes = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }, 'color', borderVar)];
+    } else {
+        input.strokes = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }];
+    }
+    input.strokeWeight = state === 'focus' ? 2 : 1;
+
+    // Opacity for disabled
+    if (state === 'disabled') {
+        input.opacity = 0.5;
+    }
+
+    // Placeholder text
+    const text = figma.createText();
+    await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+    text.fontName = { family: 'Inter', style: 'Regular' };
+    text.characters = state === 'disabled' ? 'Disabled' : (variant === 'textarea' ? 'Enter text...' : 'Placeholder');
+    text.fontSize = 14;
+    text.layoutGrow = 1;
+
+    // Text color
+    const textVar = findVar(['text/placeholder', 'text/tertiary'], 'COLOR');
+    if (textVar) {
+        text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.6, g: 0.6, b: 0.6 } }, 'color', textVar)];
+    }
+
+    input.appendChild(text);
+
+    // Make textarea taller
+    if (variant === 'textarea') {
+        input.layoutMode = 'VERTICAL';
+        input.resize(240, 100);
+        input.primaryAxisSizingMode = 'FIXED';
+    }
+
+    return input;
+}
+
+// Helper: Create Badge component
+async function createBadge(
+    variant: string,
+    size: string,
+    config: AtomsConfig,
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+): Promise<FrameNode | ComponentNode> {
+    const badge = config.asComponents
+        ? figma.createComponent()
+        : figma.createFrame();
+
+    badge.name = `Badge/${variant}/${size}`;
+    badge.layoutMode = 'HORIZONTAL';
+    badge.primaryAxisSizingMode = 'AUTO';
+    badge.counterAxisSizingMode = 'AUTO';
+
+    // Try to bind padding
+    const paddingVarMap: Record<string, string[]> = {
+        sm: ['padding/y/2xs', 'gap/2xs'],
+        md: ['padding/y/xs', 'gap/xs']
+    };
+    const hPaddingVarMap: Record<string, string[]> = {
+        sm: ['padding/x/xs', 'gap/xs'],
+        md: ['padding/x/sm', 'gap/sm']
+    };
+
+    const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap['sm'], 'FLOAT');
+    if (vPaddingVar) {
+        badge.setBoundVariable('paddingTop', vPaddingVar);
+        badge.setBoundVariable('paddingBottom', vPaddingVar);
+    } else {
+        const paddingFallback: Record<string, number> = { sm: 4, md: 6 };
+        badge.paddingTop = paddingFallback[size] || 4;
+        badge.paddingBottom = paddingFallback[size] || 4;
+    }
+
+    const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap['sm'], 'FLOAT');
+    if (hPaddingVar) {
+        badge.setBoundVariable('paddingLeft', hPaddingVar);
+        badge.setBoundVariable('paddingRight', hPaddingVar);
+    } else {
+        const hPaddingFallback: Record<string, number> = { sm: 8, md: 12 };
+        badge.paddingLeft = hPaddingFallback[size] || 8;
+        badge.paddingRight = hPaddingFallback[size] || 8;
+    }
+
+    // Try to bind corner radius (pill shape)
+    const radiusVar = findVar(['radius/full', 'radius/pill'], 'FLOAT');
+    if (radiusVar) {
+        badge.setBoundVariable('topLeftRadius', radiusVar);
+        badge.setBoundVariable('topRightRadius', radiusVar);
+        badge.setBoundVariable('bottomLeftRadius', radiusVar);
+        badge.setBoundVariable('bottomRightRadius', radiusVar);
+    } else {
+        badge.cornerRadius = 999; // Pill shape fallback
+    }
+
+    // Background based on variant
+    let bgTerms: string[] = [];
+    let textTerms: string[] = [];
+
+    if (variant === 'neutral') {
+        bgTerms = ['surface/card', 'background/secondary'];
+        textTerms = ['text/primary'];
+    } else if (variant === 'primary') {
+        bgTerms = ['action/primary'];
+        textTerms = ['text/inverse'];
+    } else if (variant === 'success') {
+        bgTerms = ['status/success'];
+        textTerms = ['text/inverse'];
+    } else if (variant === 'warning') {
+        bgTerms = ['status/warning'];
+        textTerms = ['text/inverse'];
+    } else if (variant === 'error') {
+        bgTerms = ['status/error'];
+        textTerms = ['text/inverse'];
+    }
+
+    const bgVar = findVar(bgTerms, 'COLOR');
+    if (bgVar) {
+        badge.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', bgVar)];
+    } else {
+        badge.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
+    }
+
+    // Neutral gets a border
+    if (variant === 'neutral') {
+        const borderVar = findVar(['border/default'], 'COLOR');
+        if (borderVar) {
+            badge.strokes = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }, 'color', borderVar)];
+            badge.strokeWeight = 1;
+        }
+    }
+
+    // Text
+    const text = figma.createText();
+    await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
+    text.fontName = { family: 'Inter', style: 'Medium' };
+
+    const labelMap: Record<string, string> = {
+        neutral: 'Label',
+        primary: 'New',
+        success: 'Success',
+        warning: 'Warning',
+        error: 'Error'
+    };
+    text.characters = labelMap[variant] || 'Badge';
+
+    const fontSizeMap: Record<string, number> = { sm: 10, md: 12 };
+    text.fontSize = fontSizeMap[size] || 12;
+
+    const textVar = findVar(textTerms, 'COLOR');
+    if (textVar) {
+        text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', textVar)];
+    }
+
+    badge.appendChild(text);
+    return badge;
 }
 
 async function createTypographyVariables(data: TypographyData): Promise<void> {
@@ -2748,6 +3301,10 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
 
             case 'create-aliases':
                 await createSemanticTokens(msg.config as AliasConfig);
+                break;
+
+            case 'generate-atoms':
+                await generateAtomicComponents(msg.config as AtomsConfig);
                 break;
 
             case 'get-groups-for-devtools': {

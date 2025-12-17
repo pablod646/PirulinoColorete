@@ -1,9 +1,11 @@
 <div id="section-aliases" class="section-content">
-    <!-- Mode Toggle -->
+    <!-- Mode Toggle (Removed) -->
+    <!--
     <div class="tab-toggle" style="margin-bottom: var(--space-6);">
         <button id="mode-tokens" class="toggle-btn active">Create Tokens</button>
         <button id="mode-styles" class="toggle-btn">Figma Styles</button>
     </div>
+    -->
 
     <!-- ==================== MODE: CREATE TOKENS ==================== -->
     <div id="aliases-mode-tokens">
@@ -54,102 +56,7 @@
         </button>
     </div>
 
-    <!-- ==================== MODE: FIGMA STYLES ==================== -->
-    <div id="aliases-mode-styles" style="display: none;">
-        <!-- Step 1: Select Source -->
-        <div class="card" style="margin-bottom: var(--space-4);">
-            <div class="section-title">1. Select Source Collection</div>
-            <p class="step-description">Choose a collection with your design tokens. We'll automatically detect what
-                styles can be created.</p>
-
-            <div class="form-group">
-                <label>Collection</label>
-                <select id="styles-source-collection">
-                    <option value="" disabled selected>Select Collection...</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Step 2: Configuration (Hidden) -->
-        <div class="card" style="margin-bottom: var(--space-4); display: none;">
-            <div class="section-title">2. Style Name Prefix</div>
-            <div class="form-group">
-                <label>Prefix</label>
-                <input type="text" id="styles-prefix" placeholder="Tokens" value="">
-                <span class="input-hint">Styles will be named: Prefix/H1 / Bold, etc.</span>
-            </div>
-        </div>
-
-        <!-- Scan Button -->
-        <button id="scan-styles-btn" class="secondary" disabled style="width: 100%; margin-bottom: var(--space-4);">
-            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                </svg></span> Scan Collection
-        </button>
-
-        <!-- No Styles Warning -->
-        <div id="styles-no-vars-warning" class="warning-card" style="display: none;">
-            <div class="warning-icon">⚠️</div>
-            <div class="warning-content">
-                <strong>No compatible variables found</strong>
-                <p>The selected collection doesn't contain variables that can be converted to Figma styles.</p>
-                <button id="go-to-tokens-btn" class="secondary btn-sm" style="margin-top: var(--space-3);">
-                    <span class="icon">→</span> Go to Create Tokens
-                </button>
-            </div>
-        </div>
-
-        <!-- Styles Categories -->
-        <div id="styles-categories" style="display: none;">
-            <!-- Text Styles -->
-            <div id="text-styles-section" class="styles-section" style="display: none;">
-                <div class="styles-section-header">
-                    <div class="styles-section-info">
-                        <span class="styles-section-icon">📝</span>
-                        <div>
-                            <strong>Text Styles</strong>
-                            <span class="styles-section-count">0 styles</span>
-                        </div>
-                    </div>
-                    <div class="styles-section-actions">
-                        <button class="ghost btn-sm select-all-text">Select All</button>
-                        <button class="ghost btn-sm deselect-all-text">Deselect</button>
-                    </div>
-                </div>
-                <div id="text-styles-list" class="styles-list"></div>
-            </div>
-
-            <!-- Effect Styles (Shadows) -->
-            <div id="effect-styles-section" class="styles-section" style="display: none;">
-                <div class="styles-section-header">
-                    <div class="styles-section-info">
-                        <span class="styles-section-icon">🌑</span>
-                        <div>
-                            <strong>Effect Styles (Shadows)</strong>
-                            <span class="styles-section-count">0 styles</span>
-                        </div>
-                    </div>
-                    <div class="styles-section-actions">
-                        <button class="ghost btn-sm select-all-effects">Select All</button>
-                        <button class="ghost btn-sm deselect-all-effects">Deselect</button>
-                    </div>
-                </div>
-                <div id="effect-styles-list" class="styles-list"></div>
-            </div>
-        </div>
-
-        <!-- Create Button -->
-        <button id="create-styles-btn" class="primary big-btn" disabled
-            style="width: 100%; margin-top: var(--space-4); display: none;">
-            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-                    <path d="m9 12 2 2 4-4" />
-                </svg></span> Create Selected Styles (<span id="selected-styles-count">0</span>)
-        </button>
-    </div>
+    <!-- ==================== MODE: FIGMA STYLES (REMOVED) ==================== -->
 </div>
 
 <style>

@@ -47,7 +47,7 @@ function initColors() {
     // Message Listener
     window.addEventListener('plugin-message', (event) => {
         const { type, payload } = event.detail;
-        console.log(`🎨 Colors received message: ${type}`, payload);
+
 
         if (type === 'progress-start') {
             if (progressDiv) {

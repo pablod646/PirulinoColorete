@@ -1,7 +1,7 @@
 console.clear();
 
 // Show the UI with improved dimensions
-figma.showUI(__html__, { width: 500, height: 600, themeColors: true });
+figma.showUI(__html__, { width: 600, height: 800, themeColors: true });
 
 async function loadCollections() {
   try {
@@ -50,6 +50,77 @@ figma.ui.onmessage = async (msg) => {
       const scale = calculateScale(color);
       await createVariables(scale, config);
     }
+  } else if (msg.type === 'preview-scale-batch') {
+    const batchData = msg.colors; // [{ name: "Red", hex: "#f00" }]
+    const results = [];
+
+    for (const item of batchData) {
+      const color = parseColor(item.hex);
+      if (color) {
+        const scale = calculateScale(color);
+        const steps = {};
+        for (const [k, v] of Object.entries(scale)) {
+          steps[k] = {
+            hex: rgbToHex(v.r, v.g, v.b).toUpperCase(),
+            r: v.r, g: v.g, b: v.b
+          };
+        }
+        results.push({ name: item.name, steps: steps });
+      }
+    }
+    figma.ui.postMessage({ type: 'preview-scale-batch-result', payload: results });
+
+  } else if (msg.type === 'create-variables-batch') {
+    const { colors, config } = msg; // colors: [{name, hex}], config: { collectionId, collectionName, groupName }
+
+    try {
+      figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Color Variables...' });
+
+      if (!colors || !Array.isArray(colors)) throw new Error("Invalid colors data");
+      if (!config) throw new Error("Missing configuration");
+
+      // Create collection if collectionName is provided
+      let targetCollectionId = config.collectionId;
+      if (config.collectionName && !targetCollectionId) {
+        const newCollection = figma.variables.createVariableCollection(config.collectionName);
+        targetCollectionId = newCollection.id;
+        figma.notify(`Collection "${config.collectionName}" created! ✅`);
+        // Reload collections in UI
+        await loadCollections();
+      }
+
+      if (!targetCollectionId) {
+        throw new Error("No collection specified");
+      }
+
+      // Update config with actual collection ID
+      const finalConfig = Object.assign({}, config, { collectionId: targetCollectionId });
+
+      let createdCount = 0;
+      for (const item of colors) {
+        if (!item || !item.hex) continue;
+        const color = parseColor(item.hex);
+        if (color) {
+          const scale = calculateScale(color);
+          // Override name in config for this specific iteration (Safe Object.assign)
+          const itemConfig = Object.assign({}, finalConfig, { colorName: item.name });
+
+          // Ensure we await each creation to avoid race conditions in variable lookup
+          await createVariables(scale, itemConfig);
+          createdCount++;
+        }
+      }
+
+      figma.ui.postMessage({ type: 'progress-end' });
+      figma.notify(`Created ${createdCount} Color Palettes successfully!`);
+      figma.ui.postMessage({ type: 'variables-created-success' });
+
+    } catch (err) {
+      console.error(err);
+      figma.ui.postMessage({ type: 'progress-end' });
+      figma.notify("Error creating batch variables: " + err.message);
+    }
+
   } else if (msg.type === 'get-selection-color') {
     // Force a re-check of current selection
     handleSelectionChange();
@@ -82,53 +153,85 @@ figma.ui.onmessage = async (msg) => {
     await createSemanticTokens(msg.config);
   } else if (msg.type === 'create-text-styles') {
     await createTextStyles(msg.config);
+
+  } else if (msg.type === 'get-groups-for-theme') {
+    await getGroupsCustom(msg.collectionId, 'load-groups-theme');
+
+  } else if (msg.type === 'get-groups-for-tab1') {
+    await getGroupsCustom(msg.collectionId, 'load-groups-tab1');
+
+  } else if (msg.type === 'load-palettes') {
+    await loadPalettes(msg.collectionId, msg.groupName);
+
+  } else if (msg.type === 'generate-theme') {
+    // Correct Signature: (accent, neutral, status, themeName, isRegenerate, tokenOverrides)
+    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.statusPalettes, msg.themeName, false, msg.tokenOverrides);
+
+  } else if (msg.type === 'regenerate-theme') {
+    // Correct Signature: (accent, neutral, status, themeName, isRegenerate, tokenOverrides)
+    await generateTheme(msg.accentPalette, msg.neutralPalette, msg.statusPalettes, msg.themeName, true, msg.tokenOverrides);
+
+  } else if (msg.type === 'create-theme') {
+    await createThemeCollection(msg.themeData);
   }
 };
 
-// Helper: Parse Color (Hex or OKLCH)
+// Helper: Parse Color (Hex, RGB, OKLCH - Robust)
 function parseColor(input) {
-  const hex = input.trim();
+  const str = input.trim().toLowerCase();
 
-  // 1. Try Hex
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (result) {
-    return {
-      r: parseInt(result[1], 16) / 255,
-      g: parseInt(result[2], 16) / 255,
-      b: parseInt(result[3], 16) / 255
-    };
-  }
-  const shortResult = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
-  if (shortResult) {
-    return {
-      r: parseInt(shortResult[1] + shortResult[1], 16) / 255,
-      g: parseInt(shortResult[2] + shortResult[2], 16) / 255,
-      b: parseInt(shortResult[3] + shortResult[3], 16) / 255
-    };
-  }
-
-  // 2. Try OKLCH
-  // Format: oklch(L C H) or oklch(L% C H)
-  // e.g. oklch(63.7% 0.237 25.331)
-  const oklchMatch = /^oklch\(\s*([0-9.]+)%?\s+([0-9.]+)\s+([0-9.]+)\s*\)$/i.exec(hex);
-  if (oklchMatch) {
-    let L = parseFloat(oklchMatch[1]);
-    if (hex.includes('%') && L > 1) L = L / 100; // Handle percentage
-    const C = parseFloat(oklchMatch[2]);
-    const H = parseFloat(oklchMatch[3]);
-    return oklchToRgb(L, C, H);
+  // 1. Hex
+  if (str.startsWith('#')) {
+    const hex = str;
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (result) {
+      return {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+      };
+    }
+    const shortResult = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
+    if (shortResult) {
+      return {
+        r: parseInt(shortResult[1] + shortResult[1], 16) / 255,
+        g: parseInt(shortResult[2] + shortResult[2], 16) / 255,
+        b: parseInt(shortResult[3] + shortResult[3], 16) / 255
+      };
+    }
   }
 
-  // 3. Try RGB / RGBA
-  // Format: rgb(r, g, b) or rgba(r, g, b, a)
-  // Simple parsing assuming comma separation mainly
-  const rgbMatch = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(hex);
-  if (rgbMatch) {
-    return {
-      r: parseInt(rgbMatch[1], 10) / 255,
-      g: parseInt(rgbMatch[2], 10) / 255,
-      b: parseInt(rgbMatch[3], 10) / 255
-    };
+  // 2. Functional Syntax (rgb(...), oklch(...))
+  const match = str.match(/^([a-z]+)\((.+)\)$/);
+  if (match) {
+    const type = match[1];
+    // Split params by comma, space, or slash (for alpha)
+    // Filter out empty strings
+    const params = match[2].split(/[,\s/]+/).filter(x => x.length > 0);
+
+    if ((type === 'rgb' || type === 'rgba') && params.length >= 3) {
+      const getVal = (raw) => {
+        const val = parseFloat(raw);
+        if (raw.includes('%')) return (val / 100) * 255;
+        return val;
+      };
+      return {
+        r: getVal(params[0]) / 255,
+        g: getVal(params[1]) / 255,
+        b: getVal(params[2]) / 255
+      };
+    }
+
+    if (type === 'oklch' && params.length >= 3) {
+      // L C H
+      let L = parseFloat(params[0]);
+      if (params[0].includes('%') && L > 1) L = L / 100; // Handle 95% -> 0.95
+
+      const C = parseFloat(params[1]);
+      const H = parseFloat(params[2]);
+
+      return oklchToRgb(L, C, H);
+    }
   }
 
   return null;
@@ -613,42 +716,217 @@ async function createSemanticTokens(config) {
       { name: 'Spacing/Radius/2xl', desktop: '24px', tablet: '20px', mobile: '16px' }
     ];
 
-    // Helper to generate vars from a map using a specific group source
-    const generateFromMap = (map, sourceGroupId, type = 'FLOAT') => {
-      for (const item of map) {
-        let variable = allVars.find(v => v.variableCollectionId === targetCollection.id && v.name === item.name);
-        if (!variable) {
-          variable = figma.variables.createVariable(item.name, targetCollection, type);
+    // PROCESS SEMANTIC TOKENS (Restored)
+
+    // A. Typography Aliases
+    const allTextMaps = [...textMap, ...componentTextMap];
+    for (const item of allTextMaps) {
+      const createModeVar = (leaf, val) => {
+        // val is like 'xs', 'base', '4xl'
+        const path = `${item.name}`; // e.g. Typography/Body/m
+        let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+        if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+        // Find Source (Font Size)
+        const sourceVar = findSource(typoGroup, val);
+        if (sourceVar) {
+          v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+          // If item has specific modes? item.desktop, item.tablet...
+          // The map has desktop, tablet, mobile keys!
         }
+        return v;
+      };
 
-        const setAlias = (mode, leaf) => {
-          const source = findSource(sourceGroupId, leaf);
-          if (source) {
-            variable.setValueForMode(mode, { type: 'VARIABLE_ALIAS', id: source.id });
-          } else {
-            // Try to find if leaf is just a number string? No, assume "4px" etc from map.
-            // Warn but don't break.
-            // console.warn(`Missing source: ${leaf} for ${item.name}`);
-          }
-        };
+      // Actually we need to handle the responsive keys in the map: desktop, tablet, mobile
+      const path = item.name;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
 
-        setAlias(desktopId, item.desktop);
-        setAlias(tabletId, item.tablet);
-        setAlias(mobileId, item.mobile);
+      const setMode = (modeId, valName) => {
+        const sourceVar = findSource(typoGroup, valName); // e.g. find 4xl
+        if (sourceVar) {
+          v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        } else {
+          console.warn(`Source not found for ${valName}`);
+        }
+      };
+
+      setMode(desktopId, item.desktop);
+      setMode(tabletId, item.tablet);
+      setMode(mobileId, item.mobile);
+    }
+
+    // B. Spacing & Radius Aliases
+    const allSpaceMaps = [...spaceMap, ...radiusMap];
+    for (const item of allSpaceMaps) {
+      const path = item.name;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+      const setMode = (modeId, valRaw) => {
+        // valRaw is '4px', '16px' etc.
+        // Clean string
+        let safeName = valRaw.replace('.', '_');
+        const sourceVar = findSource(measureGroup, safeName);
+        if (sourceVar) {
+          v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        } else {
+          // Fallback?
+          console.warn(`Source not found for ${safeName}`);
+        }
+      };
+
+      setMode(desktopId, item.desktop);
+      setMode(tabletId, item.tablet);
+      setMode(mobileId, item.mobile);
+    }
+    // 5. Shadows / Elevation System
+    // Standard Tailwind Shadows
+    const shadowMap = [
+      { name: 'Elevation/sm', y: 1, blur: 2, spread: 0, opacity: 0.05 },
+      { name: 'Elevation/md', y: 4, blur: 6, spread: -1, opacity: 0.1 },
+      { name: 'Elevation/lg', y: 10, blur: 15, spread: -3, opacity: 0.1 },
+      { name: 'Elevation/xl', y: 20, blur: 25, spread: -5, opacity: 0.1 }
+    ];
+
+    // NOTE: User requested NO Color Variables for now. Using raw black with opacity.
+
+    // Process Shadows
+    const existingEffectStyles = await figma.getLocalEffectStylesAsync();
+
+    for (const shadow of shadowMap) {
+      // Create Semantic Number Variables (Aliased to Primitives if possible)
+      // e.g. Elevation/sm/Y -> Alias(Primitives/1px)
+      const createGeoVar = (leaf, val) => {
+        const path = `${shadow.name}/${leaf}`;
+        let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+        if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+        // Try to find Primitive Source
+        // Assuming measureGroup has variables like "1px", "4px", "-1px"
+        // Handle negative spread: "-1px"
+        let sourceName = `${val}px`;
+        // Handle dot?
+        sourceName = sourceName.replace('.', '_');
+
+        const sourceVar = findSource(measureGroup, sourceName);
+
+        // Apply to modes
+        if (sourceVar) {
+          v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+          v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+          v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        } else {
+          // Fallback to raw value if primitive missing
+          v.setValueForMode(desktopId, val);
+          v.setValueForMode(tabletId, val);
+          v.setValueForMode(mobileId, val);
+        }
+        return v;
+      };
+
+      const varY = createGeoVar('Y', shadow.y);
+      const varBlur = createGeoVar('Blur', shadow.blur);
+      const varSpread = createGeoVar('Spread', shadow.spread);
+
+      // Create Effect Style
+      const styleName = shadow.name;
+      let effectStyle = existingEffectStyles.find(s => s.name === styleName);
+      if (!effectStyle) {
+        effectStyle = figma.createEffectStyle();
+        effectStyle.name = styleName;
       }
-    };
 
-    // Execute Generation
-    generateFromMap(textMap, typoGroup);
-    generateFromMap(componentTextMap, typoGroup); // reuse typo group
-    // generateFromMap(weightMap, typoGroup); // Removed: Weights handled via Styles later
-    generateFromMap(spaceMap, measureGroup);
-    generateFromMap(radiusMap, measureGroup);    // reuse measure group for radius
+      // Apply with Bindings (Geometry only)
+      // Corrected boundVariables keys: offsetY, radius, spread
+      effectStyle.effects = [{
+        type: 'DROP_SHADOW',
+        color: { r: 0, g: 0, b: 0, a: shadow.opacity }, // Raw Color
+        offset: { x: 0, y: shadow.y },
+        radius: shadow.blur,
+        spread: shadow.spread,
+        visible: true,
+        blendMode: 'NORMAL',
+        boundVariables: {
+          // Flattened keys for offset
+          offsetY: { type: 'VARIABLE_ALIAS', id: varY.id },
+          radius: { type: 'VARIABLE_ALIAS', id: varBlur.id },
+          spread: { type: 'VARIABLE_ALIAS', id: varSpread.id }
+        }
+      }];
+    }
 
+    // 6. Blurs (Layer & Background)
+    const blurMap = [
+      { name: 'Blur/sm', radius: 4 },
+      { name: 'Blur/md', radius: 8 },
+      { name: 'Blur/lg', radius: 16 },
+      { name: 'Blur/xl', radius: 24 },
+      { name: 'Blur/2xl', radius: 40 },
+      { name: 'Blur/3xl', radius: 64 }
+    ];
+
+    for (const blur of blurMap) {
+      // Create Variable (Aliased to Primitive)
+      const path = `Elevation/${blur.name}`;
+      let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
+      if (!v) v = figma.variables.createVariable(path, targetCollection, "FLOAT");
+
+      // Find Primitive Source
+      let sourceName = `${blur.radius}px`;
+      const sourceVar = findSource(measureGroup, sourceName);
+
+      if (sourceVar) {
+        v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+        // Mobile Scaling: 
+        // If we have a primitive for the smaller size? 
+        // e.g. 16px -> 12px?
+        // Hard to guess. For now, let's keep it consistent or use raw calculation if alias fails.
+        // User requested "responsive". If we alias, we lock to the primitive.
+        // Does the primitive change per mode? No, primitives are usually constant.
+        // Semantic variables CHANGE value per mode.
+        // So: Desktop = Alias(16px). Mobile = Alias(12px).
+        // We need to guess the smaller primitive.
+
+        // Simple fallback: If mobile needs 0.8x, that might not be a clean primitive.
+        // Let's use the SAME primitive for now to be safe, unless we have a specific mobile map.
+        // Or fallback to raw value for mobile if we want custom scaling.
+
+        v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+      } else {
+        v.setValueForMode(desktopId, blur.radius);
+        v.setValueForMode(tabletId, blur.radius);
+        v.setValueForMode(mobileId, blur.radius * 0.8);
+      }
+
+      // Create Styles
+      const layerName = blur.name.replace('Blur/', 'Blur/Layer/');
+      let layerStyle = existingEffectStyles.find(s => s.name === layerName);
+      if (!layerStyle) { layerStyle = figma.createEffectStyle(); layerStyle.name = layerName; }
+
+      layerStyle.effects = [{
+        type: 'LAYER_BLUR',
+        radius: blur.radius,
+        visible: true,
+        boundVariables: { radius: { type: 'VARIABLE_ALIAS', id: v.id } }
+      }];
+
+      const bgName = blur.name.replace('Blur/', 'Blur/Background/');
+      let bgStyle = existingEffectStyles.find(s => s.name === bgName);
+      if (!bgStyle) { bgStyle = figma.createEffectStyle(); bgStyle.name = bgName; }
+
+      bgStyle.effects = [{
+        type: 'BACKGROUND_BLUR',
+        radius: blur.radius,
+        visible: true,
+        boundVariables: { radius: { type: 'VARIABLE_ALIAS', id: v.id } }
+      }];
+    }
 
     figma.ui.postMessage({ type: 'progress-end' });
-    figma.ui.postMessage({ type: 'aliases-created' }); // Unlock Button
-    figma.notify(`Generated tokens in collection "${targetName}" with 3 modes!`);
+    figma.notify("Responsive Tokens + Shadows + Blurs created successfully!");
+    figma.ui.postMessage({ type: 'aliases-created' }); // Enable tab button
 
   } catch (err) {
     console.error(err);
@@ -672,20 +950,16 @@ async function createTextStyles(config) {
       return allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === path);
     };
 
-    const findSemanticSize = (name) => {
-      // Path: "Tokens/Typography/Display/h1"
-      // We need to find the variable in the "Tokens" collection (which we don't have ID for easily here? 
-      // Wait, targetName is passed. We can find the collection by name.)
-      const collections = figma.variables.getLocalVariableCollections();
-      const targetColl = collections.find(c => c.name === targetName);
-      if (!targetColl) return null;
-      return allVars.find(v => v.variableCollectionId === targetColl.id && v.name === name);
-    };
-
     // Need target collection to find semantic vars
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
     const targetColl = collections.find(c => c.name === targetName);
     if (!targetColl) throw new Error(`Collection "${targetName}" not found. Run Step 1 first.`);
+
+    const findSemanticSize = (name) => {
+      return allVars.find(v => v.variableCollectionId === targetColl.id && v.name === name);
+    };
+
+    // Primitive Weights to iterate - CORRECTED FOR INTER (Spaces)
 
     // Primitive Weights to iterate - CORRECTED FOR INTER (Spaces)
     // We iterate the Font Styles (what Figma expects for Inter)
@@ -1322,8 +1596,18 @@ async function convertCollection(collectionId, groupFilter) {
 // --- Color Conversion Helpers ---
 
 function rgbToHex(r, g, b) {
+  // Handle object input {r,g,b}
+  if (typeof r === 'object' && r !== null) {
+    const color = r;
+    r = color.r;
+    g = color.g;
+    b = color.b;
+  }
+
   const toHex = (n) => {
-    const hex = Math.round(n * 255).toString(16);
+    // Clamp values 0-1
+    const val = Math.max(0, Math.min(1, n));
+    const hex = Math.round(val * 255).toString(16);
     return hex.length === 1 ? '0' + hex : hex;
   };
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
@@ -1386,4 +1670,322 @@ function getWCAGRating(ratio) {
   if (ratio >= 4.5) return ["AA", "AA Large"];
   if (ratio >= 3) return ["AA Large"];
   return ["Fail"];
+}
+
+// ===== THEME SYSTEM =====
+
+// Load available color palettes
+async function loadPalettes(collectionId, groupName) {
+  try {
+    const palettes = [];
+
+    if (!collectionId) {
+      figma.ui.postMessage({ type: 'load-palettes', payload: [] });
+      return;
+    }
+
+    // Use getLocalVariablesAsync and filter manually as getVariablesInCollectionAsync doesn't exist
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+    const variables = allVariables.filter(v => v.variableCollectionId === collectionId);
+
+    // const variables = await figma.variables.getVariablesInCollectionAsync(collectionId);
+
+    const paletteNames = new Set();
+
+    // Debug info
+    const safeGroupName = groupName ? groupName.trim() : '';
+    console.log(`Scanning ${variables.length} vars. Filter Group: "${safeGroupName}"`);
+
+    variables.forEach(v => {
+      // Only process COLOR variables
+      if (v.resolvedType === 'COLOR' && v.name.includes('/')) {
+        const name = v.name;
+
+        if (safeGroupName) {
+          // Check if variable is inside this group
+          const prefix = safeGroupName + '/';
+          if (name.startsWith(prefix)) {
+            // It is inside. Now we need to find the "Palette Name".
+            // Logic: The Palette Name is the full path to the collection of shades.
+            // e.g. "Colors/Esmerald/50" -> Palette is "Colors/Esmerald"
+            // e.g. "Colors/Actions/Primary/500" -> Palette is "Colors/Actions/Primary"
+
+            // We strip the last segment (Scale)
+            const parts = name.split('/');
+            // Safety check: must have at least prefix parts + 1 (palette) + 1 (scale)
+            // Actually just need enough parts to be inside group + has a shade
+
+            if (parts.length >= 2) {
+              // Full logic: take everything except the last part
+              const palettePath = parts.slice(0, -1).join('/');
+              paletteNames.add(palettePath);
+            }
+          }
+        } else {
+          // No group filter: Add all palettes (path minus last segment)
+          const parts = name.split('/');
+          if (parts.length >= 2) {
+            paletteNames.add(parts.slice(0, -1).join('/'));
+          }
+        }
+      }
+    });
+
+    paletteNames.forEach(name => {
+      palettes.push({ name, collectionId });
+    });
+
+    console.log('Palettes found:', palettes);
+
+    if (palettes.length === 0) {
+      figma.notify(`⚠️ No palettes found in ${groupName ? 'group' : 'collection'}. Scanned ${variables.length} variables.`);
+    }
+
+    figma.ui.postMessage({ type: 'load-palettes', payload: palettes });
+
+  } catch (error) {
+    console.error('Error loading palettes:', error);
+    figma.notify('❌ Error loading palettes: ' + error.message);
+    figma.ui.postMessage({ type: 'load-palettes', payload: [] });
+  }
+}
+
+// Helper: Extract palette colors for UI Picker
+function extractPaletteColors(vars, allVarsMap) {
+  const result = {};
+  // Helper to resolve alias to hex
+  const resolveValue = (val) => {
+    if (!val) return null;
+    if (val.r !== undefined) return rgbToHex(val).toUpperCase();
+    if (val.type === 'VARIABLE_ALIAS' && allVarsMap) {
+      const target = allVarsMap[val.id];
+      if (target) {
+        // Get value from target (using first mode as fallback if we don't know mode)
+        // Ideally we recursively find the mode but often Primitives have 1 mode.
+        const targetModeId = Object.keys(target.valuesByMode)[0];
+        return resolveValue(target.valuesByMode[targetModeId]);
+      }
+    }
+    return null;
+  };
+
+  vars.forEach(v => {
+    const safeName = v.name.trim();
+
+    // 1. Divider match: / - space
+    let match = safeName.match(/[\/\-\s]([0-9]+)$/);
+
+    // 2. Direct number match (e.g. "50")
+    if (!match) match = safeName.match(/^([0-9]+)$/);
+
+    // 3. Combined match (e.g. "Red50") - risky but maybe needed?
+    if (!match) match = safeName.match(/([0-9]+)$/);
+
+    if (match) {
+      const scale = match[1];
+      const modeId = Object.keys(v.valuesByMode)[0];
+      const value = v.valuesByMode[modeId];
+
+      const hex = resolveValue(value);
+      if (hex) {
+        result[scale] = hex;
+      }
+    }
+  });
+
+  return result;
+}
+
+// Generate theme with intelligent mapping
+async function generateTheme(accentPalette, neutralPalette, statusPalettes, themeName, isRegenerate, tokenOverrides) {
+  try {
+    // Use getLocalVariablesAsync directly
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+
+    // Create Map for Alias Resolution
+    const allVarsMap = {};
+    allVariables.forEach(v => allVarsMap[v.id] = v);
+
+    // Filter variables by palette
+    // Fix: Don't force '/', allow other separators
+    const filterByPalette = (paletteName) => {
+      if (!paletteName) return [];
+      return allVariables.filter(v =>
+        v.resolvedType === 'COLOR' && (
+          v.name.startsWith(paletteName + '/') ||
+          v.name.startsWith(paletteName + '-') ||
+          v.name.startsWith(paletteName + ' ') ||
+          v.name === paletteName // Exact match? Unlikely for a palette root but possible
+        )
+      );
+    };
+
+    const accentVars = filterByPalette(accentPalette);
+    const neutralVars = filterByPalette(neutralPalette);
+
+    // Status vars (optional but recommended)
+    // Status vars (optional but recommended)
+    const successVars = (statusPalettes && statusPalettes.success) ? filterByPalette(statusPalettes.success) : [];
+    const warningVars = (statusPalettes && statusPalettes.warning) ? filterByPalette(statusPalettes.warning) : [];
+    const errorVars = (statusPalettes && statusPalettes.error) ? filterByPalette(statusPalettes.error) : [];
+
+    if (accentVars.length === 0 || neutralVars.length === 0) {
+      figma.notify('❌ Selected primary palettes not found');
+      return;
+    }
+
+    // Find variables by scale value
+    const findVar = (vars, scale) => {
+      // 1. Try standard path match (e.g. ".../50")
+      let found = vars.find(v => v.name.endsWith('/' + scale));
+
+      // 2. Try hyphenated match (e.g. "...-50" or ".../Blue-50")
+      if (!found) found = vars.find(v => v.name.endsWith('-' + scale));
+
+      // 3. Try space match (e.g. "... 50")
+      if (!found) found = vars.find(v => v.name.endsWith(' ' + scale));
+
+      return found;
+    };
+
+    // Get variation index
+    // Improvement: Ensure we cycle or pick a different one if regenerating
+    // For now, random is fine providing the mapping logic is distinct enough.
+    // Let's add more distinct variations.
+    const variation = isRegenerate ? Math.floor(Math.random() * 3) : 0; // 0 is default "Standard"
+
+    const mappings = {
+      // 0: Standard Modern (Clean, high contrast text)
+      0: { bgLight: '50', bgDark: '950', textLight: '900', textDark: '50', actionLight: '600', actionDark: '500' },
+
+      // 1: High Contrast / Stark (Pure white/black extremes)
+      1: { bgLight: '0', bgDark: '950', textLight: '950', textDark: '0', actionLight: '700', actionDark: '400' },
+
+      // 2: Soft / Muted (Softer backgrounds, less harsh blacks)
+      2: { bgLight: '100', bgDark: '900', textLight: '800', textDark: '100', actionLight: '500', actionDark: '400' }
+    };
+
+    const map = mappings[variation];
+    const tokens = {};
+
+    const createToken = (name, lightVar, darkVar) => {
+      // Check Overrides first
+      if (tokenOverrides && tokenOverrides[name]) {
+        const override = tokenOverrides[name];
+        // Expect override format: { light: '100', dark: '900' }
+        // We need to resolve these scale values to actual variables
+        // Find variable list based on token type (approximate)
+        let targetVars = neutralVars;
+        if (name.includes('Action') || name.includes('Accent')) targetVars = accentVars;
+        else if (name.includes('Status/success')) targetVars = successVars;
+        else if (name.includes('Status/warning')) targetVars = warningVars;
+        else if (name.includes('Status/error')) targetVars = errorVars;
+
+        // If specific override var exists, use it
+        if (override.light) {
+          const found = findVar(targetVars, override.light);
+          if (found) lightVar = found;
+        }
+        if (override.dark) {
+          const found = findVar(targetVars, override.dark);
+          if (found) darkVar = found;
+        }
+      }
+
+      if (!lightVar || !darkVar) return;
+      const lightColor = lightVar.valuesByMode[Object.keys(lightVar.valuesByMode)[0]];
+      const darkColor = darkVar.valuesByMode[Object.keys(darkVar.valuesByMode)[0]];
+
+      // Safety check for color retrieval
+      if (!lightColor || !darkColor) return;
+
+      tokens[name] = {
+        light: { id: lightVar.id, name: lightVar.name, hex: rgbToHex(lightColor) },
+        dark: { id: darkVar.id, name: darkVar.name, hex: rgbToHex(darkColor) }
+      };
+    };
+
+    // ... Background/Text/Surface/Border/Action tokens (Same as before) ...
+    createToken('Background/primary', findVar(neutralVars, map.bgLight), findVar(neutralVars, map.bgDark));
+    createToken('Background/secondary', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Background/tertiary', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Text/primary', findVar(neutralVars, map.textLight), findVar(neutralVars, map.textDark));
+    createToken('Text/secondary', findVar(neutralVars, '700'), findVar(neutralVars, '300'));
+    createToken('Text/disabled', findVar(neutralVars, '400'), findVar(neutralVars, '600'));
+    createToken('Surface/default', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '950') || findVar(neutralVars, '900'));
+    createToken('Surface/elevated', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '900'));
+    createToken('Surface/overlay', findVar(neutralVars, '0') || findVar(neutralVars, '50'), findVar(neutralVars, '800'));
+    createToken('Border/default', findVar(neutralVars, '200'), findVar(neutralVars, '700'));
+    createToken('Border/subtle', findVar(neutralVars, '100'), findVar(neutralVars, '800'));
+    createToken('Action/primary', findVar(accentVars, map.actionLight), findVar(accentVars, map.actionDark));
+    createToken('Action/primaryHover', findVar(accentVars, '700'), findVar(accentVars, '300'));
+    createToken('Action/disabled', findVar(neutralVars, '300'), findVar(neutralVars, '700'));
+
+    // Status tokens uses specific palettes or fallbacks to accent if not provided
+    const getStatusVar = (vars, scale) => vars.length > 0 ? findVar(vars, scale) : findVar(accentVars, scale);
+
+    createToken('Status/success', getStatusVar(successVars, '600'), getStatusVar(successVars, '400'));
+    createToken('Status/error', getStatusVar(errorVars, '600'), getStatusVar(errorVars, '400'));
+    createToken('Status/warning', getStatusVar(warningVars, '600'), getStatusVar(warningVars, '400'));
+
+    // New Subtle Background Tokens (using same lightness level as theme background)
+    createToken('Status/successSubtle', getStatusVar(successVars, map.bgLight), getStatusVar(successVars, map.bgDark));
+    createToken('Status/errorSubtle', getStatusVar(errorVars, map.bgLight), getStatusVar(errorVars, map.bgDark));
+    createToken('Status/warningSubtle', getStatusVar(warningVars, map.bgLight), getStatusVar(warningVars, map.bgDark));
+
+    const validation = { passed: Object.keys(tokens).length, warnings: [] };
+
+    // Extract full palette data for UI Picker
+    const paletteData = {
+      accent: extractPaletteColors(accentVars, allVarsMap),
+      neutral: extractPaletteColors(neutralVars, allVarsMap),
+      success: extractPaletteColors(successVars, allVarsMap),
+      warning: extractPaletteColors(warningVars, allVarsMap),
+      error: extractPaletteColors(errorVars, allVarsMap)
+    };
+
+    console.log(`Sending paletteData: ${Object.keys(paletteData).map(k => `${k}(${Object.keys(paletteData[k]).length})`).join(', ')}`);
+
+    const messageType = isRegenerate ? 'theme-regenerated' : 'theme-generated';
+    figma.ui.postMessage({
+      type: messageType,
+      payload: {
+        themeName,
+        tokens,
+        validation,
+        accentPalette,
+        neutralPalette,
+        paletteData // Send full palette data for picker
+      }
+    });
+
+  } catch (error) {
+    console.error("Generate Theme Error:", error);
+    figma.notify('❌ Error generating theme: ' + error.message);
+  }
+}
+
+// Create theme collection
+async function createThemeCollection(themeData) {
+  try {
+    figma.ui.postMessage({ type: 'progress-start', payload: 'Creating Theme Collection...' });
+    const { themeName, tokens } = themeData;
+    const collection = figma.variables.createVariableCollection(themeName);
+    const lightModeId = collection.modes[0].modeId;
+    collection.renameMode(lightModeId, 'Light');
+    const darkModeId = collection.addMode('Dark');
+
+    for (const [tokenPath, mapping] of Object.entries(tokens)) {
+      const variable = figma.variables.createVariable(tokenPath, collection, 'COLOR');
+      variable.setValueForMode(lightModeId, { type: 'VARIABLE_ALIAS', id: mapping.light.id });
+      variable.setValueForMode(darkModeId, { type: 'VARIABLE_ALIAS', id: mapping.dark.id });
+    }
+
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.ui.postMessage({ type: 'theme-created-success', payload: `Theme "${themeName}" created with ${Object.keys(tokens).length} tokens! ✅` });
+    figma.notify(`✅ Theme "${themeName}" created successfully!`);
+  } catch (error) {
+    figma.ui.postMessage({ type: 'progress-end' });
+    figma.notify('❌ Error creating theme: ' + error.message);
+  }
 }

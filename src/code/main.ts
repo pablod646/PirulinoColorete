@@ -721,103 +721,173 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 v.name.toLowerCase().endsWith('/' + leafLower)
             );
             if (foundFloat) return foundFloat;
-
             return undefined;
         };
 
         const findOrCreateVar = async (path: string): Promise<Variable> => {
             let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === path);
-            if (!v) v = figma.variables.createVariable(path, targetCollection!, 'FLOAT');
+            if (!v) {
+                try {
+                    v = figma.variables.createVariable(path, targetCollection!, 'FLOAT');
+                    allVars.push(v); // Update cache immediately
+                } catch (e: any) {
+                    // Start of fallback logic
+                    if (e.message && e.message.includes('duplicate variable name')) {
+                        // Refresh cache and try again
+                        const freshVars = await figma.variables.getLocalVariablesAsync();
+                        v = freshVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === path);
+                        if (!v) throw new Error(`Could not find or create variable ${path} (Duplicate Error)`);
+                    } else {
+                        throw e;
+                    }
+                }
+            }
             return v;
         };
 
-        // Typography Maps - Font Sizes
+        // --- REFACTORED SECTIONS ---
+
+        // 1. Text Size Aliases (REMOVED)
+        // User requested to remove this section.
+        // const textSizeTShirtMap = ['3xs', '2xs', 'xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl'];
+
+
+        // 2. Letter Spacing Aliases (Letter-Spacing)
+        // Responsive semantic tokens using T-shirt sizing (talles)
+        // Mapping to primitives (-2 to 10 range as requested)
+        const letterSpacingMap = [
+            { name: 'Typography/Letter-Spacing/3xs', desktop: '-4', tablet: '-3', mobile: '-2' },
+            { name: 'Typography/Letter-Spacing/2xs', desktop: '-2', tablet: '-2', mobile: '-1' },
+            { name: 'Typography/Letter-Spacing/xs', desktop: '-1', tablet: '0', mobile: '0' },
+            { name: 'Typography/Letter-Spacing/sm', desktop: '0', tablet: '0', mobile: '0' }, // Base/Normal
+            { name: 'Typography/Letter-Spacing/md', desktop: '2', tablet: '1', mobile: '0' },
+            { name: 'Typography/Letter-Spacing/lg', desktop: '4', tablet: '2', mobile: '1' },
+            { name: 'Typography/Letter-Spacing/xl', desktop: '6', tablet: '4', mobile: '2' },
+            { name: 'Typography/Letter-Spacing/2xl', desktop: '8', tablet: '6', mobile: '4' },
+            { name: 'Typography/Letter-Spacing/3xl', desktop: '10', tablet: '8', mobile: '6' },
+        ];
+
+        for (const item of letterSpacingMap) {
+            const v = await findOrCreateVar(item.name);
+
+            const setModeVal = (modeId: string, val: string) => {
+                // Look for primitive "Letter Spacing/val"
+                const sourceVar = findSource(typoGroup, val);
+                if (sourceVar) {
+                    v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                }
+            };
+
+            setModeVal(desktopId, item.desktop);
+            setModeVal(tabletId, item.tablet);
+            setModeVal(mobileId, item.mobile);
+        }
+
+        // 3. Radius Aliases (Using Measures)
+        // Mapping semantic radius names to measure primitives
+        const radiusMap = [
+            { name: 'Radius/none', val: '0px' },
+            { name: 'Radius/2xs', val: '2px' },
+            { name: 'Radius/xs', val: '4px' },
+            { name: 'Radius/sm', val: '6px' },
+            { name: 'Radius/md', val: '8px' },
+            { name: 'Radius/lg', val: '12px' },
+            { name: 'Radius/xl', val: '16px' },
+            { name: 'Radius/2xl', val: '24px' },
+            { name: 'Radius/3xl', val: '32px' },
+            { name: 'Radius/full', val: '999px' } // Assuming this might exist or fallback
+        ];
+
+        for (const item of radiusMap) {
+            const v = await findOrCreateVar(item.name);
+            // Look for measure primitive
+            let sourceVar = findSource(measureGroup, item.val);
+            // Special handling for "full" if 999px doesn't exist, maybe try 100px or largest
+            if (!sourceVar && item.name.includes('full')) {
+                sourceVar = findSource(measureGroup, '100px');
+            }
+
+            if (sourceVar) {
+                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+            }
+        }
+
+        // 4. Border Width (Stroke) Aliases (Using Measures)
+        const borderMap = [
+            { name: 'Border Width/none', val: '0px' },
+            { name: 'Border Width/hairline', val: '0_5px' }, // 0.5px
+            { name: 'Border Width/thin', val: '1px' },
+            { name: 'Border Width/medium', val: '2px' },
+            { name: 'Border Width/thick', val: '4px' },
+            { name: 'Border Width/heavy', val: '8px' },
+        ];
+
+        for (const item of borderMap) {
+            const v = await findOrCreateVar(item.name);
+            const sourceVar = findSource(measureGroup, item.val);
+            if (sourceVar) {
+                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+            }
+        }
+
+        // 5. Semantic Text Aliases (Responsive) - Existing Refined
+        // Mapping Semantic Usage -> T-shirt Size value (which allows responsiveness)
+        // We look up the PRIMITIVE (Font Size/xl) for each mode.
         const textMap = [
-            // Micro text
-            { name: 'Typography/Label', desktop: 'xs', tablet: 'xs', mobile: 'xs' },
-            { name: 'Typography/Overline', desktop: '2xs', tablet: '2xs', mobile: '2xs' },
-            { name: 'Typography/Caption', desktop: 'xs', tablet: 'xs', mobile: 'xs' },
-
-            // Body text
-            { name: 'Typography/Body/s', desktop: 'sm', tablet: 'sm', mobile: 'sm' },
-            { name: 'Typography/Body/m', desktop: 'base', tablet: 'base', mobile: 'base' },
-            { name: 'Typography/Body/l', desktop: 'lg', tablet: 'lg', mobile: 'lg' },
-
-            // Code text (for mono font contexts)
-            { name: 'Typography/Code/inline', desktop: 'sm', tablet: 'sm', mobile: 'xs' },
-            { name: 'Typography/Code/block', desktop: 'sm', tablet: 'sm', mobile: 'xs' },
-
-            // Quote
-            { name: 'Typography/Quote', desktop: 'lg', tablet: 'base', mobile: 'base' },
-
             // Headings
-            { name: 'Typography/Heading/h6', desktop: 'lg', tablet: 'base', mobile: 'base' },
-            { name: 'Typography/Heading/h5', desktop: 'xl', tablet: 'lg', mobile: 'base' },
-            { name: 'Typography/Heading/h4', desktop: '2xl', tablet: 'xl', mobile: 'lg' },
-            { name: 'Typography/Heading/h3', desktop: '3xl', tablet: '2xl', mobile: 'xl' },
-            { name: 'Typography/Heading/h2', desktop: '4xl', tablet: '3xl', mobile: '2xl' },
             { name: 'Typography/Heading/h1', desktop: '5xl', tablet: '4xl', mobile: '3xl' },
+            { name: 'Typography/Heading/h2', desktop: '4xl', tablet: '3xl', mobile: '2xl' },
+            { name: 'Typography/Heading/h3', desktop: '3xl', tablet: '2xl', mobile: 'xl' },
+            { name: 'Typography/Heading/h4', desktop: '2xl', tablet: 'xl', mobile: 'lg' },
+            { name: 'Typography/Heading/h5', desktop: 'xl', tablet: 'lg', mobile: 'base' },
+            { name: 'Typography/Heading/h6', desktop: 'lg', tablet: 'base', mobile: 'sm' },
 
-            // Display (hero text)
-            { name: 'Typography/Display/h2', desktop: '6xl', tablet: '5xl', mobile: '4xl' },
+            // Display
             { name: 'Typography/Display/h1', desktop: '7xl', tablet: '6xl', mobile: '5xl' },
+            { name: 'Typography/Display/h2', desktop: '6xl', tablet: '5xl', mobile: '4xl' },
+
+            // Body
+            { name: 'Typography/Body/lg', desktop: 'lg', tablet: 'base', mobile: 'base' },
+            { name: 'Typography/Body/base', desktop: 'base', tablet: 'sm', mobile: 'sm' }, // Standard body
+            { name: 'Typography/Body/sm', desktop: 'sm', tablet: 'xs', mobile: 'xs' },
+
+            // UI / Label
+            { name: 'Typography/Label/lg', desktop: 'base', tablet: 'sm', mobile: 'sm' },
+            { name: 'Typography/Label/base', desktop: 'sm', tablet: 'xs', mobile: 'xs' },
+            { name: 'Typography/Label/sm', desktop: 'xs', tablet: '2xs', mobile: '2xs' },
+
+            // Code
+            { name: 'Typography/Code/base', desktop: 'sm', tablet: 'sm', mobile: 'xs' },
         ];
 
+        for (const item of textMap) {
+            const v = await findOrCreateVar(item.name);
+
+            const setModeVal = (modeId: string, sizeName: string) => {
+                const sourceVar = findSource(typoGroup, sizeName);
+                if (sourceVar) {
+                    v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                }
+            };
+
+            setModeVal(desktopId, item.desktop);
+            setModeVal(tabletId, item.tablet);
+            setModeVal(mobileId, item.mobile);
+        }
+
+        // 6. Spacing Aliases (Responsive Gaps) - Existing Preserved
         const spaceMap = [
-            // Gaps
             { name: 'Spacing/Gap/3xs', desktop: '2px', tablet: '2px', mobile: '2px' },
-            { name: 'Spacing/Gap/2xs', desktop: '4px', tablet: '2px', mobile: '2px' },
-            { name: 'Spacing/Gap/xs', desktop: '8px', tablet: '4px', mobile: '4px' },
-            { name: 'Spacing/Gap/s', desktop: '16px', tablet: '12px', mobile: '8px' },
-            { name: 'Spacing/Gap/m', desktop: '24px', tablet: '20px', mobile: '16px' },
-            { name: 'Spacing/Gap/l', desktop: '32px', tablet: '24px', mobile: '20px' },
-            { name: 'Spacing/Gap/xl', desktop: '48px', tablet: '32px', mobile: '24px' },
-            { name: 'Spacing/Gap/2xl', desktop: '64px', tablet: '48px', mobile: '32px' },
-
-            // Padding
-            { name: 'Spacing/Padding/xs', desktop: '8px', tablet: '4px', mobile: '4px' },
-            { name: 'Spacing/Padding/sm', desktop: '16px', tablet: '12px', mobile: '8px' },
-            { name: 'Spacing/Padding/md', desktop: '24px', tablet: '16px', mobile: '12px' },
-            { name: 'Spacing/Padding/lg', desktop: '32px', tablet: '24px', mobile: '16px' },
-            { name: 'Spacing/Padding/xl', desktop: '48px', tablet: '32px', mobile: '24px' },
-
-            // Radius
-            { name: 'Spacing/Radius/xs', desktop: '2px', tablet: '2px', mobile: '2px' },
-            { name: 'Spacing/Radius/s', desktop: '4px', tablet: '4px', mobile: '2px' },
-            { name: 'Spacing/Radius/m', desktop: '8px', tablet: '8px', mobile: '4px' },
-            { name: 'Spacing/Radius/l', desktop: '12px', tablet: '12px', mobile: '8px' },
-            { name: 'Spacing/Radius/xl', desktop: '16px', tablet: '16px', mobile: '12px' },
-
-            // Border Width
-            { name: 'Spacing/Border/thin', desktop: '1px', tablet: '1px', mobile: '1px' },
-            { name: 'Spacing/Border/medium', desktop: '2px', tablet: '2px', mobile: '2px' },
-            { name: 'Spacing/Border/thick', desktop: '4px', tablet: '4px', mobile: '4px' },
-
-            // Section Spacing (for larger layout gaps)
-            { name: 'Spacing/Section/sm', desktop: '48px', tablet: '32px', mobile: '24px' },
-            { name: 'Spacing/Section/md', desktop: '64px', tablet: '48px', mobile: '32px' },
-            { name: 'Spacing/Section/lg', desktop: '96px', tablet: '64px', mobile: '48px' },
         ];
 
-        // Line Height Map (multipliers based on common leading values)
-        const lineHeightMap = [
-            { name: 'Typography/Leading/none', value: 1 },
-            { name: 'Typography/Leading/tight', value: 1.25 },
-            { name: 'Typography/Leading/snug', value: 1.375 },
-            { name: 'Typography/Leading/normal', value: 1.5 },
-            { name: 'Typography/Leading/relaxed', value: 1.625 },
-            { name: 'Typography/Leading/loose', value: 2 },
-        ];
 
-        // Font Weight Semantic Map
-        const fontWeightMap = [
-            { name: 'Typography/Weight/normal', source: 'Regular' },
-            { name: 'Typography/Weight/medium', source: 'Medium' },
-            { name: 'Typography/Weight/semibold', source: 'SemiBold' },
-            { name: 'Typography/Weight/bold', source: 'Bold' },
-        ];
 
         // NEW: Effects System Maps
+        // Opacity (0-1) - Usually hardcoded as it is a multiplier, but could be aliased if primitives exist.
         const opacityMap = [
             { name: 'Effects/Opacity/0', value: 0 },
             { name: 'Effects/Opacity/5', value: 0.05 },
@@ -830,6 +900,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             { name: 'Effects/Opacity/100', value: 1 },
         ];
 
+        // Blur (Pixels) - SHOULD BE ALIASED TO MEASURES
         const blurMap = [
             { name: 'Effects/Blur/none', value: 0 },
             { name: 'Effects/Blur/sm', value: 4 },
@@ -839,6 +910,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             { name: 'Effects/Blur/2xl', value: 40 },
         ];
 
+        // Duration (ms) - Usually hardcoded
         const durationMap = [
             { name: 'Effects/Duration/instant', value: 0 },
             { name: 'Effects/Duration/fast', value: 150 },
@@ -877,8 +949,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setMode(mobileId, item.mobile);
         }
 
-        // Process Effects (Opacity, Blur, Duration) - Created as generic FLOAT variables
-        const processEffects = async (map: { name: string, value: number }[]) => {
+        // Process Opacity & Duration (Hardcoded/Generic for now unless primitives exist)
+        const processGenericEffects = async (map: { name: string, value: number }[]) => {
             for (const item of map) {
                 let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
                 if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
@@ -887,10 +959,29 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 v.setValueForMode(mobileId, item.value);
             }
         };
+        await processGenericEffects(opacityMap);
+        await processGenericEffects(durationMap);
 
-        await processEffects(opacityMap);
-        await processEffects(blurMap);
-        await processEffects(durationMap);
+        // Process Blur (Try to alias to Measures)
+        for (const item of blurMap) {
+            let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
+            if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
+
+            const safeName = `${item.value}px`.replace('.', '_');
+            const sourceVar = findSource(measureGroup, safeName);
+
+            if (sourceVar) {
+                // Alias to measure if found
+                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id }); // Can implement scaling here if needed
+            } else {
+                // Fallback to raw value
+                v.setValueForMode(desktopId, item.value);
+                v.setValueForMode(tabletId, item.value);
+                v.setValueForMode(mobileId, item.value);
+            }
+        }
 
         // Process Spacing
         for (const item of spaceMap) {
@@ -909,75 +1000,50 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setSpaceMode(mobileId, item.mobile);
         }
 
-        // Process Line Height (direct values, same across all modes)
-        for (const item of lineHeightMap) {
-            let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
-            if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
-            v.setValueForMode(desktopId, item.value);
-            v.setValueForMode(tabletId, item.value);
-            v.setValueForMode(mobileId, item.value);
-        }
 
-        // Process Font Weight Semantic tokens (alias to source weights)
-        for (const item of fontWeightMap) {
-            const sourceVar = findSource(typoGroup, item.source);
-            if (sourceVar) {
-                const v = await findOrCreateVar(item.name);
-                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-            }
-        }
 
-        // Process Font Family aliases (STRING type - needs special handling)
-        const fontFamilyMap = [
-            { name: 'Typography/Font/heading', source: 'Heading' },
-            { name: 'Typography/Font/body', source: 'Body' },
-            { name: 'Typography/Font/code', source: 'Code' },
+
+
+        // Process Shadows (Semantic Variables for Y, Blur, Spread)
+        // We create responsive variables for each shadow property, aliased to Measures.
+        const shadowMap = [
+            { name: 'Effects/Shadow/xs', y: 1, blur: 2, spread: 0 },
+            { name: 'Effects/Shadow/sm', y: 1, blur: 3, spread: 0 },
+            { name: 'Effects/Shadow/md', y: 4, blur: 6, spread: -1 },
+            { name: 'Effects/Shadow/lg', y: 10, blur: 15, spread: -3 },
+            { name: 'Effects/Shadow/xl', y: 20, blur: 25, spread: -5 },
+            { name: 'Effects/Shadow/2xl', y: 25, blur: 50, spread: -12 },
         ];
 
-        for (const item of fontFamilyMap) {
-            // Find Source Font Family variable
-            const fontPath = `${typoGroup}/Font Family/${item.source}`;
-            const sourceVar = allVars.find(v => v.variableCollectionId === sourceCollectionId && v.name === fontPath);
+        for (const shadow of shadowMap) {
+            // Helper to create attribute variable
+            const createAttrVar = async (attr: string, val: number) => {
+                const path = `${shadow.name}/${attr}`;
+                let v = await findOrCreateVar(path);
 
-            if (sourceVar) {
-                // Create STRING type variable for font family alias
-                let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === item.name);
-                if (!v) v = figma.variables.createVariable(item.name, targetCollection!, 'STRING');
+                // Try to alias to Measure
+                const safeName = `${Math.abs(val)}px`.replace('.', '_'); // Handle abs for name lookup, value can be negative
+                const sourceVar = findSource(measureGroup, safeName);
 
-                v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-            }
-        }
+                if (sourceVar) {
+                    v.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    v.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                    v.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                } else {
+                    // Fallback to raw
+                    v.setValueForMode(desktopId, val);
+                    v.setValueForMode(tabletId, val);
+                    v.setValueForMode(mobileId, val);
+                }
+            };
 
-        // Process Shadows (Effect Styles)
-        // Note: Figma doesn't fully support shadow variables yet, so we use Styles.
-        const shadowStyles = [
-            { name: 'Effects/Shadow/xs', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.05 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
-            { name: 'Effects/Shadow/sm', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 1 }, radius: 3, spread: 0, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
-            { name: 'Effects/Shadow/md', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 4 }, radius: 6, spread: -1, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
-            { name: 'Effects/Shadow/lg', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 10 }, radius: 15, spread: -3, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
-            { name: 'Effects/Shadow/xl', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.1 }, offset: { x: 0, y: 20 }, radius: 25, spread: -5, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
-            { name: 'Effects/Shadow/2xl', effects: [{ type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 25 }, radius: 50, spread: -12, visible: true, blendMode: 'NORMAL', showShadowBehindNode: false }] },
-            { name: 'Effects/Shadow/inner', effects: [{ type: 'INNER_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.05 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0, visible: true, blendMode: 'NORMAL' }] },
-        ];
-
-        const localStyles = await figma.getLocalEffectStylesAsync();
-
-        for (const styleDef of shadowStyles) {
-            let style = localStyles.find(s => s.name === styleDef.name);
-            if (!style) {
-                style = figma.createEffectStyle();
-                style.name = styleDef.name;
-            }
-            // Cast to Effect[] to handle strict typing
-            style.effects = styleDef.effects as Effect[];
+            await createAttrVar('Y', shadow.y);
+            await createAttrVar('Blur', shadow.blur);
+            await createAttrVar('Spread', shadow.spread);
         }
 
         figma.ui.postMessage({ type: 'progress-end' });
-        figma.notify('Semantic tokens & Effects created successfully!');
+        figma.notify('Semantic tokens created successfully!');
         figma.ui.postMessage({ type: 'aliases-created' });
     } catch (err) {
         console.error(err);
@@ -1970,219 +2036,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                 await createSemanticTokens(msg.config as AliasConfig);
                 break;
 
-            case 'scan-for-styles': {
-                const collectionId = msg.collectionId as string;
-                const prefix = msg.prefix as string;
 
-                try {
-                    console.log('🔍 Scanning collection for styles:', collectionId);
-                    const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
-                    if (!collection) throw new Error('Collection not found');
-
-                    const allVariables = await figma.variables.getLocalVariablesAsync();
-                    // We scan ALL variables to find primitives even if they are in another collection?
-                    // For now let's assume valid variables are available. 
-                    // But to respect "Source Collection" selection, we prioritize found vars.
-
-                    const collectionVars = allVariables.filter(v => v.variableCollectionId === collectionId);
-                    const defaultModeId = collection.defaultModeId || collection.modes[0].modeId;
-
-                    // 1. Identify Semantic Sizes (h1, h2, body/m, etc.)
-                    // Look for variables that likely represent text sizes
-                    const sizeVars = collectionVars.filter(v => {
-                        const name = v.name.toLowerCase();
-                        if (v.resolvedType !== 'FLOAT') return false;
-                        // Avoid primitives
-                        if (name.includes('font size') || name.includes('fontsize')) return false;
-
-                        // Must be in typical typography groups
-                        return name.includes('typography') || name.includes('heading') ||
-                            name.includes('body') || name.includes('display') ||
-                            name.includes('caption') || name.includes('code');
-                    });
-
-                    // 2. Identify Primitives (Weights, Family, Spacing) - Global Search
-                    // We search globally because primitives might be in another collection
-                    const findPrimitive = (type: string, namePart: string): Variable | undefined => {
-                        const lowerPart = namePart.toLowerCase();
-                        // Try specific collection first
-                        let found = collectionVars.find(v =>
-                            (v.resolvedType === (type === 'STRING' ? 'STRING' : 'FLOAT')) &&
-                            v.name.toLowerCase().includes(lowerPart)
-                        );
-                        if (found) return found;
-
-                        // Try global
-                        return allVariables.find(v =>
-                            (v.resolvedType === (type === 'STRING' ? 'STRING' : 'FLOAT')) &&
-                            (v.name.toLowerCase().includes(type.toLowerCase()) || v.name.includes(namePart)) &&
-                            v.name.toLowerCase().includes(lowerPart)
-                        );
-                    };
-
-                    const textStyles: Array<any> = [];
-
-                    // Matrix: Weights
-                    const weightNames = ["Thin", "Extra Light", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"];
-                    const weightMap: Record<string, number> = {
-                        "Thin": 100, "Extra Light": 200, "Light": 300, "Regular": 400, "Medium": 500,
-                        "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black": 900
-                    };
-                    const weightVarKeywords: Record<string, string> = {
-                        "Extra Light": "ExtraLight", "Semi Bold": "SemiBold", "Extra Bold": "ExtraBold"
-                    };
-
-                    for (const sizeVar of sizeVars) {
-                        const sizeName = sizeVar.name;
-                        const shortName = sizeName.split('/').slice(-2).join('/'); // e.g. "Heading/h1"
-
-                        // Infer Family primitive
-                        let familyVar: Variable | undefined;
-                        if (sizeName.includes('Display') || sizeName.includes('Heading')) familyVar = findPrimitive('STRING', 'Heading');
-                        else if (sizeName.includes('Code')) familyVar = findPrimitive('STRING', 'Code');
-                        else familyVar = findPrimitive('STRING', 'Body');
-
-                        // Infer Letter Spacing primitive (simplified logic from old code)
-                        let lsVar: Variable | undefined;
-                        // Logic omitted for brevity, using '0' if possible
-                        lsVar = findPrimitive('Letter Spacing', '0');
-
-                        // Create Matrix
-                        for (const wName of weightNames) {
-                            // Find Weight Variable
-                            const varKeyword = weightVarKeywords[wName] || wName;
-                            const weightVar = findPrimitive('Font Weight', varKeyword);
-
-                            // Create Matrix even if weight var is not found (for binding)
-                            // The style acts as a container, binding is bonus.
-
-                            const styleName = prefix ? `${prefix}/${shortName} / ${wName}` : `${shortName} / ${wName}`; // Clean name
-
-                            textStyles.push({
-                                name: styleName,
-                                details: `${wName}`,
-                                fontSizeId: sizeVar.id,
-                                fontSizeValue: sizeVar.valuesByMode[defaultModeId],
-                                fontWeightId: weightVar?.id,
-                                fontWeightValue: weightMap[wName],
-                                fontWeightName: wName,
-                                fontFamilyId: familyVar?.id,
-                                letterSpacingId: lsVar?.id
-                            });
-                        }
-                    }
-
-                    // Effects logic remains simple
-                    const effectStyles: Array<any> = [];
-                    const blurVars = collectionVars.filter(v => v.resolvedType === 'FLOAT' && (v.name.toLowerCase().includes('blur') || v.name.toLowerCase().includes('shadow')));
-
-                    for (const v of blurVars) {
-                        const val = v.valuesByMode[defaultModeId];
-                        const numVal = typeof val === 'number' ? val : 0;
-                        const effectName = prefix ? `${prefix}/Shadow / ${v.name.split('/').pop()}` : `Shadow / ${v.name.split('/').pop()}`;
-                        effectStyles.push({
-                            name: effectName,
-                            details: `Blur: ${numVal}px`,
-                            blurId: v.id,
-                            blurValue: numVal,
-                            shadowPreview: `0 ${Math.round(numVal / 2)}px ${numVal}px rgba(0,0,0,0.2)`
-                        });
-                    }
-
-                    figma.ui.postMessage({
-                        type: 'scan-styles-result',
-                        payload: { textStyles, effectStyles }
-                    });
-
-                } catch (error) {
-                    console.error('Scan error:', error);
-                    figma.ui.postMessage({
-                        type: 'scan-styles-result',
-                        payload: { textStyles: [], effectStyles: [] }
-                    });
-                }
-                break;
-            }
-
-            case 'create-figma-styles': {
-                const textStyles = msg.textStyles as Array<any>;
-                const effectStyles = msg.effectStyles as Array<any>;
-                const allVariables = await figma.variables.getLocalVariablesAsync();
-
-                let createdCount = 0;
-
-                // Load Inter font fully
-                await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-                const weights = ["Thin", "ExtraLight", "Light", "Regular", "Medium", "SemiBold", "Bold", "ExtraBold", "Black"];
-                for (const w of weights) {
-                    try { await figma.loadFontAsync({ family: "Inter", style: w }); } catch (e) { }
-                    // Also try with spaces
-                    try { await figma.loadFontAsync({ family: "Inter", style: w.replace(/([A-Z])/g, ' $1').trim() }); } catch (e) { }
-                }
-
-                if (textStyles) {
-                    for (const styleData of textStyles) {
-                        try {
-                            const style = figma.createTextStyle();
-                            style.name = styleData.name;
-
-                            // Set basic props
-                            const family = "Inter";
-                            const weightStr = styleData.fontWeightName || "Regular";
-                            // Figma style naming map
-                            const figmaStyleName = weightStr === "Extra Light" ? "ExtraLight" :
-                                (weightStr === "Semi Bold" ? "SemiBold" :
-                                    (weightStr === "Extra Bold" ? "ExtraBold" : weightStr));
-
-                            style.fontName = { family, style: figmaStyleName };
-                            style.fontSize = styleData.fontSizeValue || 16;
-
-                            // Bindings
-                            // Helper to bind
-                            const bind = (field: string, varId: string) => {
-                                if (!varId) return;
-                                const v = allVariables.find(va => va.id === varId);
-                                if (v) {
-                                    try { style.setBoundVariable(field as any, v); } catch (e) { console.warn(`Bind failed ${field}:`, e); }
-                                }
-                            };
-
-                            bind('fontSize', styleData.fontSizeId);
-                            bind('fontWeight', styleData.fontWeightId);
-                            bind('fontFamily', styleData.fontFamilyId);
-                            bind('letterSpacing', styleData.letterSpacingId);
-
-                            createdCount++;
-                        } catch (e) {
-                            console.error(`Failed to create style ${styleData.name}`, e);
-                        }
-                    }
-                }
-
-                if (effectStyles) {
-                    for (const styleData of effectStyles) {
-                        const style = figma.createEffectStyle();
-                        style.name = styleData.name;
-                        style.effects = [{
-                            type: 'DROP_SHADOW',
-                            color: { r: 0, g: 0, b: 0, a: 0.2 },
-                            offset: { x: 0, y: Math.round(styleData.blurValue / 2) },
-                            radius: styleData.blurValue,
-                            visible: true,
-                            blendMode: 'NORMAL'
-                        }];
-                        // Bind blur?
-                        // check if spread/radius binding is supported for EffectStyles... 
-                        // It is supported on the Effect object, but EffectStyle is a container. 
-                        // Currently Figma API for binding variables to Effect Styles is tricky or done via setBoundVariableOnEffect?
-                        // Assume simple creation for now as per old code reference.
-                        createdCount++;
-                    }
-                }
-
-                figma.notify(`✅ Created ${createdCount} Styles`);
-                break;
-            }
 
             case 'load-palettes':
                 await loadPalettes(msg.collectionId as string, msg.groupName as string | undefined);

@@ -1767,6 +1767,32 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 return foundFloat;
               return void 0;
             };
+            const findSourceOrNextLarger = (group, leafName) => {
+              const exact = findSource(group, leafName);
+              if (exact)
+                return exact;
+              const numMatch = leafName.match(/^(\d+(?:\.\d+)?)/);
+              if (!numMatch)
+                return void 0;
+              const targetNum = parseFloat(numMatch[1]);
+              const measureVars = allVars.filter(
+                (v) => v.variableCollectionId === sourceCollectionId && v.resolvedType === "FLOAT" && v.name.startsWith(group + "/")
+              );
+              const candidates = [];
+              for (const mv of measureVars) {
+                const nameParts = mv.name.split("/");
+                const lastPart = nameParts[nameParts.length - 1];
+                const valMatch = lastPart.match(/^(\d+(?:\.\d+)?)/);
+                if (valMatch) {
+                  const val = parseFloat(valMatch[1]);
+                  if (val >= targetNum) {
+                    candidates.push({ variable: mv, value: val });
+                  }
+                }
+              }
+              candidates.sort((a, b) => a.value - b.value);
+              return candidates.length > 0 ? candidates[0].variable : void 0;
+            };
             const findOrCreateVar = (path) => __async(this, null, function* () {
               let v = allVars.find((varObj) => varObj.variableCollectionId === targetCollection.id && varObj.name === path);
               if (!v) {
@@ -1786,7 +1812,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               }
               return v;
             });
-            const totalSteps = 12;
+            const totalSteps = 13;
             let currentStep = 0;
             const updateProgress = (message) => __async(this, null, function* () {
               currentStep++;
@@ -2133,6 +2159,28 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               yield createAttrVar("Y", shadow.y);
               yield createAttrVar("Blur", shadow.blur);
               yield createAttrVar("Spread", shadow.spread);
+            }
+            yield updateProgress("Creating icon-size aliases...");
+            const iconSizeMap = [
+              { name: "Icon-Size/sm", desktop: "16px", tablet: "14px", mobile: "12px" },
+              { name: "Icon-Size/md", desktop: "20px", tablet: "18px", mobile: "16px" },
+              { name: "Icon-Size/lg", desktop: "24px", tablet: "20px", mobile: "18px" },
+              { name: "Icon-Size/xl", desktop: "32px", tablet: "28px", mobile: "24px" }
+            ];
+            for (const item of iconSizeMap) {
+              const v = yield findOrCreateVar(item.name);
+              const setIconSizeMode = (modeId, val) => {
+                const sourceVar = findSourceOrNextLarger(measureGroup, val);
+                if (sourceVar) {
+                  v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                } else {
+                  const numVal = parseFloat(val) || 0;
+                  v.setValueForMode(modeId, numVal);
+                }
+              };
+              setIconSizeMode(desktopId, item.desktop);
+              setIconSizeMode(tabletId, item.tablet);
+              setIconSizeMode(mobileId, item.mobile);
             }
             figma.ui.postMessage({ type: "progress-end" });
             figma.notify("Semantic tokens created successfully!");

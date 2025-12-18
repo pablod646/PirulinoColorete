@@ -2293,6 +2293,44 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             return undefined;
         };
 
+        // Helper: Find source variable or next larger one if exact doesn't exist
+        const findSourceOrNextLarger = (group: string, leafName: string): Variable | undefined => {
+            // First try exact match
+            const exact = findSource(group, leafName);
+            if (exact) return exact;
+
+            // Extract numeric value from leafName (e.g., "18px" -> 18)
+            const numMatch = leafName.match(/^(\d+(?:\.\d+)?)/);
+            if (!numMatch) return undefined;
+
+            const targetNum = parseFloat(numMatch[1]);
+
+            // Find all numeric measure variables in the group
+            const measureVars = allVars.filter(v =>
+                v.variableCollectionId === sourceCollectionId &&
+                v.resolvedType === 'FLOAT' &&
+                v.name.startsWith(group + '/')
+            );
+
+            // Extract values and find next larger
+            const candidates: { variable: Variable; value: number }[] = [];
+            for (const mv of measureVars) {
+                const nameParts = mv.name.split('/');
+                const lastPart = nameParts[nameParts.length - 1];
+                const valMatch = lastPart.match(/^(\d+(?:\.\d+)?)/);
+                if (valMatch) {
+                    const val = parseFloat(valMatch[1]);
+                    if (val >= targetNum) {
+                        candidates.push({ variable: mv, value: val });
+                    }
+                }
+            }
+
+            // Sort by value and return smallest that's >= target
+            candidates.sort((a, b) => a.value - b.value);
+            return candidates.length > 0 ? candidates[0].variable : undefined;
+        };
+
         const findOrCreateVar = async (path: string): Promise<Variable> => {
             let v = allVars.find(varObj => varObj.variableCollectionId === targetCollection!.id && varObj.name === path);
             if (!v) {
@@ -2315,7 +2353,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
         };
 
         // Progress tracking with yield for UI updates
-        const totalSteps = 12; // Total number of alias categories
+        const totalSteps = 13; // Total number of alias categories (added Icon-Size)
         let currentStep = 0;
         const updateProgress = async (message: string): Promise<void> => {
             currentStep++;
@@ -2774,6 +2812,36 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             await createAttrVar('Y', shadow.y);
             await createAttrVar('Blur', shadow.blur);
             await createAttrVar('Spread', shadow.spread);
+        }
+
+        await updateProgress('Creating icon-size aliases...');
+
+        // Icon Size Aliases - Responsive icon sizes for component integration
+        // Icons scale down on smaller screens for visual balance
+        const iconSizeMap = [
+            { name: 'Icon-Size/sm', desktop: '16px', tablet: '14px', mobile: '12px' },
+            { name: 'Icon-Size/md', desktop: '20px', tablet: '18px', mobile: '16px' },
+            { name: 'Icon-Size/lg', desktop: '24px', tablet: '20px', mobile: '18px' },
+            { name: 'Icon-Size/xl', desktop: '32px', tablet: '28px', mobile: '24px' },
+        ];
+
+        for (const item of iconSizeMap) {
+            const v = await findOrCreateVar(item.name);
+
+            const setIconSizeMode = (modeId: string, val: string) => {
+                const sourceVar = findSourceOrNextLarger(measureGroup, val);
+                if (sourceVar) {
+                    v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
+                } else {
+                    // Fallback to numeric value
+                    const numVal = parseFloat(val) || 0;
+                    v.setValueForMode(modeId, numVal);
+                }
+            };
+
+            setIconSizeMode(desktopId, item.desktop);
+            setIconSizeMode(tabletId, item.tablet);
+            setIconSizeMode(mobileId, item.mobile);
         }
 
         figma.ui.postMessage({ type: 'progress-end' });

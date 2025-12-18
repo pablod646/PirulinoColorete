@@ -1144,6 +1144,148 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
         figma.currentPage.appendChild(frame);
         return frame;
       }
+      function createAtomsCollection(findVar) {
+        return __async(this, null, function* () {
+          var _a, _b, _c;
+          const collections = yield figma.variables.getLocalVariableCollectionsAsync();
+          let atomsCollection = collections.find((c) => c.name === "Atoms");
+          if (!atomsCollection) {
+            atomsCollection = figma.variables.createVariableCollection("Atoms");
+          }
+          const existingModes = atomsCollection.modes;
+          let desktopModeId = (_a = existingModes.find((m) => m.name === "Desktop")) == null ? void 0 : _a.modeId;
+          let tabletModeId = (_b = existingModes.find((m) => m.name === "Tablet")) == null ? void 0 : _b.modeId;
+          let mobileModeId = (_c = existingModes.find((m) => m.name === "Mobile")) == null ? void 0 : _c.modeId;
+          if (existingModes.length === 1 && !desktopModeId) {
+            atomsCollection.renameMode(existingModes[0].modeId, "Desktop");
+            desktopModeId = existingModes[0].modeId;
+          }
+          if (!tabletModeId) {
+            tabletModeId = atomsCollection.addMode("Tablet");
+          }
+          if (!mobileModeId) {
+            mobileModeId = atomsCollection.addMode("Mobile");
+          }
+          const modeIds = {
+            desktop: desktopModeId,
+            tablet: tabletModeId,
+            mobile: mobileModeId
+          };
+          const atomVariableDefinitions = [
+            // Button variables
+            { name: "Button/padding-y", type: "FLOAT", desktop: ["padding/y/md"], tablet: ["padding/y/sm"], mobile: ["padding/y/xs"] },
+            { name: "Button/padding-x", type: "FLOAT", desktop: ["padding/x/lg"], tablet: ["padding/x/md"], mobile: ["padding/x/sm"] },
+            { name: "Button/font-size", type: "FLOAT", desktop: ["Typography/Body/base", "Body/base"], tablet: ["Typography/Body/sm", "Body/sm"], mobile: ["Typography/Body/sm", "Body/sm"] },
+            { name: "Button/icon-size", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
+            { name: "Button/gap", type: "FLOAT", desktop: ["gap/md"], tablet: ["gap/sm"], mobile: ["gap/xs"] },
+            { name: "Button/radius", type: "FLOAT", desktop: ["radius/md"], tablet: ["radius/sm"], mobile: ["radius/sm"] },
+            // Input variables
+            { name: "Input/padding-y", type: "FLOAT", desktop: ["padding/y/md"], tablet: ["padding/y/sm"], mobile: ["padding/y/xs"] },
+            { name: "Input/padding-x", type: "FLOAT", desktop: ["padding/x/lg"], tablet: ["padding/x/md"], mobile: ["padding/x/sm"] },
+            { name: "Input/font-size", type: "FLOAT", desktop: ["Typography/Body/base", "Body/base"], tablet: ["Typography/Body/sm", "Body/sm"], mobile: ["Typography/Body/sm", "Body/sm"] },
+            { name: "Input/icon-size", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
+            { name: "Input/gap", type: "FLOAT", desktop: ["gap/md"], tablet: ["gap/sm"], mobile: ["gap/xs"] },
+            { name: "Input/radius", type: "FLOAT", desktop: ["radius/md"], tablet: ["radius/sm"], mobile: ["radius/sm"] },
+            // Badge variables
+            { name: "Badge/padding-y", type: "FLOAT", desktop: ["padding/y/sm"], tablet: ["padding/y/xs"], mobile: ["padding/y/xs"] },
+            { name: "Badge/padding-x", type: "FLOAT", desktop: ["padding/x/md"], tablet: ["padding/x/sm"], mobile: ["padding/x/xs"] },
+            { name: "Badge/font-size", type: "FLOAT", desktop: ["Typography/Body/sm", "Body/sm"], tablet: ["Typography/Body/xs", "Body/xs"], mobile: ["Typography/Body/xs", "Body/xs"] },
+            { name: "Badge/icon-size", type: "FLOAT", desktop: ["Icon-Size/md"], tablet: ["Icon-Size/sm"], mobile: ["Icon-Size/sm"] },
+            { name: "Badge/gap", type: "FLOAT", desktop: ["gap/sm"], tablet: ["gap/xs"], mobile: ["gap/xs"] },
+            { name: "Badge/radius", type: "FLOAT", desktop: ["radius/full", "radius/lg"], tablet: ["radius/full", "radius/md"], mobile: ["radius/full", "radius/sm"] }
+          ];
+          const atomVars = {};
+          const allVariables = yield figma.variables.getLocalVariablesAsync();
+          for (const def of atomVariableDefinitions) {
+            let atomVar = allVariables.find(
+              (v) => v.variableCollectionId === atomsCollection.id && v.name === def.name
+            );
+            if (!atomVar) {
+              atomVar = figma.variables.createVariable(def.name, atomsCollection, def.type);
+            }
+            const desktopAlias = findVar(def.desktop, def.type);
+            const tabletAlias = findVar(def.tablet, def.type);
+            const mobileAlias = findVar(def.mobile, def.type);
+            if (desktopAlias) {
+              atomVar.setValueForMode(modeIds.desktop, { type: "VARIABLE_ALIAS", id: desktopAlias.id });
+            } else {
+              const fallbacks = {
+                "Button/padding-y": 12,
+                "Button/padding-x": 24,
+                "Button/font-size": 16,
+                "Button/icon-size": 24,
+                "Button/gap": 12,
+                "Button/radius": 8,
+                "Input/padding-y": 12,
+                "Input/padding-x": 16,
+                "Input/font-size": 16,
+                "Input/icon-size": 20,
+                "Input/gap": 8,
+                "Input/radius": 8,
+                "Badge/padding-y": 4,
+                "Badge/padding-x": 12,
+                "Badge/font-size": 14,
+                "Badge/icon-size": 16,
+                "Badge/gap": 4,
+                "Badge/radius": 999
+              };
+              atomVar.setValueForMode(modeIds.desktop, fallbacks[def.name] || 16);
+            }
+            if (tabletAlias) {
+              atomVar.setValueForMode(modeIds.tablet, { type: "VARIABLE_ALIAS", id: tabletAlias.id });
+            } else {
+              const fallbacks = {
+                "Button/padding-y": 10,
+                "Button/padding-x": 20,
+                "Button/font-size": 14,
+                "Button/icon-size": 20,
+                "Button/gap": 8,
+                "Button/radius": 6,
+                "Input/padding-y": 10,
+                "Input/padding-x": 14,
+                "Input/font-size": 14,
+                "Input/icon-size": 18,
+                "Input/gap": 6,
+                "Input/radius": 6,
+                "Badge/padding-y": 3,
+                "Badge/padding-x": 10,
+                "Badge/font-size": 12,
+                "Badge/icon-size": 14,
+                "Badge/gap": 3,
+                "Badge/radius": 999
+              };
+              atomVar.setValueForMode(modeIds.tablet, fallbacks[def.name] || 14);
+            }
+            if (mobileAlias) {
+              atomVar.setValueForMode(modeIds.mobile, { type: "VARIABLE_ALIAS", id: mobileAlias.id });
+            } else {
+              const fallbacks = {
+                "Button/padding-y": 8,
+                "Button/padding-x": 16,
+                "Button/font-size": 12,
+                "Button/icon-size": 16,
+                "Button/gap": 6,
+                "Button/radius": 4,
+                "Input/padding-y": 8,
+                "Input/padding-x": 12,
+                "Input/font-size": 12,
+                "Input/icon-size": 16,
+                "Input/gap": 4,
+                "Input/radius": 4,
+                "Badge/padding-y": 2,
+                "Badge/padding-x": 8,
+                "Badge/font-size": 10,
+                "Badge/icon-size": 12,
+                "Badge/gap": 2,
+                "Badge/radius": 999
+              };
+              atomVar.setValueForMode(modeIds.mobile, fallbacks[def.name] || 12);
+            }
+            atomVars[def.name] = atomVar;
+          }
+          return { collection: atomsCollection, modeIds, atomVars };
+        });
+      }
       function generateAtomicComponents(config) {
         return __async(this, null, function* () {
           try {
@@ -1170,6 +1312,8 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               }
               return void 0;
             };
+            figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 5, message: "Creating Atoms variables..." } });
+            const { atomVars } = yield createAtomsCollection(findVar);
             let container;
             if (config.output === "page") {
               container = figma.createPage();
@@ -1190,23 +1334,20 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
             let componentCount = 0;
             if (config.components.buttons) {
-              const { variants, sizes } = config.components.buttons;
+              const { variants } = config.components.buttons;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 10, message: "Creating buttons..." } });
               const buttonComponents = [];
               const states = ["Default", "Hover", "Active", "Disabled"];
               for (const variant of variants) {
-                for (const size of sizes) {
-                  for (const state of states) {
-                    const originalAsComponents = config.asComponents;
-                    config.asComponents = true;
-                    const btn = yield createButton(variant, size, state.toLowerCase(), config, findVar);
-                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                    const sizeUpper = size.toUpperCase();
-                    btn.name = `Variant=${variantCapitalized}, Size=${sizeUpper}, State=${state}`;
-                    buttonComponents.push(btn);
-                    componentCount++;
-                    config.asComponents = originalAsComponents;
-                  }
+                for (const state of states) {
+                  const originalAsComponents = config.asComponents;
+                  config.asComponents = true;
+                  const btn = yield createButton(variant, state.toLowerCase(), config, findVar, atomVars);
+                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                  btn.name = `Variant=${variantCapitalized}, State=${state}`;
+                  buttonComponents.push(btn);
+                  componentCount++;
+                  config.asComponents = originalAsComponents;
                 }
               }
               if (buttonComponents.length > 0) {
@@ -1226,23 +1367,19 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
             if (config.components.inputs) {
               const { variants, states } = config.components.inputs;
-              const sizes = ["sm", "md", "lg"];
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 40, message: "Creating inputs..." } });
               const inputComponents = [];
               for (const variant of variants) {
-                for (const size of sizes) {
-                  for (const state of states) {
-                    const originalAsComponents = config.asComponents;
-                    config.asComponents = true;
-                    const input = yield createInput(variant, size, state, config, findVar);
-                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                    const sizeUpper = size.toUpperCase();
-                    const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
-                    input.name = `Type=${variantCapitalized}, Size=${sizeUpper}, State=${stateCapitalized}`;
-                    inputComponents.push(input);
-                    componentCount++;
-                    config.asComponents = originalAsComponents;
-                  }
+                for (const state of states) {
+                  const originalAsComponents = config.asComponents;
+                  config.asComponents = true;
+                  const input = yield createInput(variant, state, config, findVar, atomVars);
+                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                  const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                  input.name = `Type=${variantCapitalized}, State=${stateCapitalized}`;
+                  inputComponents.push(input);
+                  componentCount++;
+                  config.asComponents = originalAsComponents;
                 }
               }
               if (inputComponents.length > 0) {
@@ -1261,21 +1398,18 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               }
             }
             if (config.components.badges) {
-              const { variants, sizes } = config.components.badges;
+              const { variants } = config.components.badges;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 70, message: "Creating badges..." } });
               const badgeComponents = [];
               for (const variant of variants) {
-                for (const size of sizes) {
-                  const originalAsComponents = config.asComponents;
-                  config.asComponents = true;
-                  const badge = yield createBadge(variant, size, config, findVar);
-                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                  const sizeUpper = size.toUpperCase();
-                  badge.name = `Variant=${variantCapitalized}, Size=${sizeUpper}`;
-                  badgeComponents.push(badge);
-                  componentCount++;
-                  config.asComponents = originalAsComponents;
-                }
+                const originalAsComponents = config.asComponents;
+                config.asComponents = true;
+                const badge = yield createBadge(variant, config, findVar, atomVars);
+                const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                badge.name = `Variant=${variantCapitalized}`;
+                badgeComponents.push(badge);
+                componentCount++;
+                config.asComponents = originalAsComponents;
               }
               if (badgeComponents.length > 0) {
                 const badgeComponentSet = figma.combineAsVariants(badgeComponents, container);
@@ -1359,26 +1493,18 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           }
         }
       }
-      function createIconInstance(name, size, findVar, colorVar, preferredNames) {
+      function createIconInstanceWithVar(name, sizeVar, colorVar, preferredNames) {
         return __async(this, null, function* () {
           const iconComponent = yield findIconComponent(preferredNames);
           if (iconComponent) {
             const instance = iconComponent.createInstance();
             instance.name = name;
             instance.fills = [];
-            const iconSizeMap2 = {
-              sm: ["Icon-Size/sm"],
-              md: ["Icon-Size/md"],
-              lg: ["Icon-Size/lg"]
-            };
-            const iconSizeFallback2 = { sm: 16, md: 20, lg: 24 };
-            const iconSizeVar2 = findVar(iconSizeMap2[size] || iconSizeMap2["md"], "FLOAT");
-            if (iconSizeVar2) {
-              instance.setBoundVariable("width", iconSizeVar2);
-              instance.setBoundVariable("height", iconSizeVar2);
+            if (sizeVar) {
+              instance.setBoundVariable("width", sizeVar);
+              instance.setBoundVariable("height", sizeVar);
             } else {
-              const fallbackSize = iconSizeFallback2[size] || 20;
-              instance.resize(fallbackSize, fallbackSize);
+              instance.resize(20, 20);
             }
             if (colorVar) {
               applyColorToIconSubtree(instance, colorVar);
@@ -1393,23 +1519,15 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           iconFrame.primaryAxisAlignItems = "CENTER";
           iconFrame.counterAxisAlignItems = "CENTER";
           iconFrame.fills = [];
-          const iconSizeMap = {
-            sm: ["Icon-Size/sm"],
-            md: ["Icon-Size/md"],
-            lg: ["Icon-Size/lg"]
-          };
-          const iconSizeVar = findVar(iconSizeMap[size] || iconSizeMap["md"], "FLOAT");
-          const iconSizeFallback = { sm: 16, md: 20, lg: 24 };
-          if (iconSizeVar) {
-            iconFrame.setBoundVariable("width", iconSizeVar);
-            iconFrame.setBoundVariable("height", iconSizeVar);
+          if (sizeVar) {
+            iconFrame.setBoundVariable("width", sizeVar);
+            iconFrame.setBoundVariable("height", sizeVar);
           } else {
-            const fallbackSize = iconSizeFallback[size] || 20;
-            iconFrame.resize(fallbackSize, fallbackSize);
+            iconFrame.resize(20, 20);
           }
           const rect = figma.createRectangle();
           rect.name = "Placeholder";
-          rect.resize(iconFrame.width * 0.6, iconFrame.height * 0.6);
+          rect.resize(12, 12);
           if (colorVar) {
             rect.fills = [figma.variables.setBoundVariableForPaint(
               { type: "SOLID", color: { r: 1, g: 1, b: 1 } },
@@ -1424,44 +1542,32 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           return iconFrame;
         });
       }
-      function createButton(variant, size, state, config, findVar) {
+      function createButton(variant, state, config, findVar, atomVars) {
         return __async(this, null, function* () {
           const btn = config.asComponents ? figma.createComponent() : figma.createFrame();
-          btn.name = `Button/${variant}/${size}/${state}`;
+          btn.name = `Button/${variant}/${state}`;
           btn.layoutMode = "HORIZONTAL";
           btn.primaryAxisSizingMode = "AUTO";
           btn.counterAxisSizingMode = "AUTO";
           btn.primaryAxisAlignItems = "CENTER";
           btn.counterAxisAlignItems = "CENTER";
-          const paddingVarMap = {
-            sm: ["padding/y/xs", "gap/xs"],
-            md: ["padding/y/sm", "gap/sm"],
-            lg: ["padding/y/md", "gap/md"]
-          };
-          const hPaddingVarMap = {
-            sm: ["padding/x/sm", "gap/sm"],
-            md: ["padding/x/md", "gap/md"],
-            lg: ["padding/x/lg", "gap/lg"]
-          };
-          const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap["md"], "FLOAT");
+          const vPaddingVar = atomVars["Button/padding-y"];
           if (vPaddingVar) {
             btn.setBoundVariable("paddingTop", vPaddingVar);
             btn.setBoundVariable("paddingBottom", vPaddingVar);
           } else {
-            const paddingFallback = { sm: 8, md: 12, lg: 16 };
-            btn.paddingTop = paddingFallback[size] || 12;
-            btn.paddingBottom = paddingFallback[size] || 12;
+            btn.paddingTop = 12;
+            btn.paddingBottom = 12;
           }
-          const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap["md"], "FLOAT");
+          const hPaddingVar = atomVars["Button/padding-x"];
           if (hPaddingVar) {
             btn.setBoundVariable("paddingLeft", hPaddingVar);
             btn.setBoundVariable("paddingRight", hPaddingVar);
           } else {
-            const hPaddingFallback = { sm: 12, md: 16, lg: 24 };
-            btn.paddingLeft = hPaddingFallback[size] || 16;
-            btn.paddingRight = hPaddingFallback[size] || 16;
+            btn.paddingLeft = 24;
+            btn.paddingRight = 24;
           }
-          const radiusVar = findVar(["radius/md", "radius/sm"], "FLOAT");
+          const radiusVar = atomVars["Button/radius"];
           if (radiusVar) {
             btn.setBoundVariable("topLeftRadius", radiusVar);
             btn.setBoundVariable("topRightRadius", radiusVar);
@@ -1518,7 +1624,8 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             btn.opacity = 0.5;
           }
           const textVar = findVar(textVarTerms, "COLOR");
-          const iconLeft = yield createIconInstance("IconLeft", size, findVar, textVar);
+          const iconSizeVar = atomVars["Button/icon-size"];
+          const iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, textVar);
           iconLeft.visible = false;
           btn.appendChild(iconLeft);
           const text = figma.createText();
@@ -1527,22 +1634,24 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           text.fontName = { family: "Inter", style: "Medium" };
           const defaultLabel = variant.charAt(0).toUpperCase() + variant.slice(1);
           text.characters = defaultLabel;
-          const fontSizeMap = { sm: 12, md: 14, lg: 16 };
-          text.fontSize = fontSizeMap[size] || 14;
+          const fontSizeVar = atomVars["Button/font-size"];
+          if (fontSizeVar) {
+            text.setBoundVariable("fontSize", fontSizeVar);
+          } else {
+            text.fontSize = 16;
+          }
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", textVar)];
           }
           btn.appendChild(text);
-          const iconRight = yield createIconInstance("IconRight", size, findVar, textVar);
+          const iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, textVar);
           iconRight.visible = false;
           btn.appendChild(iconRight);
-          const gapVarMap = { sm: ["gap/xs"], md: ["gap/sm"], lg: ["gap/md"] };
-          const gapVar = findVar(gapVarMap[size] || gapVarMap["md"], "FLOAT");
+          const gapVar = atomVars["Button/gap"];
           if (gapVar) {
             btn.setBoundVariable("itemSpacing", gapVar);
           } else {
-            const gapFallback = { sm: 4, md: 8, lg: 12 };
-            btn.itemSpacing = gapFallback[size] || 8;
+            btn.itemSpacing = 12;
           }
           if (config.asComponents && btn.type === "COMPONENT") {
             const component = btn;
@@ -1574,44 +1683,32 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           return btn;
         });
       }
-      function createInput(variant, size, state, config, findVar) {
+      function createInput(variant, state, config, findVar, atomVars) {
         return __async(this, null, function* () {
           const input = config.asComponents ? figma.createComponent() : figma.createFrame();
-          input.name = `Input/${variant}/${size}/${state}`;
+          input.name = `Input/${variant}/${state}`;
           input.layoutMode = "HORIZONTAL";
           input.primaryAxisSizingMode = "FIXED";
           input.counterAxisSizingMode = "AUTO";
           input.counterAxisAlignItems = "CENTER";
           input.resize(240, input.height);
-          const paddingVarMap = {
-            sm: ["padding/y/xs", "gap/xs"],
-            md: ["padding/y/sm", "gap/sm"],
-            lg: ["padding/y/md", "gap/md"]
-          };
-          const hPaddingVarMap = {
-            sm: ["padding/x/sm", "gap/sm"],
-            md: ["padding/x/md", "gap/md"],
-            lg: ["padding/x/lg", "gap/lg"]
-          };
-          const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap["md"], "FLOAT");
+          const vPaddingVar = atomVars["Input/padding-y"];
           if (vPaddingVar) {
             input.setBoundVariable("paddingTop", vPaddingVar);
             input.setBoundVariable("paddingBottom", vPaddingVar);
           } else {
-            const paddingFallback = { sm: 8, md: 12, lg: 16 };
-            input.paddingTop = paddingFallback[size] || 12;
-            input.paddingBottom = paddingFallback[size] || 12;
+            input.paddingTop = 12;
+            input.paddingBottom = 12;
           }
-          const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap["md"], "FLOAT");
+          const hPaddingVar = atomVars["Input/padding-x"];
           if (hPaddingVar) {
             input.setBoundVariable("paddingLeft", hPaddingVar);
             input.setBoundVariable("paddingRight", hPaddingVar);
           } else {
-            const hPaddingFallback = { sm: 12, md: 16, lg: 20 };
-            input.paddingLeft = hPaddingFallback[size] || 16;
-            input.paddingRight = hPaddingFallback[size] || 16;
+            input.paddingLeft = 16;
+            input.paddingRight = 16;
           }
-          const radiusVar = findVar(["radius/md", "radius/sm"], "FLOAT");
+          const radiusVar = atomVars["Input/radius"];
           if (radiusVar) {
             input.setBoundVariable("topLeftRadius", radiusVar);
             input.setBoundVariable("topRightRadius", radiusVar);
@@ -1646,10 +1743,11 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.opacity = 0.5;
           }
           const iconColorVar = findVar(["text/secondary", "icon/default"], "COLOR");
+          const iconSizeVar = atomVars["Input/icon-size"];
           let iconLeft = null;
           let iconRight = null;
           if (variant !== "textarea") {
-            iconLeft = yield createIconInstance("IconLeft", size, findVar, iconColorVar);
+            iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, iconColorVar);
             iconLeft.visible = false;
             input.appendChild(iconLeft);
           }
@@ -1658,8 +1756,12 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
           text.fontName = { family: "Inter", style: "Regular" };
           text.characters = state === "disabled" ? "Disabled" : variant === "textarea" ? "Enter text..." : "Placeholder";
-          const fontSizeMap = { sm: 12, md: 14, lg: 16 };
-          text.fontSize = fontSizeMap[size] || 14;
+          const fontSizeVar = atomVars["Input/font-size"];
+          if (fontSizeVar) {
+            text.setBoundVariable("fontSize", fontSizeVar);
+          } else {
+            text.fontSize = 16;
+          }
           text.layoutGrow = 1;
           const textVar = findVar(["text/placeholder", "text/tertiary"], "COLOR");
           if (textVar) {
@@ -1667,22 +1769,20 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           }
           input.appendChild(text);
           if (variant === "text") {
-            iconRight = yield createIconInstance("IconRight", size, findVar, iconColorVar);
+            iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, iconColorVar);
             iconRight.visible = false;
             input.appendChild(iconRight);
           }
           if (variant === "select") {
-            const chevron = yield createIconInstance("Chevron", size, findVar, iconColorVar, ["expand_more", "chevron_down", "arrow_drop_down"]);
+            const chevron = yield createIconInstanceWithVar("Chevron", iconSizeVar, iconColorVar, ["expand_more", "chevron_down", "arrow_drop_down"]);
             input.appendChild(chevron);
           }
           if (variant !== "textarea") {
-            const gapVarMap = { sm: ["gap/xs"], md: ["gap/sm"], lg: ["gap/md"] };
-            const gapVar = findVar(gapVarMap[size] || gapVarMap["md"], "FLOAT");
+            const gapVar = atomVars["Input/gap"];
             if (gapVar) {
               input.setBoundVariable("itemSpacing", gapVar);
             } else {
-              const gapFallback = { sm: 4, md: 8, lg: 12 };
-              input.itemSpacing = gapFallback[size] || 8;
+              input.itemSpacing = 8;
             }
           }
           if (variant === "textarea") {
@@ -1725,50 +1825,32 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           return input;
         });
       }
-      function createBadge(variant, size, config, findVar) {
+      function createBadge(variant, config, findVar, atomVars) {
         return __async(this, null, function* () {
           const badge = config.asComponents ? figma.createComponent() : figma.createFrame();
-          badge.name = `Badge/${variant}/${size}`;
+          badge.name = `Badge/${variant}`;
           badge.layoutMode = "HORIZONTAL";
           badge.primaryAxisSizingMode = "AUTO";
           badge.counterAxisSizingMode = "AUTO";
-          const paddingVarMap = {
-            sm: ["padding/y/2xs", "gap/2xs"],
-            md: ["padding/y/xs", "gap/xs"]
-          };
-          const hPaddingVarMap = {
-            sm: ["padding/x/xs", "gap/xs"],
-            md: ["padding/x/sm", "gap/sm"]
-          };
-          const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap["sm"], "FLOAT");
+          badge.primaryAxisAlignItems = "CENTER";
+          badge.counterAxisAlignItems = "CENTER";
+          const vPaddingVar = atomVars["Badge/padding-y"];
           if (vPaddingVar) {
             badge.setBoundVariable("paddingTop", vPaddingVar);
             badge.setBoundVariable("paddingBottom", vPaddingVar);
           } else {
-            const paddingFallback = { sm: 4, md: 6 };
-            badge.paddingTop = paddingFallback[size] || 4;
-            badge.paddingBottom = paddingFallback[size] || 4;
+            badge.paddingTop = 4;
+            badge.paddingBottom = 4;
           }
-          const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap["sm"], "FLOAT");
+          const hPaddingVar = atomVars["Badge/padding-x"];
           if (hPaddingVar) {
             badge.setBoundVariable("paddingLeft", hPaddingVar);
             badge.setBoundVariable("paddingRight", hPaddingVar);
           } else {
-            const hPaddingFallback = { sm: 8, md: 12 };
-            badge.paddingLeft = hPaddingFallback[size] || 8;
-            badge.paddingRight = hPaddingFallback[size] || 8;
+            badge.paddingLeft = 12;
+            badge.paddingRight = 12;
           }
-          let radiusVar = findVar([
-            "radius/full",
-            "radius/pill",
-            "radius/round",
-            "radius/xl",
-            "radius/2xl",
-            "radius/3xl"
-          ], "FLOAT");
-          if (!radiusVar) {
-            radiusVar = findVar(["radius/md", "radius/sm", "radius/lg"], "FLOAT");
-          }
+          const radiusVar = atomVars["Badge/radius"];
           if (radiusVar) {
             badge.setBoundVariable("topLeftRadius", radiusVar);
             badge.setBoundVariable("topRightRadius", radiusVar);
@@ -1808,6 +1890,11 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               badge.strokeWeight = 1;
             }
           }
+          const textVar = findVar(textTerms, "COLOR");
+          const iconSizeVar = atomVars["Badge/icon-size"];
+          const iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, textVar);
+          iconLeft.visible = false;
+          badge.appendChild(iconLeft);
           const text = figma.createText();
           yield figma.loadFontAsync({ family: "Inter", style: "Medium" });
           text.fontName = { family: "Inter", style: "Medium" };
@@ -1819,59 +1906,50 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             error: "Error"
           };
           text.characters = labelMap[variant] || "Badge";
-          const fontSizeMap = { sm: 10, md: 12 };
-          text.fontSize = fontSizeMap[size] || 12;
-          const textVar = findVar(textTerms, "COLOR");
+          const fontSizeVar = atomVars["Badge/font-size"];
+          if (fontSizeVar) {
+            text.setBoundVariable("fontSize", fontSizeVar);
+          } else {
+            text.fontSize = 14;
+          }
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", textVar)];
           }
-          let iconLeft = null;
-          let iconRight = null;
-          if (size !== "sm") {
-            iconLeft = yield createIconInstance("IconLeft", size, findVar, textVar);
-            iconLeft.visible = false;
-            badge.insertChild(0, iconLeft);
-            badge.appendChild(text);
-            iconRight = yield createIconInstance("IconRight", size, findVar, textVar);
-            iconRight.visible = false;
-            badge.appendChild(iconRight);
-            const gapVarMap = { md: ["gap/2xs"], lg: ["gap/xs"] };
-            const gapVar = findVar(gapVarMap[size] || gapVarMap["md"], "FLOAT");
-            if (gapVar) {
-              badge.setBoundVariable("itemSpacing", gapVar);
-            } else {
-              badge.itemSpacing = size === "lg" ? 6 : 4;
-            }
+          badge.appendChild(text);
+          const iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, textVar);
+          iconRight.visible = false;
+          badge.appendChild(iconRight);
+          const gapVar = atomVars["Badge/gap"];
+          if (gapVar) {
+            badge.setBoundVariable("itemSpacing", gapVar);
           } else {
-            badge.appendChild(text);
+            badge.itemSpacing = 4;
           }
           if (config.asComponents && badge.type === "COMPONENT") {
             const component = badge;
             const defaultLabel = text.characters;
             const propName = component.addComponentProperty("Text", "TEXT", defaultLabel);
             text.componentPropertyReferences = { characters: propName };
-            if (size !== "sm" && iconLeft && iconRight) {
-              const showIconLeftProp = component.addComponentProperty("showIconLeft", "BOOLEAN", false);
-              iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
-              const showIconRightProp = component.addComponentProperty("showIconRight", "BOOLEAN", false);
-              iconRight.componentPropertyReferences = { visible: showIconRightProp };
-              if (iconLeft.type === "INSTANCE") {
-                const mainCompLeft = yield iconLeft.getMainComponentAsync();
-                if (mainCompLeft) {
-                  const swapLeftProp = component.addComponentProperty("SwapIconLeft", "INSTANCE_SWAP", mainCompLeft.id);
-                  iconLeft.componentPropertyReferences = __spreadProps(__spreadValues({}, iconLeft.componentPropertyReferences), {
-                    mainComponent: swapLeftProp
-                  });
-                }
+            const showIconLeftProp = component.addComponentProperty("showIconLeft", "BOOLEAN", false);
+            iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+            const showIconRightProp = component.addComponentProperty("showIconRight", "BOOLEAN", false);
+            iconRight.componentPropertyReferences = { visible: showIconRightProp };
+            if (iconLeft.type === "INSTANCE") {
+              const mainCompLeft = yield iconLeft.getMainComponentAsync();
+              if (mainCompLeft) {
+                const swapLeftProp = component.addComponentProperty("SwapIconLeft", "INSTANCE_SWAP", mainCompLeft.id);
+                iconLeft.componentPropertyReferences = __spreadProps(__spreadValues({}, iconLeft.componentPropertyReferences), {
+                  mainComponent: swapLeftProp
+                });
               }
-              if (iconRight.type === "INSTANCE") {
-                const mainCompRight = yield iconRight.getMainComponentAsync();
-                if (mainCompRight) {
-                  const swapRightProp = component.addComponentProperty("SwapIconRight", "INSTANCE_SWAP", mainCompRight.id);
-                  iconRight.componentPropertyReferences = __spreadProps(__spreadValues({}, iconRight.componentPropertyReferences), {
-                    mainComponent: swapRightProp
-                  });
-                }
+            }
+            if (iconRight.type === "INSTANCE") {
+              const mainCompRight = yield iconRight.getMainComponentAsync();
+              if (mainCompRight) {
+                const swapRightProp = component.addComponentProperty("SwapIconRight", "INSTANCE_SWAP", mainCompRight.id);
+                iconRight.componentPropertyReferences = __spreadProps(__spreadValues({}, iconRight.componentPropertyReferences), {
+                  mainComponent: swapRightProp
+                });
               }
             }
           }
@@ -2185,11 +2263,14 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               // Display
               { name: "Typography/Display/h1", desktop: "7xl", tablet: "6xl", mobile: "5xl" },
               { name: "Typography/Display/h2", desktop: "6xl", tablet: "5xl", mobile: "4xl" },
-              // Body
-              { name: "Typography/Body/lg", desktop: "lg", tablet: "base", mobile: "base" },
-              { name: "Typography/Body/base", desktop: "base", tablet: "sm", mobile: "sm" },
-              // Standard body
+              // Body - All size variants for UI components (expanded for Atoms)
+              { name: "Typography/Body/2xs", desktop: "2xs", tablet: "2xs", mobile: "2xs" },
+              { name: "Typography/Body/xs", desktop: "xs", tablet: "2xs", mobile: "2xs" },
               { name: "Typography/Body/sm", desktop: "sm", tablet: "xs", mobile: "xs" },
+              { name: "Typography/Body/base", desktop: "base", tablet: "sm", mobile: "sm" },
+              { name: "Typography/Body/lg", desktop: "lg", tablet: "base", mobile: "base" },
+              { name: "Typography/Body/xl", desktop: "xl", tablet: "lg", mobile: "lg" },
+              { name: "Typography/Body/2xl", desktop: "2xl", tablet: "xl", mobile: "lg" },
               // UI / Label
               { name: "Typography/Label/lg", desktop: "base", tablet: "sm", mobile: "sm" },
               { name: "Typography/Label/base", desktop: "sm", tablet: "xs", mobile: "xs" },

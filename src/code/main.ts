@@ -1475,6 +1475,134 @@ function createIconLibraryFrame(prefix: string): FrameNode {
 // ATOMIC COMPONENTS GENERATION
 // ============================================
 
+// Helper: Create or get the Atoms variable collection with responsive modes
+async function createAtomsCollection(
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+): Promise<{ collection: VariableCollection; modeIds: { desktop: string; tablet: string; mobile: string }; atomVars: Record<string, Variable> }> {
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+    // Check if Atoms collection already exists
+    let atomsCollection = collections.find(c => c.name === 'Atoms');
+
+    if (!atomsCollection) {
+        atomsCollection = figma.variables.createVariableCollection('Atoms');
+    }
+
+    // Ensure we have 3 modes: Desktop, Tablet, Mobile
+    const existingModes = atomsCollection.modes;
+    let desktopModeId = existingModes.find(m => m.name === 'Desktop')?.modeId;
+    let tabletModeId = existingModes.find(m => m.name === 'Tablet')?.modeId;
+    let mobileModeId = existingModes.find(m => m.name === 'Mobile')?.modeId;
+
+    // Rename default mode to Desktop if it's the only one
+    if (existingModes.length === 1 && !desktopModeId) {
+        atomsCollection.renameMode(existingModes[0].modeId, 'Desktop');
+        desktopModeId = existingModes[0].modeId;
+    }
+
+    // Add missing modes
+    if (!tabletModeId) {
+        tabletModeId = atomsCollection.addMode('Tablet');
+    }
+    if (!mobileModeId) {
+        mobileModeId = atomsCollection.addMode('Mobile');
+    }
+
+    const modeIds = {
+        desktop: desktopModeId!,
+        tablet: tabletModeId!,
+        mobile: mobileModeId!
+    };
+
+    // Define atom variables with their alias references per mode
+    // Format: { name, type, desktop: aliasTerms, tablet: aliasTerms, mobile: aliasTerms }
+    const atomVariableDefinitions = [
+        // Button variables
+        { name: 'Button/padding-y', type: 'FLOAT', desktop: ['padding/y/md'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
+        { name: 'Button/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
+        { name: 'Button/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
+        { name: 'Button/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
+        { name: 'Button/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
+        { name: 'Button/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
+
+        // Input variables
+        { name: 'Input/padding-y', type: 'FLOAT', desktop: ['padding/y/md'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
+        { name: 'Input/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
+        { name: 'Input/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
+        { name: 'Input/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
+        { name: 'Input/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
+        { name: 'Input/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
+
+        // Badge variables
+        { name: 'Badge/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/xs'], mobile: ['padding/y/xs'] },
+        { name: 'Badge/padding-x', type: 'FLOAT', desktop: ['padding/x/md'], tablet: ['padding/x/sm'], mobile: ['padding/x/xs'] },
+        { name: 'Badge/font-size', type: 'FLOAT', desktop: ['Typography/Body/sm', 'Body/sm'], tablet: ['Typography/Body/xs', 'Body/xs'], mobile: ['Typography/Body/xs', 'Body/xs'] },
+        { name: 'Badge/icon-size', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
+        { name: 'Badge/gap', type: 'FLOAT', desktop: ['gap/sm'], tablet: ['gap/xs'], mobile: ['gap/xs'] },
+        { name: 'Badge/radius', type: 'FLOAT', desktop: ['radius/full', 'radius/lg'], tablet: ['radius/full', 'radius/md'], mobile: ['radius/full', 'radius/sm'] },
+    ];
+
+    const atomVars: Record<string, Variable> = {};
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+
+    for (const def of atomVariableDefinitions) {
+        // Check if variable already exists in collection
+        let atomVar = allVariables.find(v =>
+            v.variableCollectionId === atomsCollection!.id &&
+            v.name === def.name
+        );
+
+        if (!atomVar) {
+            atomVar = figma.variables.createVariable(def.name, atomsCollection!, def.type as VariableResolvedDataType);
+        }
+
+        // Set alias references for each mode
+        const desktopAlias = findVar(def.desktop, def.type as VariableResolvedDataType);
+        const tabletAlias = findVar(def.tablet, def.type as VariableResolvedDataType);
+        const mobileAlias = findVar(def.mobile, def.type as VariableResolvedDataType);
+
+        // Set values (aliases or fallback numbers)
+        if (desktopAlias) {
+            atomVar.setValueForMode(modeIds.desktop, { type: 'VARIABLE_ALIAS', id: desktopAlias.id });
+        } else {
+            // Fallback values
+            const fallbacks: Record<string, number> = {
+                'Button/padding-y': 12, 'Button/padding-x': 24, 'Button/font-size': 16, 'Button/icon-size': 24, 'Button/gap': 12, 'Button/radius': 8,
+                'Input/padding-y': 12, 'Input/padding-x': 16, 'Input/font-size': 16, 'Input/icon-size': 20, 'Input/gap': 8, 'Input/radius': 8,
+                'Badge/padding-y': 4, 'Badge/padding-x': 12, 'Badge/font-size': 14, 'Badge/icon-size': 16, 'Badge/gap': 4, 'Badge/radius': 999,
+            };
+            atomVar.setValueForMode(modeIds.desktop, fallbacks[def.name] || 16);
+        }
+
+        if (tabletAlias) {
+            atomVar.setValueForMode(modeIds.tablet, { type: 'VARIABLE_ALIAS', id: tabletAlias.id });
+        } else {
+            const fallbacks: Record<string, number> = {
+                'Button/padding-y': 10, 'Button/padding-x': 20, 'Button/font-size': 14, 'Button/icon-size': 20, 'Button/gap': 8, 'Button/radius': 6,
+                'Input/padding-y': 10, 'Input/padding-x': 14, 'Input/font-size': 14, 'Input/icon-size': 18, 'Input/gap': 6, 'Input/radius': 6,
+                'Badge/padding-y': 3, 'Badge/padding-x': 10, 'Badge/font-size': 12, 'Badge/icon-size': 14, 'Badge/gap': 3, 'Badge/radius': 999,
+            };
+            atomVar.setValueForMode(modeIds.tablet, fallbacks[def.name] || 14);
+        }
+
+        if (mobileAlias) {
+            atomVar.setValueForMode(modeIds.mobile, { type: 'VARIABLE_ALIAS', id: mobileAlias.id });
+        } else {
+            const fallbacks: Record<string, number> = {
+                'Button/padding-y': 8, 'Button/padding-x': 16, 'Button/font-size': 12, 'Button/icon-size': 16, 'Button/gap': 6, 'Button/radius': 4,
+                'Input/padding-y': 8, 'Input/padding-x': 12, 'Input/font-size': 12, 'Input/icon-size': 16, 'Input/gap': 4, 'Input/radius': 4,
+                'Badge/padding-y': 2, 'Badge/padding-x': 8, 'Badge/font-size': 10, 'Badge/icon-size': 12, 'Badge/gap': 2, 'Badge/radius': 999,
+            };
+            atomVar.setValueForMode(modeIds.mobile, fallbacks[def.name] || 12);
+        }
+
+        atomVars[def.name] = atomVar;
+    }
+
+    return { collection: atomsCollection, modeIds, atomVars };
+}
+
+
 async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
     try {
         figma.ui.postMessage({ type: 'progress-start', payload: 'Generating atomic components...' });
@@ -1508,6 +1636,10 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             return undefined;
         };
 
+        // Step 1: Create the Atoms collection with responsive variables
+        figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 5, message: 'Creating Atoms variables...' } });
+        const { atomVars } = await createAtomsCollection(findVar);
+
         // Create output container
         let container: FrameNode | PageNode;
 
@@ -1532,10 +1664,10 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         let componentCount = 0;
 
         // ============================================
-        // BUTTONS
+        // BUTTONS (no more size variants - using Atoms variables)
         // ============================================
         if (config.components.buttons) {
-            const { variants, sizes } = config.components.buttons;
+            const { variants } = config.components.buttons;
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 10, message: 'Creating buttons...' } });
 
@@ -1544,24 +1676,21 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const states = ['Default', 'Hover', 'Active', 'Disabled'];
 
             for (const variant of variants) {
-                for (const size of sizes) {
-                    for (const state of states) {
-                        // Force component creation for variants
-                        const originalAsComponents = config.asComponents;
-                        config.asComponents = true;
+                for (const state of states) {
+                    // Force component creation for variants
+                    const originalAsComponents = config.asComponents;
+                    config.asComponents = true;
 
-                        const btn = await createButton(variant, size, state.toLowerCase(), config, findVar) as ComponentNode;
+                    const btn = await createButton(variant, state.toLowerCase(), config, findVar, atomVars) as ComponentNode;
 
-                        // Name with property=value format for variants
-                        const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                        const sizeUpper = size.toUpperCase();
-                        btn.name = `Variant=${variantCapitalized}, Size=${sizeUpper}, State=${state}`;
+                    // Name with property=value format for variants
+                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                    btn.name = `Variant=${variantCapitalized}, State=${state}`;
 
-                        buttonComponents.push(btn);
-                        componentCount++;
+                    buttonComponents.push(btn);
+                    componentCount++;
 
-                        config.asComponents = originalAsComponents;
-                    }
+                    config.asComponents = originalAsComponents;
                 }
             }
 
@@ -1585,11 +1714,10 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         }
 
         // ============================================
-        // INPUTS
+        // INPUTS (no more size variants - using Atoms variables)
         // ============================================
         if (config.components.inputs) {
             const { variants, states } = config.components.inputs;
-            const sizes = ['sm', 'md', 'lg'];
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 40, message: 'Creating inputs...' } });
 
@@ -1597,25 +1725,22 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const inputComponents: ComponentNode[] = [];
 
             for (const variant of variants) {
-                for (const size of sizes) {
-                    for (const state of states) {
-                        // Force component creation for variants
-                        const originalAsComponents = config.asComponents;
-                        config.asComponents = true;
+                for (const state of states) {
+                    // Force component creation for variants
+                    const originalAsComponents = config.asComponents;
+                    config.asComponents = true;
 
-                        const input = await createInput(variant, size, state, config, findVar) as ComponentNode;
+                    const input = await createInput(variant, state, config, findVar, atomVars) as ComponentNode;
 
-                        // Name with property=value format for variants
-                        const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                        const sizeUpper = size.toUpperCase();
-                        const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
-                        input.name = `Type=${variantCapitalized}, Size=${sizeUpper}, State=${stateCapitalized}`;
+                    // Name with property=value format for variants
+                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                    const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                    input.name = `Type=${variantCapitalized}, State=${stateCapitalized}`;
 
-                        inputComponents.push(input);
-                        componentCount++;
+                    inputComponents.push(input);
+                    componentCount++;
 
-                        config.asComponents = originalAsComponents;
-                    }
+                    config.asComponents = originalAsComponents;
                 }
             }
 
@@ -1639,10 +1764,10 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         }
 
         // ============================================
-        // BADGES
+        // BADGES (no more size variants - using Atoms variables)
         // ============================================
         if (config.components.badges) {
-            const { variants, sizes } = config.components.badges;
+            const { variants } = config.components.badges;
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 70, message: 'Creating badges...' } });
 
@@ -1650,23 +1775,20 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const badgeComponents: ComponentNode[] = [];
 
             for (const variant of variants) {
-                for (const size of sizes) {
-                    // Force component creation for variants
-                    const originalAsComponents = config.asComponents;
-                    config.asComponents = true;
+                // Force component creation for variants
+                const originalAsComponents = config.asComponents;
+                config.asComponents = true;
 
-                    const badge = await createBadge(variant, size, config, findVar) as ComponentNode;
+                const badge = await createBadge(variant, config, findVar, atomVars) as ComponentNode;
 
-                    // Name with property=value format for variants
-                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                    const sizeUpper = size.toUpperCase();
-                    badge.name = `Variant=${variantCapitalized}, Size=${sizeUpper}`;
+                // Name with property=value format for variants
+                const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                badge.name = `Variant=${variantCapitalized}`;
 
-                    badgeComponents.push(badge);
-                    componentCount++;
+                badgeComponents.push(badge);
+                componentCount++;
 
-                    config.asComponents = originalAsComponents;
-                }
+                config.asComponents = originalAsComponents;
             }
 
             // Combine all badge components into a ComponentSet
@@ -1783,6 +1905,78 @@ function applyColorToIconSubtree(node: SceneNode, colorVar: Variable) {
     }
 }
 
+// Helper: Create Icon Instance with Variable for size (for Atoms-based responsive icons)
+async function createIconInstanceWithVar(
+    name: string,
+    sizeVar: Variable | undefined,
+    colorVar?: Variable,
+    preferredNames?: string[]
+): Promise<InstanceNode | FrameNode> {
+    // Try to find an existing icon component
+    const iconComponent = await findIconComponent(preferredNames);
+
+    if (iconComponent) {
+        // Create instance of the icon component
+        const instance = iconComponent.createInstance();
+        instance.name = name;
+        instance.fills = []; // Ensure container is transparent
+
+        // Bind size to the provided variable
+        if (sizeVar) {
+            instance.setBoundVariable('width', sizeVar);
+            instance.setBoundVariable('height', sizeVar);
+        } else {
+            instance.resize(20, 20);
+        }
+
+        // Apply color variable to icon content
+        if (colorVar) {
+            applyColorToIconSubtree(instance, colorVar);
+        }
+
+        return instance;
+    }
+
+    // Fallback: Create a simple frame with a placeholder if no icon component found
+    const iconFrame = figma.createFrame();
+    iconFrame.name = name;
+    iconFrame.layoutMode = 'HORIZONTAL';
+    iconFrame.primaryAxisSizingMode = 'FIXED';
+    iconFrame.counterAxisSizingMode = 'FIXED';
+    iconFrame.primaryAxisAlignItems = 'CENTER';
+    iconFrame.counterAxisAlignItems = 'CENTER';
+    iconFrame.fills = []; // Transparent background
+
+    // Bind size to variable or use fallback
+    if (sizeVar) {
+        iconFrame.setBoundVariable('width', sizeVar);
+        iconFrame.setBoundVariable('height', sizeVar);
+    } else {
+        iconFrame.resize(20, 20);
+    }
+
+    // Create a simple placeholder shape inside the fallback frame
+    const rect = figma.createRectangle();
+    rect.name = 'Placeholder';
+    rect.resize(12, 12);
+
+    // Apply color or fallback to the rectangle content
+    if (colorVar) {
+        rect.fills = [figma.variables.setBoundVariableForPaint(
+            { type: 'SOLID', color: { r: 1, g: 1, b: 1 } },
+            'color',
+            colorVar
+        )];
+    } else {
+        rect.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 }, opacity: 0.3 }];
+    }
+
+    iconFrame.appendChild(rect);
+    iconFrame.cornerRadius = 4;
+
+    return iconFrame;
+}
+
 // Helper: Create Icon Instance for component icons
 // Creates an instance of an existing icon component with proper sizing and color
 async function createIconInstance(
@@ -1881,58 +2075,43 @@ async function createIconInstance(
 // Helper: Create Button component
 async function createButton(
     variant: string,
-    size: string,
     state: string,
     config: AtomsConfig,
-    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined,
+    atomVars: Record<string, Variable>
 ): Promise<FrameNode | ComponentNode> {
     const btn = config.asComponents
         ? figma.createComponent()
         : figma.createFrame();
 
-    btn.name = `Button/${variant}/${size}/${state}`;
+    btn.name = `Button/${variant}/${state}`;
     btn.layoutMode = 'HORIZONTAL';
     btn.primaryAxisSizingMode = 'AUTO';
     btn.counterAxisSizingMode = 'AUTO';
     btn.primaryAxisAlignItems = 'CENTER';
     btn.counterAxisAlignItems = 'CENTER';
 
-    // Size-based padding - try to bind to alias variables
-    const paddingVarMap: Record<string, string[]> = {
-        sm: ['padding/y/xs', 'gap/xs'],
-        md: ['padding/y/sm', 'gap/sm'],
-        lg: ['padding/y/md', 'gap/md']
-    };
-    const hPaddingVarMap: Record<string, string[]> = {
-        sm: ['padding/x/sm', 'gap/sm'],
-        md: ['padding/x/md', 'gap/md'],
-        lg: ['padding/x/lg', 'gap/lg']
-    };
-
-    // Try to bind vertical padding
-    const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap['md'], 'FLOAT');
+    // Bind padding to Atoms variables (responsive)
+    const vPaddingVar = atomVars['Button/padding-y'];
     if (vPaddingVar) {
         btn.setBoundVariable('paddingTop', vPaddingVar);
         btn.setBoundVariable('paddingBottom', vPaddingVar);
     } else {
-        const paddingFallback: Record<string, number> = { sm: 8, md: 12, lg: 16 };
-        btn.paddingTop = paddingFallback[size] || 12;
-        btn.paddingBottom = paddingFallback[size] || 12;
+        btn.paddingTop = 12;
+        btn.paddingBottom = 12;
     }
 
-    // Try to bind horizontal padding
-    const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap['md'], 'FLOAT');
+    const hPaddingVar = atomVars['Button/padding-x'];
     if (hPaddingVar) {
         btn.setBoundVariable('paddingLeft', hPaddingVar);
         btn.setBoundVariable('paddingRight', hPaddingVar);
     } else {
-        const hPaddingFallback: Record<string, number> = { sm: 12, md: 16, lg: 24 };
-        btn.paddingLeft = hPaddingFallback[size] || 16;
-        btn.paddingRight = hPaddingFallback[size] || 16;
+        btn.paddingLeft = 24;
+        btn.paddingRight = 24;
     }
 
-    // Try to bind corner radius
-    const radiusVar = findVar(['radius/md', 'radius/sm'], 'FLOAT');
+    // Bind corner radius to Atoms variable
+    const radiusVar = atomVars['Button/radius'];
     if (radiusVar) {
         btn.setBoundVariable('topLeftRadius', radiusVar);
         btn.setBoundVariable('topRightRadius', radiusVar);
@@ -1991,8 +2170,9 @@ async function createButton(
     // Get text color variable for icons
     const textVar = findVar(textVarTerms, 'COLOR');
 
-    // Create icon left (hidden by default)
-    const iconLeft = await createIconInstance('IconLeft', size, findVar, textVar);
+    // Create icon left using Atoms icon-size variable (hidden by default)
+    const iconSizeVar = atomVars['Button/icon-size'];
+    const iconLeft = await createIconInstanceWithVar('IconLeft', iconSizeVar, textVar);
     iconLeft.visible = false;
     btn.appendChild(iconLeft);
 
@@ -2005,8 +2185,13 @@ async function createButton(
     const defaultLabel = variant.charAt(0).toUpperCase() + variant.slice(1);
     text.characters = defaultLabel;
 
-    const fontSizeMap: Record<string, number> = { sm: 12, md: 14, lg: 16 };
-    text.fontSize = fontSizeMap[size] || 14;
+    // Bind font size to Atoms variable
+    const fontSizeVar = atomVars['Button/font-size'];
+    if (fontSizeVar) {
+        text.setBoundVariable('fontSize', fontSizeVar);
+    } else {
+        text.fontSize = 16;
+    }
 
     // Text color
     if (textVar) {
@@ -2016,18 +2201,16 @@ async function createButton(
     btn.appendChild(text);
 
     // Create icon right (hidden by default)
-    const iconRight = await createIconInstance('IconRight', size, findVar, textVar);
+    const iconRight = await createIconInstanceWithVar('IconRight', iconSizeVar, textVar);
     iconRight.visible = false;
     btn.appendChild(iconRight);
 
-    // Try to bind item spacing (gap between icon and text)
-    const gapVarMap: Record<string, string[]> = { sm: ['gap/xs'], md: ['gap/sm'], lg: ['gap/md'] };
-    const gapVar = findVar(gapVarMap[size] || gapVarMap['md'], 'FLOAT');
+    // Bind gap to Atoms variable
+    const gapVar = atomVars['Button/gap'];
     if (gapVar) {
         btn.setBoundVariable('itemSpacing', gapVar);
     } else {
-        const gapFallback: Record<string, number> = { sm: 4, md: 8, lg: 12 };
-        btn.itemSpacing = gapFallback[size] || 8;
+        btn.itemSpacing = 12;
     }
 
     // Add component properties for icons (only for ComponentNode)
@@ -2074,58 +2257,43 @@ async function createButton(
 // Helper: Create Input component
 async function createInput(
     variant: string,
-    size: string,
     state: string,
     config: AtomsConfig,
-    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined,
+    atomVars: Record<string, Variable>
 ): Promise<FrameNode | ComponentNode> {
     const input = config.asComponents
         ? figma.createComponent()
         : figma.createFrame();
 
-    input.name = `Input/${variant}/${size}/${state}`;
+    input.name = `Input/${variant}/${state}`;
     input.layoutMode = 'HORIZONTAL';
     input.primaryAxisSizingMode = 'FIXED';
     input.counterAxisSizingMode = 'AUTO';
     input.counterAxisAlignItems = 'CENTER';
     input.resize(240, input.height);
 
-    // Size-based padding - try to bind to alias variables
-    const paddingVarMap: Record<string, string[]> = {
-        sm: ['padding/y/xs', 'gap/xs'],
-        md: ['padding/y/sm', 'gap/sm'],
-        lg: ['padding/y/md', 'gap/md']
-    };
-    const hPaddingVarMap: Record<string, string[]> = {
-        sm: ['padding/x/sm', 'gap/sm'],
-        md: ['padding/x/md', 'gap/md'],
-        lg: ['padding/x/lg', 'gap/lg']
-    };
-
-    // Try to bind vertical padding
-    const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap['md'], 'FLOAT');
+    // Bind padding to Atoms variables (responsive)
+    const vPaddingVar = atomVars['Input/padding-y'];
     if (vPaddingVar) {
         input.setBoundVariable('paddingTop', vPaddingVar);
         input.setBoundVariable('paddingBottom', vPaddingVar);
     } else {
-        const paddingFallback: Record<string, number> = { sm: 8, md: 12, lg: 16 };
-        input.paddingTop = paddingFallback[size] || 12;
-        input.paddingBottom = paddingFallback[size] || 12;
+        input.paddingTop = 12;
+        input.paddingBottom = 12;
     }
 
-    // Try to bind horizontal padding
-    const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap['md'], 'FLOAT');
+    const hPaddingVar = atomVars['Input/padding-x'];
     if (hPaddingVar) {
         input.setBoundVariable('paddingLeft', hPaddingVar);
         input.setBoundVariable('paddingRight', hPaddingVar);
     } else {
-        const hPaddingFallback: Record<string, number> = { sm: 12, md: 16, lg: 20 };
-        input.paddingLeft = hPaddingFallback[size] || 16;
-        input.paddingRight = hPaddingFallback[size] || 16;
+        input.paddingLeft = 16;
+        input.paddingRight = 16;
     }
 
-    // Try to bind corner radius
-    const radiusVar = findVar(['radius/md', 'radius/sm'], 'FLOAT');
+    // Bind corner radius to Atoms variable
+    const radiusVar = atomVars['Input/radius'];
     if (radiusVar) {
         input.setBoundVariable('topLeftRadius', radiusVar);
         input.setBoundVariable('topRightRadius', radiusVar);
@@ -2165,6 +2333,7 @@ async function createInput(
 
     // Get icon color variable
     const iconColorVar = findVar(['text/secondary', 'icon/default'], 'COLOR');
+    const iconSizeVar = atomVars['Input/icon-size'];
 
     // Declare icon variables
     let iconLeft: InstanceNode | FrameNode | null = null;
@@ -2172,7 +2341,7 @@ async function createInput(
 
     // For text and select variants, add left icon (hidden by default)
     if (variant !== 'textarea') {
-        iconLeft = await createIconInstance('IconLeft', size, findVar, iconColorVar);
+        iconLeft = await createIconInstanceWithVar('IconLeft', iconSizeVar, iconColorVar);
         iconLeft.visible = false;
         input.appendChild(iconLeft);
     }
@@ -2184,8 +2353,13 @@ async function createInput(
     text.fontName = { family: 'Inter', style: 'Regular' };
     text.characters = state === 'disabled' ? 'Disabled' : (variant === 'textarea' ? 'Enter text...' : 'Placeholder');
 
-    const fontSizeMap: Record<string, number> = { sm: 12, md: 14, lg: 16 };
-    text.fontSize = fontSizeMap[size] || 14;
+    // Bind font size to Atoms variable
+    const fontSizeVar = atomVars['Input/font-size'];
+    if (fontSizeVar) {
+        text.setBoundVariable('fontSize', fontSizeVar);
+    } else {
+        text.fontSize = 16;
+    }
     text.layoutGrow = 1;
 
     // Text color
@@ -2198,26 +2372,24 @@ async function createInput(
 
     // For text inputs, add right icon (hidden by default)
     if (variant === 'text') {
-        iconRight = await createIconInstance('IconRight', size, findVar, iconColorVar);
+        iconRight = await createIconInstanceWithVar('IconRight', iconSizeVar, iconColorVar);
         iconRight.visible = false;
         input.appendChild(iconRight);
     }
 
     // Add chevron icon for select variant (always visible)
     if (variant === 'select') {
-        const chevron = await createIconInstance('Chevron', size, findVar, iconColorVar, ['expand_more', 'chevron_down', 'arrow_drop_down']);
+        const chevron = await createIconInstanceWithVar('Chevron', iconSizeVar, iconColorVar, ['expand_more', 'chevron_down', 'arrow_drop_down']);
         input.appendChild(chevron);
     }
 
-    // Add gap between elements
+    // Bind gap to Atoms variable
     if (variant !== 'textarea') {
-        const gapVarMap: Record<string, string[]> = { sm: ['gap/xs'], md: ['gap/sm'], lg: ['gap/md'] };
-        const gapVar = findVar(gapVarMap[size] || gapVarMap['md'], 'FLOAT');
+        const gapVar = atomVars['Input/gap'];
         if (gapVar) {
             input.setBoundVariable('itemSpacing', gapVar);
         } else {
-            const gapFallback: Record<string, number> = { sm: 4, md: 8, lg: 12 };
-            input.itemSpacing = gapFallback[size] || 8;
+            input.itemSpacing = 8;
         }
     }
 
@@ -2278,65 +2450,42 @@ async function createInput(
 // Helper: Create Badge component
 async function createBadge(
     variant: string,
-    size: string,
     config: AtomsConfig,
-    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined,
+    atomVars: Record<string, Variable>
 ): Promise<FrameNode | ComponentNode> {
     const badge = config.asComponents
         ? figma.createComponent()
         : figma.createFrame();
 
-    badge.name = `Badge/${variant}/${size}`;
+    badge.name = `Badge/${variant}`;
     badge.layoutMode = 'HORIZONTAL';
     badge.primaryAxisSizingMode = 'AUTO';
     badge.counterAxisSizingMode = 'AUTO';
+    badge.primaryAxisAlignItems = 'CENTER';
+    badge.counterAxisAlignItems = 'CENTER';
 
-    // Try to bind padding
-    const paddingVarMap: Record<string, string[]> = {
-        sm: ['padding/y/2xs', 'gap/2xs'],
-        md: ['padding/y/xs', 'gap/xs']
-    };
-    const hPaddingVarMap: Record<string, string[]> = {
-        sm: ['padding/x/xs', 'gap/xs'],
-        md: ['padding/x/sm', 'gap/sm']
-    };
-
-    const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap['sm'], 'FLOAT');
+    // Bind padding to Atoms variables (responsive)
+    const vPaddingVar = atomVars['Badge/padding-y'];
     if (vPaddingVar) {
         badge.setBoundVariable('paddingTop', vPaddingVar);
         badge.setBoundVariable('paddingBottom', vPaddingVar);
     } else {
-        const paddingFallback: Record<string, number> = { sm: 4, md: 6 };
-        badge.paddingTop = paddingFallback[size] || 4;
-        badge.paddingBottom = paddingFallback[size] || 4;
+        badge.paddingTop = 4;
+        badge.paddingBottom = 4;
     }
 
-    const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap['sm'], 'FLOAT');
+    const hPaddingVar = atomVars['Badge/padding-x'];
     if (hPaddingVar) {
         badge.setBoundVariable('paddingLeft', hPaddingVar);
         badge.setBoundVariable('paddingRight', hPaddingVar);
     } else {
-        const hPaddingFallback: Record<string, number> = { sm: 8, md: 12 };
-        badge.paddingLeft = hPaddingFallback[size] || 8;
-        badge.paddingRight = hPaddingFallback[size] || 8;
+        badge.paddingLeft = 12;
+        badge.paddingRight = 12;
     }
 
-    // Try to bind corner radius (pill shape)
-    // First try pill/full radius, then fall back to regular radius like buttons use
-    let radiusVar = findVar([
-        'radius/full',
-        'radius/pill',
-        'radius/round',
-        'radius/xl',
-        'radius/2xl',
-        'radius/3xl'
-    ], 'FLOAT');
-
-    // If no pill radius found, use the same as buttons/inputs
-    if (!radiusVar) {
-        radiusVar = findVar(['radius/md', 'radius/sm', 'radius/lg'], 'FLOAT');
-    }
-
+    // Bind corner radius to Atoms variable
+    const radiusVar = atomVars['Badge/radius'];
     if (radiusVar) {
         badge.setBoundVariable('topLeftRadius', radiusVar);
         badge.setBoundVariable('topRightRadius', radiusVar);
@@ -2383,6 +2532,15 @@ async function createBadge(
         }
     }
 
+    // Get text color and icon size variables
+    const textVar = findVar(textTerms, 'COLOR');
+    const iconSizeVar = atomVars['Badge/icon-size'];
+
+    // Create icon left (hidden by default)
+    const iconLeft = await createIconInstanceWithVar('IconLeft', iconSizeVar, textVar);
+    iconLeft.visible = false;
+    badge.appendChild(iconLeft);
+
     // Text
     const text = figma.createText();
     await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
@@ -2397,41 +2555,31 @@ async function createBadge(
     };
     text.characters = labelMap[variant] || 'Badge';
 
-    const fontSizeMap: Record<string, number> = { sm: 10, md: 12 };
-    text.fontSize = fontSizeMap[size] || 12;
+    // Bind font size to Atoms variable
+    const fontSizeVar = atomVars['Badge/font-size'];
+    if (fontSizeVar) {
+        text.setBoundVariable('fontSize', fontSizeVar);
+    } else {
+        text.fontSize = 14;
+    }
 
-    const textVar = findVar(textTerms, 'COLOR');
     if (textVar) {
         text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', textVar)];
     }
 
-    // For md and lg badges, add icons (not for sm - too small)
-    let iconLeft: InstanceNode | FrameNode | null = null;
-    let iconRight: InstanceNode | FrameNode | null = null;
+    badge.appendChild(text);
 
-    if (size !== 'sm') {
-        // Create icon left (hidden by default)
-        iconLeft = await createIconInstance('IconLeft', size, findVar, textVar);
-        iconLeft.visible = false;
-        badge.insertChild(0, iconLeft); // Insert at beginning
+    // Create icon right (hidden by default)
+    const iconRight = await createIconInstanceWithVar('IconRight', iconSizeVar, textVar);
+    iconRight.visible = false;
+    badge.appendChild(iconRight);
 
-        badge.appendChild(text);
-
-        // Create icon right (hidden by default)
-        iconRight = await createIconInstance('IconRight', size, findVar, textVar);
-        iconRight.visible = false;
-        badge.appendChild(iconRight);
-
-        // Add gap between elements
-        const gapVarMap: Record<string, string[]> = { md: ['gap/2xs'], lg: ['gap/xs'] };
-        const gapVar = findVar(gapVarMap[size] || gapVarMap['md'], 'FLOAT');
-        if (gapVar) {
-            badge.setBoundVariable('itemSpacing', gapVar);
-        } else {
-            badge.itemSpacing = size === 'lg' ? 6 : 4;
-        }
+    // Bind gap to Atoms variable
+    const gapVar = atomVars['Badge/gap'];
+    if (gapVar) {
+        badge.setBoundVariable('itemSpacing', gapVar);
     } else {
-        badge.appendChild(text);
+        badge.itemSpacing = 4;
     }
 
     // Add component properties (only for ComponentNode)
@@ -2441,34 +2589,32 @@ async function createBadge(
         const propName = component.addComponentProperty('Text', 'TEXT', defaultLabel);
         text.componentPropertyReferences = { characters: propName };
 
-        // Add icon properties only for md/lg sizes
-        if (size !== 'sm' && iconLeft && iconRight) {
-            const showIconLeftProp = component.addComponentProperty('showIconLeft', 'BOOLEAN', false);
-            iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+        // Add icon properties
+        const showIconLeftProp = component.addComponentProperty('showIconLeft', 'BOOLEAN', false);
+        iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
 
-            const showIconRightProp = component.addComponentProperty('showIconRight', 'BOOLEAN', false);
-            iconRight.componentPropertyReferences = { visible: showIconRightProp };
+        const showIconRightProp = component.addComponentProperty('showIconRight', 'BOOLEAN', false);
+        iconRight.componentPropertyReferences = { visible: showIconRightProp };
 
-            // Add INSTANCE_SWAP properties for icon swapping
-            if (iconLeft.type === 'INSTANCE') {
-                const mainCompLeft = await iconLeft.getMainComponentAsync();
-                if (mainCompLeft) {
-                    const swapLeftProp = component.addComponentProperty('SwapIconLeft', 'INSTANCE_SWAP', mainCompLeft.id);
-                    iconLeft.componentPropertyReferences = {
-                        ...iconLeft.componentPropertyReferences,
-                        mainComponent: swapLeftProp
-                    };
-                }
+        // Add INSTANCE_SWAP properties for icon swapping
+        if (iconLeft.type === 'INSTANCE') {
+            const mainCompLeft = await iconLeft.getMainComponentAsync();
+            if (mainCompLeft) {
+                const swapLeftProp = component.addComponentProperty('SwapIconLeft', 'INSTANCE_SWAP', mainCompLeft.id);
+                iconLeft.componentPropertyReferences = {
+                    ...iconLeft.componentPropertyReferences,
+                    mainComponent: swapLeftProp
+                };
             }
-            if (iconRight.type === 'INSTANCE') {
-                const mainCompRight = await iconRight.getMainComponentAsync();
-                if (mainCompRight) {
-                    const swapRightProp = component.addComponentProperty('SwapIconRight', 'INSTANCE_SWAP', mainCompRight.id);
-                    iconRight.componentPropertyReferences = {
-                        ...iconRight.componentPropertyReferences,
-                        mainComponent: swapRightProp
-                    };
-                }
+        }
+        if (iconRight.type === 'INSTANCE') {
+            const mainCompRight = await iconRight.getMainComponentAsync();
+            if (mainCompRight) {
+                const swapRightProp = component.addComponentProperty('SwapIconRight', 'INSTANCE_SWAP', mainCompRight.id);
+                iconRight.componentPropertyReferences = {
+                    ...iconRight.componentPropertyReferences,
+                    mainComponent: swapRightProp
+                };
             }
         }
     }
@@ -2715,7 +2861,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
         };
 
         // Progress tracking with yield for UI updates
-        const totalSteps = 13; // Total number of alias categories (added Icon-Size)
+        const totalSteps = 13; // Total number of alias categories
         let currentStep = 0;
         const updateProgress = async (message: string): Promise<void> => {
             currentStep++;
@@ -2853,10 +2999,14 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             { name: 'Typography/Display/h1', desktop: '7xl', tablet: '6xl', mobile: '5xl' },
             { name: 'Typography/Display/h2', desktop: '6xl', tablet: '5xl', mobile: '4xl' },
 
-            // Body
-            { name: 'Typography/Body/lg', desktop: 'lg', tablet: 'base', mobile: 'base' },
-            { name: 'Typography/Body/base', desktop: 'base', tablet: 'sm', mobile: 'sm' }, // Standard body
+            // Body - All size variants for UI components (expanded for Atoms)
+            { name: 'Typography/Body/2xs', desktop: '2xs', tablet: '2xs', mobile: '2xs' },
+            { name: 'Typography/Body/xs', desktop: 'xs', tablet: '2xs', mobile: '2xs' },
             { name: 'Typography/Body/sm', desktop: 'sm', tablet: 'xs', mobile: 'xs' },
+            { name: 'Typography/Body/base', desktop: 'base', tablet: 'sm', mobile: 'sm' },
+            { name: 'Typography/Body/lg', desktop: 'lg', tablet: 'base', mobile: 'base' },
+            { name: 'Typography/Body/xl', desktop: 'xl', tablet: 'lg', mobile: 'lg' },
+            { name: 'Typography/Body/2xl', desktop: '2xl', tablet: 'xl', mobile: 'lg' },
 
             // UI / Label
             { name: 'Typography/Label/lg', desktop: 'base', tablet: 'sm', mobile: 'sm' },

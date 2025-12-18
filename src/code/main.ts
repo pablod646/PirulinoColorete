@@ -1515,7 +1515,7 @@ async function createAtomsCollection(
     // Format: { name, type, desktop: aliasTerms, tablet: aliasTerms, mobile: aliasTerms }
     const atomVariableDefinitions = [
         // Button variables
-        { name: 'Button/padding-y', type: 'FLOAT', desktop: ['padding/y/md'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
+        { name: 'Button/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
         { name: 'Button/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
         { name: 'Button/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
         { name: 'Button/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
@@ -1526,7 +1526,7 @@ async function createAtomsCollection(
         { name: 'Button/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
 
         // Input variables
-        { name: 'Input/padding-y', type: 'FLOAT', desktop: ['padding/y/md'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
+        { name: 'Input/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
         { name: 'Input/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
         { name: 'Input/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
         { name: 'Input/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },

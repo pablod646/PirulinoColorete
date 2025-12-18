@@ -21,7 +21,60 @@
 
     // Iconify API
     const ICONIFY_API = 'https://api.iconify.design';
-    const ICON_PREFIX = 'mdi';
+    const ICON_PREFIX = 'material-symbols'; // Material Symbols for rounded variants
+
+    // Essential Icons - Suggested for new projects (Material Symbols Rounded - outlined)
+    const ESSENTIAL_ICONS = [
+        // Navigation
+        'material-symbols:menu-rounded', 'material-symbols:close-rounded',
+        'material-symbols:arrow-back-rounded', 'material-symbols:arrow-forward-rounded',
+        'material-symbols:arrow-upward-rounded', 'material-symbols:arrow-downward-rounded',
+        'material-symbols:chevron-left-rounded', 'material-symbols:chevron-right-rounded',
+        'material-symbols:expand-less-rounded', 'material-symbols:expand-more-rounded',
+        'material-symbols:home-outline-rounded', 'material-symbols:more-vert', 'material-symbols:more-horiz',
+
+        // Actions
+        'material-symbols:add-rounded', 'material-symbols:remove-rounded',
+        'material-symbols:edit-outline-rounded', 'material-symbols:delete-outline-rounded',
+        'material-symbols:check-rounded', 'material-symbols:cancel-outline-rounded',
+        'material-symbols:refresh-rounded', 'material-symbols:download-rounded', 'material-symbols:upload-rounded',
+        'material-symbols:share', 'material-symbols:content-copy', 'material-symbols:content-paste',
+        'material-symbols:search-rounded', 'material-symbols:filter-alt-outline',
+        'material-symbols:sort-rounded', 'material-symbols:tune-rounded',
+
+        // Status & Feedback
+        'material-symbols:check-circle-outline-rounded', 'material-symbols:error-outline-rounded',
+        'material-symbols:info-outline-rounded', 'material-symbols:help-outline-rounded',
+        'material-symbols:progress-activity', 'material-symbols:star-outline-rounded', 'material-symbols:favorite-outline-rounded',
+
+        // User & Account
+        'material-symbols:person-outline-rounded', 'material-symbols:account-circle-outline',
+        'material-symbols:person-add-outline-rounded', 'material-symbols:group-outline-rounded',
+        'material-symbols:login-rounded', 'material-symbols:logout-rounded',
+        'material-symbols:settings-outline-rounded', 'material-symbols:notifications-outline-rounded',
+
+        // Content & Media
+        'material-symbols:image-outline-rounded', 'material-symbols:photo-camera-outline-rounded',
+        'material-symbols:videocam-outline-rounded', 'material-symbols:description-outline-rounded',
+        'material-symbols:folder-outline-rounded', 'material-symbols:link-rounded', 'material-symbols:attach-file-rounded',
+        'material-symbols:calendar-today-outline-rounded', 'material-symbols:schedule-outline-rounded',
+
+        // Communication
+        'material-symbols:mail-outline-rounded', 'material-symbols:call-outline-rounded',
+        'material-symbols:chat-bubble-outline-rounded', 'material-symbols:send-outline-rounded',
+        'material-symbols:forum-outline-rounded',
+
+        // E-commerce
+        'material-symbols:shopping-cart-outline-rounded', 'material-symbols:credit-card-outline',
+        'material-symbols:sell-outline', 'material-symbols:percent-rounded',
+
+        // UI Elements
+        'material-symbols:visibility-outline-rounded', 'material-symbols:visibility-off-outline-rounded',
+        'material-symbols:lock-outline', 'material-symbols:lock-open-outline-rounded',
+        'material-symbols:bookmark-outline-rounded', 'material-symbols:flag-outline-rounded',
+        'material-symbols:thumb-up-outline-rounded', 'material-symbols:thumb-down-outline-rounded',
+        'material-symbols:location-on-outline-rounded', 'material-symbols:language'
+    ];
 
     // State
     let existingIcons = []; // Array of { id, name, displayName }
@@ -29,6 +82,7 @@
     let selectedForDelete = new Set();
     let libraryFrameId = null;
     let iconCache = {};
+    let hasScanned = false;
 
     // ========================================
     // Library Management
@@ -48,12 +102,17 @@
         const totalCount = existingIcons.length + pendingIcons.length;
 
         if (totalCount === 0) {
-            libraryContainer.innerHTML = '<div class="library-placeholder"><span>Click "Sync" to load existing icons or search & add new ones</span></div>';
+            if (hasScanned && existingIcons.length === 0) {
+                // Show essential icons suggestion
+                showEssentialIconsSuggestion();
+            } else {
+                libraryContainer.innerHTML = '<div class="library-placeholder"><span>Click "Sync" to load existing icons</span></div>';
+            }
             libraryCountBadge.style.display = 'none';
             pendingCountBadge.style.display = 'none';
             deleteSelectedBtn.disabled = true;
-            clearPendingBtn.disabled = true;
-            importBtn.disabled = true;
+            clearPendingBtn.disabled = pendingIcons.length === 0;
+            importBtn.disabled = pendingIcons.length === 0;
             return;
         }
 
@@ -125,8 +184,9 @@
 
             await Promise.all(batch.map(async ({ icon, element }) => {
                 try {
-                    const mdiName = icon.displayName.replace(/_/g, '-');
-                    const cacheKey = `mdi:${mdiName}`;
+                    // Convert display name to API-friendly format
+                    const iconName = icon.displayName.replace(/_/g, '-');
+                    const cacheKey = `icon:${iconName}`;
 
                     if (iconCache[cacheKey]) {
                         element.innerHTML = `
@@ -137,11 +197,29 @@
                         return;
                     }
 
-                    const svgUrl = `${ICONIFY_API}/mdi/${mdiName}.svg?height=22`;
-                    const svgResponse = await fetch(svgUrl);
+                    // Try material-symbols first (with various suffixes)
+                    const tryUrls = [
+                        `${ICONIFY_API}/material-symbols/${iconName}.svg?height=22`,
+                        `${ICONIFY_API}/material-symbols/${iconName}-outline.svg?height=22`,
+                        `${ICONIFY_API}/material-symbols/${iconName}-rounded.svg?height=22`,
+                        `${ICONIFY_API}/material-symbols/${iconName}-outline-rounded.svg?height=22`,
+                        `${ICONIFY_API}/mdi/${iconName}.svg?height=22`
+                    ];
 
-                    if (svgResponse.ok) {
-                        const svgText = await svgResponse.text();
+                    let svgText = null;
+                    for (const url of tryUrls) {
+                        try {
+                            const response = await fetch(url);
+                            if (response.ok) {
+                                svgText = await response.text();
+                                break;
+                            }
+                        } catch (e) {
+                            // Continue to next URL
+                        }
+                    }
+
+                    if (svgText) {
                         iconCache[cacheKey] = svgText;
                         element.innerHTML = `
                             <div class="status-dot"></div>
@@ -165,6 +243,81 @@
             }));
         }
     }
+
+    // ========================================
+    // Essential Icons Suggestion
+    // ========================================
+
+    function showEssentialIconsSuggestion() {
+        libraryContainer.innerHTML = `
+            <div class="essential-icons-prompt">
+                <div class="essential-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.54"/>
+                        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.54"/>
+                    </svg>
+                    <span>No icons found! Start with essentials?</span>
+                </div>
+                <p class="essential-description">
+                    We've curated ${ESSENTIAL_ICONS.length} essential icons commonly used in design projects.
+                    Click below to add them to your pending list.
+                </p>
+                <button id="add-essential-icons-btn" class="secondary" style="width: 100%;">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg></span>
+                    Add ${ESSENTIAL_ICONS.length} Essential Icons
+                </button>
+            </div>
+        `;
+
+        document.getElementById('add-essential-icons-btn').onclick = addEssentialIcons;
+    }
+
+    async function addEssentialIcons() {
+        const btn = document.getElementById('add-essential-icons-btn');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg></span> Loading...`;
+
+        // Fetch SVGs for essential icons
+        const batchSize = 10;
+        for (let i = 0; i < ESSENTIAL_ICONS.length; i += batchSize) {
+            const batch = ESSENTIAL_ICONS.slice(i, i + batchSize);
+
+            await Promise.all(batch.map(async (iconName) => {
+                try {
+                    const displayName = iconName.split(':')[1];
+
+                    // Skip if already pending
+                    if (pendingIcons.some(p => p.name === iconName)) return;
+
+                    // Check cache
+                    if (!iconCache[iconName]) {
+                        const svgUrl = `${ICONIFY_API}/${iconName}.svg?height=24`;
+                        const svgResponse = await fetch(svgUrl);
+                        if (svgResponse.ok) {
+                            iconCache[iconName] = await svgResponse.text();
+                        }
+                    }
+
+                    pendingIcons.push({
+                        name: iconName,
+                        displayName: displayName,
+                        svg: iconCache[iconName] || ''
+                    });
+                } catch (e) {
+                    console.error(`Error loading ${iconName}:`, e);
+                }
+            }));
+
+            // Update button text with progress
+            btn.innerHTML = `<span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg></span> Loading ${Math.min(i + batchSize, ESSENTIAL_ICONS.length)}/${ESSENTIAL_ICONS.length}...`;
+        }
+
+        renderLibrary();
+    }
+
+    // ========================================
+    // Toggle & Delete
+    // ========================================
 
     function toggleDeleteSelection(id, element) {
         if (selectedForDelete.has(id)) {
@@ -416,6 +569,7 @@
                 existingIcons = msg.icons || [];
                 libraryFrameId = msg.libraryFrameId;
                 selectedForDelete.clear();
+                hasScanned = true;
                 renderLibrary();
                 break;
 
@@ -453,4 +607,18 @@
 
     // Initialize
     renderLibrary();
+
+    // Auto-scan on load (detect existing icons automatically)
+    function autoScan() {
+        const prefix = iconPrefix.value.trim() || 'Icon/';
+        parent.postMessage({
+            pluginMessage: {
+                type: 'scan-existing-icons',
+                prefix: prefix
+            }
+        }, '*');
+    }
+
+    // Trigger auto-scan after a short delay to ensure plugin is ready
+    setTimeout(autoScan, 300);
 })();

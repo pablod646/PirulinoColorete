@@ -1589,6 +1589,7 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         // ============================================
         if (config.components.inputs) {
             const { variants, states } = config.components.inputs;
+            const sizes = ['sm', 'md', 'lg'];
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 40, message: 'Creating inputs...' } });
 
@@ -1596,22 +1597,25 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const inputComponents: ComponentNode[] = [];
 
             for (const variant of variants) {
-                for (const state of states) {
-                    // Force component creation for variants
-                    const originalAsComponents = config.asComponents;
-                    config.asComponents = true;
+                for (const size of sizes) {
+                    for (const state of states) {
+                        // Force component creation for variants
+                        const originalAsComponents = config.asComponents;
+                        config.asComponents = true;
 
-                    const input = await createInput(variant, state, config, findVar) as ComponentNode;
+                        const input = await createInput(variant, size, state, config, findVar) as ComponentNode;
 
-                    // Name with property=value format for variants
-                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                    const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
-                    input.name = `Type=${variantCapitalized}, State=${stateCapitalized}`;
+                        // Name with property=value format for variants
+                        const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                        const sizeUpper = size.toUpperCase();
+                        const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                        input.name = `Type=${variantCapitalized}, Size=${sizeUpper}, State=${stateCapitalized}`;
 
-                    inputComponents.push(input);
-                    componentCount++;
+                        inputComponents.push(input);
+                        componentCount++;
 
-                    config.asComponents = originalAsComponents;
+                        config.asComponents = originalAsComponents;
+                    }
                 }
             }
 
@@ -1694,6 +1698,184 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         figma.ui.postMessage({ type: 'atoms-generation-error', payload: (err as Error).message });
         figma.notify('Error: ' + (err as Error).message);
     }
+}
+
+// Helper: Find an existing icon component in the project
+async function findIconComponent(preferredNames: string[] = ['add_rounded', 'add', 'plus']): Promise<ComponentNode | null> {
+    // First, search on the current page (doesn't require loadAllPagesAsync)
+    let allNodes = figma.currentPage.findAll(node =>
+        node.type === 'COMPONENT' &&
+        (node.name.toLowerCase().includes('icon') ||
+            node.name.toLowerCase().includes('add') ||
+            node.name.toLowerCase().includes('plus'))
+    ) as ComponentNode[];
+
+    // Try to find by preferred names on current page
+    for (const name of preferredNames) {
+        const found = allNodes.find(c =>
+            c.name.toLowerCase().includes(name.toLowerCase()) ||
+            c.name.toLowerCase().replace(/[_-]/g, '').includes(name.toLowerCase().replace(/[_-]/g, ''))
+        );
+        if (found) return found;
+    }
+
+    // If found any icon on current page, use it
+    if (allNodes.length > 0) return allNodes[0];
+
+    // If not found on current page, try loading all pages
+    try {
+        await figma.loadAllPagesAsync();
+
+        allNodes = figma.root.findAll(node =>
+            node.type === 'COMPONENT' &&
+            (node.name.toLowerCase().includes('icon') ||
+                node.name.toLowerCase().includes('add') ||
+                node.name.toLowerCase().includes('plus'))
+        ) as ComponentNode[];
+
+        // Try preferred names again
+        for (const name of preferredNames) {
+            const found = allNodes.find(c =>
+                c.name.toLowerCase().includes(name.toLowerCase()) ||
+                c.name.toLowerCase().replace(/[_-]/g, '').includes(name.toLowerCase().replace(/[_-]/g, ''))
+            );
+            if (found) return found;
+        }
+
+        if (allNodes.length > 0) return allNodes[0];
+    } catch (e) {
+        console.log('Could not load all pages, using current page only');
+    }
+
+    return null;
+}
+
+
+// Helper: Apply color variable to icon content (recursively)
+function applyColorToIconSubtree(node: SceneNode, colorVar: Variable) {
+    const colorPaint = figma.variables.setBoundVariableForPaint(
+        { type: 'SOLID', color: { r: 1, g: 1, b: 1 } },
+        'color',
+        colorVar
+    );
+
+    // Check if node has fills
+    if ('fills' in node && Array.isArray(node.fills) && node.fills.length > 0) {
+        // Only apply if it's not a frame/component/instance, or if it is but we want to force it
+        // Usually icons are made of Vector, BooleanOperation, etc.
+        if (node.type !== 'FRAME' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT') {
+            node.fills = [colorPaint];
+        }
+    }
+
+    // Check if node has strokes
+    if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
+        if (node.type !== 'FRAME' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT') {
+            node.strokes = [colorPaint];
+        }
+    }
+
+    // Recursively apply to children
+    if ('children' in node) {
+        for (const child of (node as any).children) {
+            applyColorToIconSubtree(child, colorVar);
+        }
+    }
+}
+
+// Helper: Create Icon Instance for component icons
+// Creates an instance of an existing icon component with proper sizing and color
+async function createIconInstance(
+    name: string,
+    size: string,
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined,
+    colorVar?: Variable,
+    preferredNames?: string[]
+): Promise<InstanceNode | FrameNode> {
+    // Try to find an existing icon component
+    const iconComponent = await findIconComponent(preferredNames);
+
+    if (iconComponent) {
+        // Create instance of the icon component
+        const instance = iconComponent.createInstance();
+        instance.name = name;
+        instance.fills = []; // Ensure container is transparent
+
+        // Size mapping for icons based on component size
+        const iconSizeMap: Record<string, string[]> = {
+            sm: ['Icon-Size/sm'],
+            md: ['Icon-Size/md'],
+            lg: ['Icon-Size/lg']
+        };
+
+        // Fallback sizes if variable not found
+        const iconSizeFallback: Record<string, number> = { sm: 16, md: 20, lg: 24 };
+
+        // Try to bind width and height to Icon-Size variable
+        const iconSizeVar = findVar(iconSizeMap[size] || iconSizeMap['md'], 'FLOAT');
+        if (iconSizeVar) {
+            instance.setBoundVariable('width', iconSizeVar);
+            instance.setBoundVariable('height', iconSizeVar);
+        } else {
+            const fallbackSize = iconSizeFallback[size] || 20;
+            instance.resize(fallbackSize, fallbackSize);
+        }
+
+        // Apply color variable to icon content
+        if (colorVar) {
+            applyColorToIconSubtree(instance, colorVar);
+        }
+
+        return instance;
+    }
+
+    // Fallback: Create a simple frame with a placeholder if no icon component found
+    const iconFrame = figma.createFrame();
+    iconFrame.name = name;
+    iconFrame.layoutMode = 'HORIZONTAL';
+    iconFrame.primaryAxisSizingMode = 'FIXED';
+    iconFrame.counterAxisSizingMode = 'FIXED';
+    iconFrame.primaryAxisAlignItems = 'CENTER';
+    iconFrame.counterAxisAlignItems = 'CENTER';
+    iconFrame.fills = []; // Transparent background
+
+    // Apply size from variable or fallback
+    const iconSizeMap: Record<string, string[]> = {
+        sm: ['Icon-Size/sm'],
+        md: ['Icon-Size/md'],
+        lg: ['Icon-Size/lg']
+    };
+    const iconSizeVar = findVar(iconSizeMap[size] || iconSizeMap['md'], 'FLOAT');
+    const iconSizeFallback: Record<string, number> = { sm: 16, md: 20, lg: 24 };
+
+    if (iconSizeVar) {
+        iconFrame.setBoundVariable('width', iconSizeVar);
+        iconFrame.setBoundVariable('height', iconSizeVar);
+    } else {
+        const fallbackSize = iconSizeFallback[size] || 20;
+        iconFrame.resize(fallbackSize, fallbackSize);
+    }
+
+    // Create a simple placeholder shape inside the fallback frame
+    const rect = figma.createRectangle();
+    rect.name = 'Placeholder';
+    rect.resize(iconFrame.width * 0.6, iconFrame.height * 0.6);
+
+    // Apply color or fallback to the rectangle content
+    if (colorVar) {
+        rect.fills = [figma.variables.setBoundVariableForPaint(
+            { type: 'SOLID', color: { r: 1, g: 1, b: 1 } },
+            'color',
+            colorVar
+        )];
+    } else {
+        rect.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 }, opacity: 0.3 }];
+    }
+
+    iconFrame.appendChild(rect);
+    iconFrame.cornerRadius = 4;
+
+    return iconFrame;
 }
 
 // Helper: Create Button component
@@ -1806,8 +1988,17 @@ async function createButton(
         btn.opacity = 0.5;
     }
 
+    // Get text color variable for icons
+    const textVar = findVar(textVarTerms, 'COLOR');
+
+    // Create icon left (hidden by default)
+    const iconLeft = await createIconInstance('IconLeft', size, findVar, textVar);
+    iconLeft.visible = false;
+    btn.appendChild(iconLeft);
+
     // Text
     const text = figma.createText();
+    text.name = 'Label';
     await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
     text.fontName = { family: 'Inter', style: 'Medium' };
 
@@ -1818,20 +2009,63 @@ async function createButton(
     text.fontSize = fontSizeMap[size] || 14;
 
     // Text color
-    const textVar = findVar(textVarTerms, 'COLOR');
     if (textVar) {
         text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', textVar)];
     }
 
     btn.appendChild(text);
 
-    // Add component property for editable text (only for ComponentNode)
+    // Create icon right (hidden by default)
+    const iconRight = await createIconInstance('IconRight', size, findVar, textVar);
+    iconRight.visible = false;
+    btn.appendChild(iconRight);
+
+    // Try to bind item spacing (gap between icon and text)
+    const gapVarMap: Record<string, string[]> = { sm: ['gap/xs'], md: ['gap/sm'], lg: ['gap/md'] };
+    const gapVar = findVar(gapVarMap[size] || gapVarMap['md'], 'FLOAT');
+    if (gapVar) {
+        btn.setBoundVariable('itemSpacing', gapVar);
+    } else {
+        const gapFallback: Record<string, number> = { sm: 4, md: 8, lg: 12 };
+        btn.itemSpacing = gapFallback[size] || 8;
+    }
+
+    // Add component properties for icons (only for ComponentNode)
     if (config.asComponents && btn.type === 'COMPONENT') {
         const component = btn as ComponentNode;
-        // Add text property to component
-        const propName = component.addComponentProperty('Text', 'TEXT', defaultLabel);
-        // Link text node to the property
-        text.componentPropertyReferences = { characters: propName };
+
+        // Add text property
+        const textPropName = component.addComponentProperty('Text', 'TEXT', defaultLabel);
+        text.componentPropertyReferences = { characters: textPropName };
+
+        // Add boolean properties for icon visibility
+        const showIconLeftProp = component.addComponentProperty('showIconLeft', 'BOOLEAN', false);
+        iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+
+        const showIconRightProp = component.addComponentProperty('showIconRight', 'BOOLEAN', false);
+        iconRight.componentPropertyReferences = { visible: showIconRightProp };
+
+        // Add INSTANCE_SWAP properties for icon swapping (only if icons are instances)
+        if (iconLeft.type === 'INSTANCE') {
+            const mainCompLeft = await iconLeft.getMainComponentAsync();
+            if (mainCompLeft) {
+                const swapLeftProp = component.addComponentProperty('SwapIconLeft', 'INSTANCE_SWAP', mainCompLeft.id);
+                iconLeft.componentPropertyReferences = {
+                    ...iconLeft.componentPropertyReferences,
+                    mainComponent: swapLeftProp
+                };
+            }
+        }
+        if (iconRight.type === 'INSTANCE') {
+            const mainCompRight = await iconRight.getMainComponentAsync();
+            if (mainCompRight) {
+                const swapRightProp = component.addComponentProperty('SwapIconRight', 'INSTANCE_SWAP', mainCompRight.id);
+                iconRight.componentPropertyReferences = {
+                    ...iconRight.componentPropertyReferences,
+                    mainComponent: swapRightProp
+                };
+            }
+        }
     }
 
     return btn;
@@ -1840,6 +2074,7 @@ async function createButton(
 // Helper: Create Input component
 async function createInput(
     variant: string,
+    size: string,
     state: string,
     config: AtomsConfig,
     findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined
@@ -1848,29 +2083,45 @@ async function createInput(
         ? figma.createComponent()
         : figma.createFrame();
 
-    input.name = `Input/${variant}/${state}`;
+    input.name = `Input/${variant}/${size}/${state}`;
     input.layoutMode = 'HORIZONTAL';
     input.primaryAxisSizingMode = 'FIXED';
     input.counterAxisSizingMode = 'AUTO';
+    input.counterAxisAlignItems = 'CENTER';
     input.resize(240, input.height);
 
-    // Try to bind padding
-    const vPaddingVar = findVar(['padding/y/sm', 'gap/sm'], 'FLOAT');
+    // Size-based padding - try to bind to alias variables
+    const paddingVarMap: Record<string, string[]> = {
+        sm: ['padding/y/xs', 'gap/xs'],
+        md: ['padding/y/sm', 'gap/sm'],
+        lg: ['padding/y/md', 'gap/md']
+    };
+    const hPaddingVarMap: Record<string, string[]> = {
+        sm: ['padding/x/sm', 'gap/sm'],
+        md: ['padding/x/md', 'gap/md'],
+        lg: ['padding/x/lg', 'gap/lg']
+    };
+
+    // Try to bind vertical padding
+    const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap['md'], 'FLOAT');
     if (vPaddingVar) {
         input.setBoundVariable('paddingTop', vPaddingVar);
         input.setBoundVariable('paddingBottom', vPaddingVar);
     } else {
-        input.paddingTop = 12;
-        input.paddingBottom = 12;
+        const paddingFallback: Record<string, number> = { sm: 8, md: 12, lg: 16 };
+        input.paddingTop = paddingFallback[size] || 12;
+        input.paddingBottom = paddingFallback[size] || 12;
     }
 
-    const hPaddingVar = findVar(['padding/x/md', 'gap/md'], 'FLOAT');
+    // Try to bind horizontal padding
+    const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap['md'], 'FLOAT');
     if (hPaddingVar) {
         input.setBoundVariable('paddingLeft', hPaddingVar);
         input.setBoundVariable('paddingRight', hPaddingVar);
     } else {
-        input.paddingLeft = 16;
-        input.paddingRight = 16;
+        const hPaddingFallback: Record<string, number> = { sm: 12, md: 16, lg: 20 };
+        input.paddingLeft = hPaddingFallback[size] || 16;
+        input.paddingRight = hPaddingFallback[size] || 16;
     }
 
     // Try to bind corner radius
@@ -1912,12 +2163,29 @@ async function createInput(
         input.opacity = 0.5;
     }
 
+    // Get icon color variable
+    const iconColorVar = findVar(['text/secondary', 'icon/default'], 'COLOR');
+
+    // Declare icon variables
+    let iconLeft: InstanceNode | FrameNode | null = null;
+    let iconRight: InstanceNode | FrameNode | null = null;
+
+    // For text and select variants, add left icon (hidden by default)
+    if (variant !== 'textarea') {
+        iconLeft = await createIconInstance('IconLeft', size, findVar, iconColorVar);
+        iconLeft.visible = false;
+        input.appendChild(iconLeft);
+    }
+
     // Placeholder text
     const text = figma.createText();
+    text.name = 'Placeholder';
     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
     text.fontName = { family: 'Inter', style: 'Regular' };
     text.characters = state === 'disabled' ? 'Disabled' : (variant === 'textarea' ? 'Enter text...' : 'Placeholder');
-    text.fontSize = 14;
+
+    const fontSizeMap: Record<string, number> = { sm: 12, md: 14, lg: 16 };
+    text.fontSize = fontSizeMap[size] || 14;
     text.layoutGrow = 1;
 
     // Text color
@@ -1928,29 +2196,29 @@ async function createInput(
 
     input.appendChild(text);
 
-    // Add chevron icon for select variant
+    // For text inputs, add right icon (hidden by default)
+    if (variant === 'text') {
+        iconRight = await createIconInstance('IconRight', size, findVar, iconColorVar);
+        iconRight.visible = false;
+        input.appendChild(iconRight);
+    }
+
+    // Add chevron icon for select variant (always visible)
     if (variant === 'select') {
-        const chevron = figma.createVector();
-        // Chevron-down path (simple V shape)
-        chevron.vectorPaths = [{
-            windingRule: 'NONZERO',
-            data: 'M 0 0 L 6 6 L 12 0'
-        }];
-        chevron.resize(12, 6);
-        chevron.strokeWeight = 2;
-        chevron.strokeCap = 'ROUND';
-        chevron.strokeJoin = 'ROUND';
-
-        // Icon color
-        const iconVar = findVar(['text/secondary', 'icon/default'], 'COLOR');
-        if (iconVar) {
-            chevron.strokes = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', iconVar)];
-        } else {
-            chevron.strokes = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
-        }
-        chevron.fills = [];
-
+        const chevron = await createIconInstance('Chevron', size, findVar, iconColorVar, ['expand_more', 'chevron_down', 'arrow_drop_down']);
         input.appendChild(chevron);
+    }
+
+    // Add gap between elements
+    if (variant !== 'textarea') {
+        const gapVarMap: Record<string, string[]> = { sm: ['gap/xs'], md: ['gap/sm'], lg: ['gap/md'] };
+        const gapVar = findVar(gapVarMap[size] || gapVarMap['md'], 'FLOAT');
+        if (gapVar) {
+            input.setBoundVariable('itemSpacing', gapVar);
+        } else {
+            const gapFallback: Record<string, number> = { sm: 4, md: 8, lg: 12 };
+            input.itemSpacing = gapFallback[size] || 8;
+        }
     }
 
     // Make textarea taller
@@ -1960,12 +2228,48 @@ async function createInput(
         input.primaryAxisSizingMode = 'FIXED';
     }
 
-    // Add component property for editable placeholder (only for ComponentNode)
+    // Add component properties (only for ComponentNode)
     if (config.asComponents && input.type === 'COMPONENT') {
         const component = input as ComponentNode;
         const defaultPlaceholder = text.characters;
         const propName = component.addComponentProperty('Placeholder', 'TEXT', defaultPlaceholder);
         text.componentPropertyReferences = { characters: propName };
+
+        // Add icon visibility and swap properties (for text and select inputs)
+        if (iconLeft) {
+            const showIconLeftProp = component.addComponentProperty('showIconLeft', 'BOOLEAN', false);
+            iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+
+            // Add INSTANCE_SWAP for icon swapping
+            if (iconLeft.type === 'INSTANCE') {
+                const mainCompLeft = await iconLeft.getMainComponentAsync();
+                if (mainCompLeft) {
+                    const swapLeftProp = component.addComponentProperty('SwapIconLeft', 'INSTANCE_SWAP', mainCompLeft.id);
+                    iconLeft.componentPropertyReferences = {
+                        ...iconLeft.componentPropertyReferences,
+                        mainComponent: swapLeftProp
+                    };
+                }
+            }
+        }
+
+        // Only text inputs have right icon
+        if (iconRight && variant === 'text') {
+            const showIconRightProp = component.addComponentProperty('showIconRight', 'BOOLEAN', false);
+            iconRight.componentPropertyReferences = { visible: showIconRightProp };
+
+            // Add INSTANCE_SWAP for icon swapping
+            if (iconRight.type === 'INSTANCE') {
+                const mainCompRight = await iconRight.getMainComponentAsync();
+                if (mainCompRight) {
+                    const swapRightProp = component.addComponentProperty('SwapIconRight', 'INSTANCE_SWAP', mainCompRight.id);
+                    iconRight.componentPropertyReferences = {
+                        ...iconRight.componentPropertyReferences,
+                        mainComponent: swapRightProp
+                    };
+                }
+            }
+        }
     }
 
     return input;
@@ -2101,14 +2405,72 @@ async function createBadge(
         text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', textVar)];
     }
 
-    badge.appendChild(text);
+    // For md and lg badges, add icons (not for sm - too small)
+    let iconLeft: InstanceNode | FrameNode | null = null;
+    let iconRight: InstanceNode | FrameNode | null = null;
 
-    // Add component property for editable label (only for ComponentNode)
+    if (size !== 'sm') {
+        // Create icon left (hidden by default)
+        iconLeft = await createIconInstance('IconLeft', size, findVar, textVar);
+        iconLeft.visible = false;
+        badge.insertChild(0, iconLeft); // Insert at beginning
+
+        badge.appendChild(text);
+
+        // Create icon right (hidden by default)
+        iconRight = await createIconInstance('IconRight', size, findVar, textVar);
+        iconRight.visible = false;
+        badge.appendChild(iconRight);
+
+        // Add gap between elements
+        const gapVarMap: Record<string, string[]> = { md: ['gap/2xs'], lg: ['gap/xs'] };
+        const gapVar = findVar(gapVarMap[size] || gapVarMap['md'], 'FLOAT');
+        if (gapVar) {
+            badge.setBoundVariable('itemSpacing', gapVar);
+        } else {
+            badge.itemSpacing = size === 'lg' ? 6 : 4;
+        }
+    } else {
+        badge.appendChild(text);
+    }
+
+    // Add component properties (only for ComponentNode)
     if (config.asComponents && badge.type === 'COMPONENT') {
         const component = badge as ComponentNode;
         const defaultLabel = text.characters;
         const propName = component.addComponentProperty('Text', 'TEXT', defaultLabel);
         text.componentPropertyReferences = { characters: propName };
+
+        // Add icon properties only for md/lg sizes
+        if (size !== 'sm' && iconLeft && iconRight) {
+            const showIconLeftProp = component.addComponentProperty('showIconLeft', 'BOOLEAN', false);
+            iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+
+            const showIconRightProp = component.addComponentProperty('showIconRight', 'BOOLEAN', false);
+            iconRight.componentPropertyReferences = { visible: showIconRightProp };
+
+            // Add INSTANCE_SWAP properties for icon swapping
+            if (iconLeft.type === 'INSTANCE') {
+                const mainCompLeft = await iconLeft.getMainComponentAsync();
+                if (mainCompLeft) {
+                    const swapLeftProp = component.addComponentProperty('SwapIconLeft', 'INSTANCE_SWAP', mainCompLeft.id);
+                    iconLeft.componentPropertyReferences = {
+                        ...iconLeft.componentPropertyReferences,
+                        mainComponent: swapLeftProp
+                    };
+                }
+            }
+            if (iconRight.type === 'INSTANCE') {
+                const mainCompRight = await iconRight.getMainComponentAsync();
+                if (mainCompRight) {
+                    const swapRightProp = component.addComponentProperty('SwapIconRight', 'INSTANCE_SWAP', mainCompRight.id);
+                    iconRight.componentPropertyReferences = {
+                        ...iconRight.componentPropertyReferences,
+                        mainComponent: swapRightProp
+                    };
+                }
+            }
+        }
     }
 
     return badge;

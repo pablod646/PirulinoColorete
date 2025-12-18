@@ -1,6 +1,25 @@
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -1207,19 +1226,23 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
             if (config.components.inputs) {
               const { variants, states } = config.components.inputs;
+              const sizes = ["sm", "md", "lg"];
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 40, message: "Creating inputs..." } });
               const inputComponents = [];
               for (const variant of variants) {
-                for (const state of states) {
-                  const originalAsComponents = config.asComponents;
-                  config.asComponents = true;
-                  const input = yield createInput(variant, state, config, findVar);
-                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                  const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
-                  input.name = `Type=${variantCapitalized}, State=${stateCapitalized}`;
-                  inputComponents.push(input);
-                  componentCount++;
-                  config.asComponents = originalAsComponents;
+                for (const size of sizes) {
+                  for (const state of states) {
+                    const originalAsComponents = config.asComponents;
+                    config.asComponents = true;
+                    const input = yield createInput(variant, size, state, config, findVar);
+                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                    const sizeUpper = size.toUpperCase();
+                    const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                    input.name = `Type=${variantCapitalized}, Size=${sizeUpper}, State=${stateCapitalized}`;
+                    inputComponents.push(input);
+                    componentCount++;
+                    config.asComponents = originalAsComponents;
+                  }
                 }
               }
               if (inputComponents.length > 0) {
@@ -1278,6 +1301,127 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             figma.ui.postMessage({ type: "atoms-generation-error", payload: err.message });
             figma.notify("Error: " + err.message);
           }
+        });
+      }
+      function findIconComponent() {
+        return __async(this, arguments, function* (preferredNames = ["add_rounded", "add", "plus"]) {
+          let allNodes = figma.currentPage.findAll(
+            (node) => node.type === "COMPONENT" && (node.name.toLowerCase().includes("icon") || node.name.toLowerCase().includes("add") || node.name.toLowerCase().includes("plus"))
+          );
+          for (const name of preferredNames) {
+            const found = allNodes.find(
+              (c) => c.name.toLowerCase().includes(name.toLowerCase()) || c.name.toLowerCase().replace(/[_-]/g, "").includes(name.toLowerCase().replace(/[_-]/g, ""))
+            );
+            if (found)
+              return found;
+          }
+          if (allNodes.length > 0)
+            return allNodes[0];
+          try {
+            yield figma.loadAllPagesAsync();
+            allNodes = figma.root.findAll(
+              (node) => node.type === "COMPONENT" && (node.name.toLowerCase().includes("icon") || node.name.toLowerCase().includes("add") || node.name.toLowerCase().includes("plus"))
+            );
+            for (const name of preferredNames) {
+              const found = allNodes.find(
+                (c) => c.name.toLowerCase().includes(name.toLowerCase()) || c.name.toLowerCase().replace(/[_-]/g, "").includes(name.toLowerCase().replace(/[_-]/g, ""))
+              );
+              if (found)
+                return found;
+            }
+            if (allNodes.length > 0)
+              return allNodes[0];
+          } catch (e) {
+            console.log("Could not load all pages, using current page only");
+          }
+          return null;
+        });
+      }
+      function applyColorToIconSubtree(node, colorVar) {
+        const colorPaint = figma.variables.setBoundVariableForPaint(
+          { type: "SOLID", color: { r: 1, g: 1, b: 1 } },
+          "color",
+          colorVar
+        );
+        if ("fills" in node && Array.isArray(node.fills) && node.fills.length > 0) {
+          if (node.type !== "FRAME" && node.type !== "INSTANCE" && node.type !== "COMPONENT") {
+            node.fills = [colorPaint];
+          }
+        }
+        if ("strokes" in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
+          if (node.type !== "FRAME" && node.type !== "INSTANCE" && node.type !== "COMPONENT") {
+            node.strokes = [colorPaint];
+          }
+        }
+        if ("children" in node) {
+          for (const child of node.children) {
+            applyColorToIconSubtree(child, colorVar);
+          }
+        }
+      }
+      function createIconInstance(name, size, findVar, colorVar, preferredNames) {
+        return __async(this, null, function* () {
+          const iconComponent = yield findIconComponent(preferredNames);
+          if (iconComponent) {
+            const instance = iconComponent.createInstance();
+            instance.name = name;
+            instance.fills = [];
+            const iconSizeMap2 = {
+              sm: ["Icon-Size/sm"],
+              md: ["Icon-Size/md"],
+              lg: ["Icon-Size/lg"]
+            };
+            const iconSizeFallback2 = { sm: 16, md: 20, lg: 24 };
+            const iconSizeVar2 = findVar(iconSizeMap2[size] || iconSizeMap2["md"], "FLOAT");
+            if (iconSizeVar2) {
+              instance.setBoundVariable("width", iconSizeVar2);
+              instance.setBoundVariable("height", iconSizeVar2);
+            } else {
+              const fallbackSize = iconSizeFallback2[size] || 20;
+              instance.resize(fallbackSize, fallbackSize);
+            }
+            if (colorVar) {
+              applyColorToIconSubtree(instance, colorVar);
+            }
+            return instance;
+          }
+          const iconFrame = figma.createFrame();
+          iconFrame.name = name;
+          iconFrame.layoutMode = "HORIZONTAL";
+          iconFrame.primaryAxisSizingMode = "FIXED";
+          iconFrame.counterAxisSizingMode = "FIXED";
+          iconFrame.primaryAxisAlignItems = "CENTER";
+          iconFrame.counterAxisAlignItems = "CENTER";
+          iconFrame.fills = [];
+          const iconSizeMap = {
+            sm: ["Icon-Size/sm"],
+            md: ["Icon-Size/md"],
+            lg: ["Icon-Size/lg"]
+          };
+          const iconSizeVar = findVar(iconSizeMap[size] || iconSizeMap["md"], "FLOAT");
+          const iconSizeFallback = { sm: 16, md: 20, lg: 24 };
+          if (iconSizeVar) {
+            iconFrame.setBoundVariable("width", iconSizeVar);
+            iconFrame.setBoundVariable("height", iconSizeVar);
+          } else {
+            const fallbackSize = iconSizeFallback[size] || 20;
+            iconFrame.resize(fallbackSize, fallbackSize);
+          }
+          const rect = figma.createRectangle();
+          rect.name = "Placeholder";
+          rect.resize(iconFrame.width * 0.6, iconFrame.height * 0.6);
+          if (colorVar) {
+            rect.fills = [figma.variables.setBoundVariableForPaint(
+              { type: "SOLID", color: { r: 1, g: 1, b: 1 } },
+              "color",
+              colorVar
+            )];
+          } else {
+            rect.fills = [{ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 }, opacity: 0.3 }];
+          }
+          iconFrame.appendChild(rect);
+          iconFrame.cornerRadius = 4;
+          return iconFrame;
         });
       }
       function createButton(variant, size, state, config, findVar) {
@@ -1373,49 +1517,99 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (state === "disabled") {
             btn.opacity = 0.5;
           }
+          const textVar = findVar(textVarTerms, "COLOR");
+          const iconLeft = yield createIconInstance("IconLeft", size, findVar, textVar);
+          iconLeft.visible = false;
+          btn.appendChild(iconLeft);
           const text = figma.createText();
+          text.name = "Label";
           yield figma.loadFontAsync({ family: "Inter", style: "Medium" });
           text.fontName = { family: "Inter", style: "Medium" };
           const defaultLabel = variant.charAt(0).toUpperCase() + variant.slice(1);
           text.characters = defaultLabel;
           const fontSizeMap = { sm: 12, md: 14, lg: 16 };
           text.fontSize = fontSizeMap[size] || 14;
-          const textVar = findVar(textVarTerms, "COLOR");
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", textVar)];
           }
           btn.appendChild(text);
+          const iconRight = yield createIconInstance("IconRight", size, findVar, textVar);
+          iconRight.visible = false;
+          btn.appendChild(iconRight);
+          const gapVarMap = { sm: ["gap/xs"], md: ["gap/sm"], lg: ["gap/md"] };
+          const gapVar = findVar(gapVarMap[size] || gapVarMap["md"], "FLOAT");
+          if (gapVar) {
+            btn.setBoundVariable("itemSpacing", gapVar);
+          } else {
+            const gapFallback = { sm: 4, md: 8, lg: 12 };
+            btn.itemSpacing = gapFallback[size] || 8;
+          }
           if (config.asComponents && btn.type === "COMPONENT") {
             const component = btn;
-            const propName = component.addComponentProperty("Text", "TEXT", defaultLabel);
-            text.componentPropertyReferences = { characters: propName };
+            const textPropName = component.addComponentProperty("Text", "TEXT", defaultLabel);
+            text.componentPropertyReferences = { characters: textPropName };
+            const showIconLeftProp = component.addComponentProperty("showIconLeft", "BOOLEAN", false);
+            iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+            const showIconRightProp = component.addComponentProperty("showIconRight", "BOOLEAN", false);
+            iconRight.componentPropertyReferences = { visible: showIconRightProp };
+            if (iconLeft.type === "INSTANCE") {
+              const mainCompLeft = yield iconLeft.getMainComponentAsync();
+              if (mainCompLeft) {
+                const swapLeftProp = component.addComponentProperty("SwapIconLeft", "INSTANCE_SWAP", mainCompLeft.id);
+                iconLeft.componentPropertyReferences = __spreadProps(__spreadValues({}, iconLeft.componentPropertyReferences), {
+                  mainComponent: swapLeftProp
+                });
+              }
+            }
+            if (iconRight.type === "INSTANCE") {
+              const mainCompRight = yield iconRight.getMainComponentAsync();
+              if (mainCompRight) {
+                const swapRightProp = component.addComponentProperty("SwapIconRight", "INSTANCE_SWAP", mainCompRight.id);
+                iconRight.componentPropertyReferences = __spreadProps(__spreadValues({}, iconRight.componentPropertyReferences), {
+                  mainComponent: swapRightProp
+                });
+              }
+            }
           }
           return btn;
         });
       }
-      function createInput(variant, state, config, findVar) {
+      function createInput(variant, size, state, config, findVar) {
         return __async(this, null, function* () {
           const input = config.asComponents ? figma.createComponent() : figma.createFrame();
-          input.name = `Input/${variant}/${state}`;
+          input.name = `Input/${variant}/${size}/${state}`;
           input.layoutMode = "HORIZONTAL";
           input.primaryAxisSizingMode = "FIXED";
           input.counterAxisSizingMode = "AUTO";
+          input.counterAxisAlignItems = "CENTER";
           input.resize(240, input.height);
-          const vPaddingVar = findVar(["padding/y/sm", "gap/sm"], "FLOAT");
+          const paddingVarMap = {
+            sm: ["padding/y/xs", "gap/xs"],
+            md: ["padding/y/sm", "gap/sm"],
+            lg: ["padding/y/md", "gap/md"]
+          };
+          const hPaddingVarMap = {
+            sm: ["padding/x/sm", "gap/sm"],
+            md: ["padding/x/md", "gap/md"],
+            lg: ["padding/x/lg", "gap/lg"]
+          };
+          const vPaddingVar = findVar(paddingVarMap[size] || paddingVarMap["md"], "FLOAT");
           if (vPaddingVar) {
             input.setBoundVariable("paddingTop", vPaddingVar);
             input.setBoundVariable("paddingBottom", vPaddingVar);
           } else {
-            input.paddingTop = 12;
-            input.paddingBottom = 12;
+            const paddingFallback = { sm: 8, md: 12, lg: 16 };
+            input.paddingTop = paddingFallback[size] || 12;
+            input.paddingBottom = paddingFallback[size] || 12;
           }
-          const hPaddingVar = findVar(["padding/x/md", "gap/md"], "FLOAT");
+          const hPaddingVar = findVar(hPaddingVarMap[size] || hPaddingVarMap["md"], "FLOAT");
           if (hPaddingVar) {
             input.setBoundVariable("paddingLeft", hPaddingVar);
             input.setBoundVariable("paddingRight", hPaddingVar);
           } else {
-            input.paddingLeft = 16;
-            input.paddingRight = 16;
+            const hPaddingFallback = { sm: 12, md: 16, lg: 20 };
+            input.paddingLeft = hPaddingFallback[size] || 16;
+            input.paddingRight = hPaddingFallback[size] || 16;
           }
           const radiusVar = findVar(["radius/md", "radius/sm"], "FLOAT");
           if (radiusVar) {
@@ -1451,35 +1645,45 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (state === "disabled") {
             input.opacity = 0.5;
           }
+          const iconColorVar = findVar(["text/secondary", "icon/default"], "COLOR");
+          let iconLeft = null;
+          let iconRight = null;
+          if (variant !== "textarea") {
+            iconLeft = yield createIconInstance("IconLeft", size, findVar, iconColorVar);
+            iconLeft.visible = false;
+            input.appendChild(iconLeft);
+          }
           const text = figma.createText();
+          text.name = "Placeholder";
           yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
           text.fontName = { family: "Inter", style: "Regular" };
           text.characters = state === "disabled" ? "Disabled" : variant === "textarea" ? "Enter text..." : "Placeholder";
-          text.fontSize = 14;
+          const fontSizeMap = { sm: 12, md: 14, lg: 16 };
+          text.fontSize = fontSizeMap[size] || 14;
           text.layoutGrow = 1;
           const textVar = findVar(["text/placeholder", "text/tertiary"], "COLOR");
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.6, g: 0.6, b: 0.6 } }, "color", textVar)];
           }
           input.appendChild(text);
+          if (variant === "text") {
+            iconRight = yield createIconInstance("IconRight", size, findVar, iconColorVar);
+            iconRight.visible = false;
+            input.appendChild(iconRight);
+          }
           if (variant === "select") {
-            const chevron = figma.createVector();
-            chevron.vectorPaths = [{
-              windingRule: "NONZERO",
-              data: "M 0 0 L 6 6 L 12 0"
-            }];
-            chevron.resize(12, 6);
-            chevron.strokeWeight = 2;
-            chevron.strokeCap = "ROUND";
-            chevron.strokeJoin = "ROUND";
-            const iconVar = findVar(["text/secondary", "icon/default"], "COLOR");
-            if (iconVar) {
-              chevron.strokes = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", iconVar)];
-            } else {
-              chevron.strokes = [{ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }];
-            }
-            chevron.fills = [];
+            const chevron = yield createIconInstance("Chevron", size, findVar, iconColorVar, ["expand_more", "chevron_down", "arrow_drop_down"]);
             input.appendChild(chevron);
+          }
+          if (variant !== "textarea") {
+            const gapVarMap = { sm: ["gap/xs"], md: ["gap/sm"], lg: ["gap/md"] };
+            const gapVar = findVar(gapVarMap[size] || gapVarMap["md"], "FLOAT");
+            if (gapVar) {
+              input.setBoundVariable("itemSpacing", gapVar);
+            } else {
+              const gapFallback = { sm: 4, md: 8, lg: 12 };
+              input.itemSpacing = gapFallback[size] || 8;
+            }
           }
           if (variant === "textarea") {
             input.layoutMode = "VERTICAL";
@@ -1491,6 +1695,32 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             const defaultPlaceholder = text.characters;
             const propName = component.addComponentProperty("Placeholder", "TEXT", defaultPlaceholder);
             text.componentPropertyReferences = { characters: propName };
+            if (iconLeft) {
+              const showIconLeftProp = component.addComponentProperty("showIconLeft", "BOOLEAN", false);
+              iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+              if (iconLeft.type === "INSTANCE") {
+                const mainCompLeft = yield iconLeft.getMainComponentAsync();
+                if (mainCompLeft) {
+                  const swapLeftProp = component.addComponentProperty("SwapIconLeft", "INSTANCE_SWAP", mainCompLeft.id);
+                  iconLeft.componentPropertyReferences = __spreadProps(__spreadValues({}, iconLeft.componentPropertyReferences), {
+                    mainComponent: swapLeftProp
+                  });
+                }
+              }
+            }
+            if (iconRight && variant === "text") {
+              const showIconRightProp = component.addComponentProperty("showIconRight", "BOOLEAN", false);
+              iconRight.componentPropertyReferences = { visible: showIconRightProp };
+              if (iconRight.type === "INSTANCE") {
+                const mainCompRight = yield iconRight.getMainComponentAsync();
+                if (mainCompRight) {
+                  const swapRightProp = component.addComponentProperty("SwapIconRight", "INSTANCE_SWAP", mainCompRight.id);
+                  iconRight.componentPropertyReferences = __spreadProps(__spreadValues({}, iconRight.componentPropertyReferences), {
+                    mainComponent: swapRightProp
+                  });
+                }
+              }
+            }
           }
           return input;
         });
@@ -1595,12 +1825,55 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", textVar)];
           }
-          badge.appendChild(text);
+          let iconLeft = null;
+          let iconRight = null;
+          if (size !== "sm") {
+            iconLeft = yield createIconInstance("IconLeft", size, findVar, textVar);
+            iconLeft.visible = false;
+            badge.insertChild(0, iconLeft);
+            badge.appendChild(text);
+            iconRight = yield createIconInstance("IconRight", size, findVar, textVar);
+            iconRight.visible = false;
+            badge.appendChild(iconRight);
+            const gapVarMap = { md: ["gap/2xs"], lg: ["gap/xs"] };
+            const gapVar = findVar(gapVarMap[size] || gapVarMap["md"], "FLOAT");
+            if (gapVar) {
+              badge.setBoundVariable("itemSpacing", gapVar);
+            } else {
+              badge.itemSpacing = size === "lg" ? 6 : 4;
+            }
+          } else {
+            badge.appendChild(text);
+          }
           if (config.asComponents && badge.type === "COMPONENT") {
             const component = badge;
             const defaultLabel = text.characters;
             const propName = component.addComponentProperty("Text", "TEXT", defaultLabel);
             text.componentPropertyReferences = { characters: propName };
+            if (size !== "sm" && iconLeft && iconRight) {
+              const showIconLeftProp = component.addComponentProperty("showIconLeft", "BOOLEAN", false);
+              iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+              const showIconRightProp = component.addComponentProperty("showIconRight", "BOOLEAN", false);
+              iconRight.componentPropertyReferences = { visible: showIconRightProp };
+              if (iconLeft.type === "INSTANCE") {
+                const mainCompLeft = yield iconLeft.getMainComponentAsync();
+                if (mainCompLeft) {
+                  const swapLeftProp = component.addComponentProperty("SwapIconLeft", "INSTANCE_SWAP", mainCompLeft.id);
+                  iconLeft.componentPropertyReferences = __spreadProps(__spreadValues({}, iconLeft.componentPropertyReferences), {
+                    mainComponent: swapLeftProp
+                  });
+                }
+              }
+              if (iconRight.type === "INSTANCE") {
+                const mainCompRight = yield iconRight.getMainComponentAsync();
+                if (mainCompRight) {
+                  const swapRightProp = component.addComponentProperty("SwapIconRight", "INSTANCE_SWAP", mainCompRight.id);
+                  iconRight.componentPropertyReferences = __spreadProps(__spreadValues({}, iconRight.componentPropertyReferences), {
+                    mainComponent: swapRightProp
+                  });
+                }
+              }
+            }
           }
           return badge;
         });

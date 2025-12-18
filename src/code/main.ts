@@ -2314,12 +2314,30 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             return v;
         };
 
+        // Progress tracking with yield for UI updates
+        const totalSteps = 12; // Total number of alias categories
+        let currentStep = 0;
+        const updateProgress = async (message: string): Promise<void> => {
+            currentStep++;
+            figma.ui.postMessage({
+                type: 'progress-update',
+                payload: {
+                    current: currentStep,
+                    total: totalSteps,
+                    message: message
+                }
+            });
+            // Yield to allow UI to update
+            await new Promise(resolve => setTimeout(resolve, 50));
+        };
+
         // --- REFACTORED SECTIONS ---
 
         // 1. Text Size Aliases (REMOVED)
         // User requested to remove this section.
         // const textSizeTShirtMap = ['3xs', '2xs', 'xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl'];
 
+        await updateProgress('Creating letter-spacing aliases...');
 
         // 2. Letter Spacing Aliases (Letter-Spacing)
         // 5-step scale: tighter, tight, normal, wide, wider
@@ -2347,6 +2365,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setModeVal(tabletId, item.tablet);
             setModeVal(mobileId, item.mobile);
         }
+
+        await updateProgress('Creating radius aliases...');
 
         // 3. Radius Aliases (Using Measures) - RESPONSIVE
         // Reduced radius on smaller screens for better visual balance
@@ -2387,6 +2407,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setModeVal(mobileId, item.mobile);
         }
 
+        await updateProgress('Creating border-width aliases...');
+
         // 4. Border Width (Stroke) Aliases - RESPONSIVE
         // Reduced border widths on smaller screens for better visual balance
         const borderMap = [
@@ -2412,6 +2434,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setModeVal(tabletId, item.tablet);
             setModeVal(mobileId, item.mobile);
         }
+
+        await updateProgress('Creating typography aliases...');
 
         // 5. Semantic Text Aliases (Responsive) - Existing Refined
         // Mapping Semantic Usage -> T-shirt Size value (which allows responsiveness)
@@ -2458,6 +2482,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setModeVal(mobileId, item.mobile);
         }
 
+        await updateProgress('Creating spacing/gap aliases...');
+
         // 6. Spacing Aliases (Responsive Gaps)
         const spaceMap = [
             { name: 'Spacing/Gap/3xs', desktop: '2px', tablet: '2px', mobile: '1px' },
@@ -2487,6 +2513,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setSpaceMode(tabletId, item.tablet);
             setSpaceMode(mobileId, item.mobile);
         }
+
+        await updateProgress('Creating padding aliases...');
 
         // 7. Padding Aliases (Responsive - 4 directions)
         const paddingScale = [
@@ -2523,6 +2551,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             }
         }
 
+        await updateProgress('Creating margin aliases...');
+
         // 8. Margin Aliases (Responsive - 4 directions)
         for (const dir of directions) {
             for (const scale of paddingScale) { // Reuse same scale
@@ -2541,6 +2571,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 setMode(mobileId, scale.mobile);
             }
         }
+
+        await updateProgress('Creating axis padding aliases...');
 
         // 9. Axis-based Padding (X = horizontal, Y = vertical)
         const axes = ['x', 'y'];
@@ -2563,6 +2595,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             }
         }
 
+        await updateProgress('Creating axis margin aliases...');
+
         // 10. Axis-based Margin (X = horizontal, Y = vertical)
         for (const axis of axes) {
             for (const scale of paddingScale) {
@@ -2581,6 +2615,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 setMode(mobileId, scale.mobile);
             }
         }
+
+        await updateProgress('Creating effects aliases...');
 
         // NEW: Effects System Maps
         // Opacity (0-1) - Usually hardcoded as it is a multiplier, but could be aliased if primitives exist.
@@ -2699,6 +2735,8 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
 
 
 
+
+        await updateProgress('Creating shadow aliases...');
 
         // Process Shadows (Semantic Variables for Y, Blur, Spread)
         // We create responsive variables for each shadow property, aliased to Measures.

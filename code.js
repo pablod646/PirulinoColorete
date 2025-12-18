@@ -1786,6 +1786,21 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               }
               return v;
             });
+            const totalSteps = 12;
+            let currentStep = 0;
+            const updateProgress = (message) => __async(this, null, function* () {
+              currentStep++;
+              figma.ui.postMessage({
+                type: "progress-update",
+                payload: {
+                  current: currentStep,
+                  total: totalSteps,
+                  message
+                }
+              });
+              yield new Promise((resolve) => setTimeout(resolve, 50));
+            });
+            yield updateProgress("Creating letter-spacing aliases...");
             const letterSpacingMap = [
               { name: "Typography/Letter-Spacing/tighter", desktop: "very-tight", tablet: "tight", mobile: "semi-tight" },
               { name: "Typography/Letter-Spacing/tight", desktop: "semi-tight", tablet: "slightly-tight", mobile: "slightly-tight" },
@@ -1805,6 +1820,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setModeVal(tabletId, item.tablet);
               setModeVal(mobileId, item.mobile);
             }
+            yield updateProgress("Creating radius aliases...");
             const radiusMap = [
               { name: "Radius/none", desktop: "0px", tablet: "0px", mobile: "0px" },
               { name: "Radius/2xs", desktop: "2px", tablet: "2px", mobile: "2px" },
@@ -1837,6 +1853,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setModeVal(tabletId, item.tablet);
               setModeVal(mobileId, item.mobile);
             }
+            yield updateProgress("Creating border-width aliases...");
             const borderMap = [
               { name: "Border Width/none", desktop: "0px", tablet: "0px", mobile: "0px" },
               { name: "Border Width/hairline", desktop: "0_5px", tablet: "0_5px", mobile: "0_5px" },
@@ -1857,6 +1874,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setModeVal(tabletId, item.tablet);
               setModeVal(mobileId, item.mobile);
             }
+            yield updateProgress("Creating typography aliases...");
             const textMap = [
               // Headings
               { name: "Typography/Heading/h1", desktop: "5xl", tablet: "4xl", mobile: "3xl" },
@@ -1892,6 +1910,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setModeVal(tabletId, item.tablet);
               setModeVal(mobileId, item.mobile);
             }
+            yield updateProgress("Creating spacing/gap aliases...");
             const spaceMap = [
               { name: "Spacing/Gap/3xs", desktop: "2px", tablet: "2px", mobile: "1px" },
               { name: "Spacing/Gap/2xs", desktop: "4px", tablet: "4px", mobile: "2px" },
@@ -1917,6 +1936,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setSpaceMode(tabletId, item.tablet);
               setSpaceMode(mobileId, item.mobile);
             }
+            yield updateProgress("Creating padding aliases...");
             const paddingScale = [
               { size: "3xs", desktop: "2px", tablet: "2px", mobile: "1px" },
               { size: "2xs", desktop: "4px", tablet: "4px", mobile: "2px" },
@@ -1945,6 +1965,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 setMode(mobileId, scale.mobile);
               }
             }
+            yield updateProgress("Creating margin aliases...");
             for (const dir of directions) {
               for (const scale of paddingScale) {
                 const v = yield findOrCreateVar(`Spacing/Margin/${dir}/${scale.size}`);
@@ -1960,6 +1981,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 setMode(mobileId, scale.mobile);
               }
             }
+            yield updateProgress("Creating axis padding aliases...");
             const axes = ["x", "y"];
             for (const axis of axes) {
               for (const scale of paddingScale) {
@@ -1976,6 +1998,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 setMode(mobileId, scale.mobile);
               }
             }
+            yield updateProgress("Creating axis margin aliases...");
             for (const axis of axes) {
               for (const scale of paddingScale) {
                 const v = yield findOrCreateVar(`Spacing/Margin/${axis}/${scale.size}`);
@@ -1991,6 +2014,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 setMode(mobileId, scale.mobile);
               }
             }
+            yield updateProgress("Creating effects aliases...");
             const opacityMap = [
               { name: "Effects/Opacity/0", value: 0 },
               { name: "Effects/Opacity/5", value: 0.05 },
@@ -2081,6 +2105,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setSpaceMode(tabletId, item.tablet);
               setSpaceMode(mobileId, item.mobile);
             }
+            yield updateProgress("Creating shadow aliases...");
             const shadowMap = [
               { name: "Effects/Shadow/xs", y: 1, blur: 2, spread: 0 },
               { name: "Effects/Shadow/sm", y: 1, blur: 3, spread: 0 },

@@ -1,102 +1,230 @@
-// Icons Section - Import icons from Iconify API
+// Icons Section - Unified Icon Library
 (function () {
     'use strict';
 
     // Elements
-    const iconSetSelect = document.getElementById('icon-set-select');
-    const iconStyleSelect = document.getElementById('icon-style-select');
     const searchQuery = document.getElementById('icon-search-query');
     const searchBtn = document.getElementById('search-icons-btn');
     const resultsContainer = document.getElementById('icon-results');
-    const importQueue = document.getElementById('import-queue');
-    const queueCountBadge = document.getElementById('queue-count-badge');
-    const clearQueueBtn = document.getElementById('clear-queue-btn');
+    const libraryContainer = document.getElementById('icon-library');
+    const libraryCountBadge = document.getElementById('library-count-badge');
+    const pendingCountBadge = document.getElementById('pending-count-badge');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const clearPendingBtn = document.getElementById('clear-pending-btn');
     const importBtn = document.getElementById('import-icons-btn');
     const iconSize = document.getElementById('icon-size');
     const iconPrefix = document.getElementById('icon-prefix');
     const asComponents = document.getElementById('icon-as-components');
+    const scanLibraryBtn = document.getElementById('scan-library-btn');
 
-    if (!iconSetSelect) return;
+    if (!searchQuery) return;
 
-    // Iconify API base URL
+    // Iconify API
     const ICONIFY_API = 'https://api.iconify.design';
-
-    // Icon set styles configuration
-    const iconSetStyles = {
-        'mdi': [
-            { value: 'mdi', label: 'Default' },
-            { value: 'mdi-light', label: 'Light' }
-        ],
-        'lucide': [
-            { value: 'lucide', label: 'Default' }
-        ],
-        'ph': [
-            { value: 'ph', label: 'Regular' },
-            { value: 'ph-thin', label: 'Thin' },
-            { value: 'ph-light', label: 'Light' },
-            { value: 'ph-bold', label: 'Bold' },
-            { value: 'ph-fill', label: 'Fill' },
-            { value: 'ph-duotone', label: 'Duotone' }
-        ],
-        'heroicons': [
-            { value: 'heroicons', label: 'Outline (24)' },
-            { value: 'heroicons-solid', label: 'Solid (24)' },
-            { value: 'heroicons-outline', label: 'Outline (20)' }
-        ],
-        'tabler': [
-            { value: 'tabler', label: 'Default' }
-        ],
-        'carbon': [
-            { value: 'carbon', label: 'Default' }
-        ],
-        'ri': [
-            { value: 'ri', label: 'Default (includes line/fill)' }
-        ],
-        'bi': [
-            { value: 'bi', label: 'Default' }
-        ],
-        'feather': [
-            { value: 'feather', label: 'Default' }
-        ],
-        'ion': [
-            { value: 'ion', label: 'Default (includes outline/sharp/filled)' }
-        ]
-    };
+    const ICON_PREFIX = 'mdi';
 
     // State
-    let currentPrefix = '';
-    let importQueueList = []; // Array of { name, svg, displayName }
+    let existingIcons = []; // Array of { id, name, displayName }
+    let pendingIcons = [];  // Array of { name, svg, displayName }
+    let selectedForDelete = new Set();
+    let libraryFrameId = null;
     let iconCache = {};
 
-    // Icon Set Selection
-    iconSetSelect.onchange = () => {
-        const setKey = iconSetSelect.value;
-        const styles = iconSetStyles[setKey] || [];
+    // ========================================
+    // Library Management
+    // ========================================
 
-        iconStyleSelect.innerHTML = '';
-        styles.forEach(style => {
-            const opt = document.createElement('option');
-            opt.value = style.value;
-            opt.textContent = style.label;
-            iconStyleSelect.appendChild(opt);
+    scanLibraryBtn.onclick = () => {
+        const prefix = iconPrefix.value.trim() || 'Icon/';
+        parent.postMessage({
+            pluginMessage: {
+                type: 'scan-existing-icons',
+                prefix: prefix
+            }
+        }, '*');
+    };
+
+    async function renderLibrary() {
+        const totalCount = existingIcons.length + pendingIcons.length;
+
+        if (totalCount === 0) {
+            libraryContainer.innerHTML = '<div class="library-placeholder"><span>Click "Sync" to load existing icons or search & add new ones</span></div>';
+            libraryCountBadge.style.display = 'none';
+            pendingCountBadge.style.display = 'none';
+            deleteSelectedBtn.disabled = true;
+            clearPendingBtn.disabled = true;
+            importBtn.disabled = true;
+            return;
+        }
+
+        libraryCountBadge.textContent = totalCount;
+        libraryCountBadge.style.display = 'inline-flex';
+
+        clearPendingBtn.disabled = pendingIcons.length === 0;
+        importBtn.disabled = pendingIcons.length === 0;
+
+        if (pendingIcons.length > 0) {
+            pendingCountBadge.textContent = pendingIcons.length;
+            pendingCountBadge.style.display = 'inline-flex';
+        } else {
+            pendingCountBadge.style.display = 'none';
+        }
+
+        libraryContainer.innerHTML = '';
+
+        // Render existing icons first
+        const existingElements = existingIcons.map(icon => {
+            const iconEl = document.createElement('div');
+            iconEl.className = 'library-icon existing';
+            iconEl.dataset.id = icon.id;
+            iconEl.dataset.name = icon.displayName;
+            iconEl.dataset.type = 'existing';
+            iconEl.title = `${icon.name} (in library)`;
+
+            if (selectedForDelete.has(icon.id)) {
+                iconEl.classList.add('selected-for-delete');
+            }
+
+            iconEl.innerHTML = `
+                <div class="status-dot"></div>
+                <div class="icon-skeleton"></div>
+                <span class="icon-name">${icon.displayName}</span>
+            `;
+
+            iconEl.onclick = () => toggleDeleteSelection(icon.id, iconEl);
+            libraryContainer.appendChild(iconEl);
+
+            return { icon, element: iconEl };
         });
 
-        iconStyleSelect.disabled = false;
-        searchQuery.disabled = false;
-        searchBtn.disabled = false;
+        // Render pending icons
+        pendingIcons.forEach(icon => {
+            const iconEl = document.createElement('div');
+            iconEl.className = 'library-icon pending';
+            iconEl.dataset.name = icon.name;
+            iconEl.dataset.type = 'pending';
+            iconEl.title = `${icon.displayName} (pending import)`;
 
-        currentPrefix = styles[0]?.value || setKey;
-        showPlaceholder('Search for icons in this set');
+            const svgHtml = icon.svg || `<span class="icon-char">${icon.displayName.charAt(0).toUpperCase()}</span>`;
+            iconEl.innerHTML = `
+                <div class="status-dot"></div>
+                ${svgHtml}
+                <span class="icon-name">${icon.displayName}</span>
+            `;
+
+            iconEl.onclick = () => removePendingIcon(icon.name);
+            libraryContainer.appendChild(iconEl);
+        });
+
+        updateDeleteButton();
+
+        // Fetch SVGs for existing icons in background
+        const batchSize = 10;
+        for (let i = 0; i < existingElements.length; i += batchSize) {
+            const batch = existingElements.slice(i, i + batchSize);
+
+            await Promise.all(batch.map(async ({ icon, element }) => {
+                try {
+                    const mdiName = icon.displayName.replace(/_/g, '-');
+                    const cacheKey = `mdi:${mdiName}`;
+
+                    if (iconCache[cacheKey]) {
+                        element.innerHTML = `
+                            <div class="status-dot"></div>
+                            ${iconCache[cacheKey]}
+                            <span class="icon-name">${icon.displayName}</span>
+                        `;
+                        return;
+                    }
+
+                    const svgUrl = `${ICONIFY_API}/mdi/${mdiName}.svg?height=22`;
+                    const svgResponse = await fetch(svgUrl);
+
+                    if (svgResponse.ok) {
+                        const svgText = await svgResponse.text();
+                        iconCache[cacheKey] = svgText;
+                        element.innerHTML = `
+                            <div class="status-dot"></div>
+                            ${svgText}
+                            <span class="icon-name">${icon.displayName}</span>
+                        `;
+                    } else {
+                        element.innerHTML = `
+                            <div class="status-dot"></div>
+                            <span class="icon-char">${icon.displayName.charAt(0).toUpperCase()}</span>
+                            <span class="icon-name">${icon.displayName}</span>
+                        `;
+                    }
+                } catch (e) {
+                    element.innerHTML = `
+                        <div class="status-dot"></div>
+                        <span class="icon-char">${icon.displayName.charAt(0).toUpperCase()}</span>
+                        <span class="icon-name">${icon.displayName}</span>
+                    `;
+                }
+            }));
+        }
+    }
+
+    function toggleDeleteSelection(id, element) {
+        if (selectedForDelete.has(id)) {
+            selectedForDelete.delete(id);
+            element.classList.remove('selected-for-delete');
+        } else {
+            selectedForDelete.add(id);
+            element.classList.add('selected-for-delete');
+        }
+        updateDeleteButton();
+    }
+
+    function updateDeleteButton() {
+        if (selectedForDelete.size > 0) {
+            deleteSelectedBtn.disabled = false;
+            deleteSelectedBtn.innerHTML = `
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></span> Delete ${selectedForDelete.size}
+            `;
+        } else {
+            deleteSelectedBtn.disabled = true;
+            deleteSelectedBtn.innerHTML = `
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></span> Delete Selected
+            `;
+        }
+    }
+
+    function removePendingIcon(name) {
+        pendingIcons = pendingIcons.filter(icon => icon.name !== name);
+        // Update search results UI
+        const gridItem = resultsContainer.querySelector(`[data-icon="${name}"]`);
+        if (gridItem) gridItem.classList.remove('in-queue');
+        renderLibrary();
+    }
+
+    deleteSelectedBtn.onclick = () => {
+        if (selectedForDelete.size === 0) return;
+
+        parent.postMessage({
+            pluginMessage: {
+                type: 'delete-icons',
+                iconIds: Array.from(selectedForDelete)
+            }
+        }, '*');
     };
 
-    iconStyleSelect.onchange = () => {
-        currentPrefix = iconStyleSelect.value;
+    clearPendingBtn.onclick = () => {
+        pendingIcons = [];
+        document.querySelectorAll('.icon-item.in-queue').forEach(el => {
+            el.classList.remove('in-queue');
+        });
+        renderLibrary();
     };
 
-    // Search icons
+    // ========================================
+    // Search Icons
+    // ========================================
+
     searchBtn.onclick = async () => {
         const query = searchQuery.value.trim();
-        if (!query || !currentPrefix) {
+        if (!query) {
             showPlaceholder('Enter a search term');
             return;
         }
@@ -104,7 +232,7 @@
         showLoading();
 
         try {
-            const url = `${ICONIFY_API}/search?query=${encodeURIComponent(query)}&prefix=${currentPrefix}&limit=60`;
+            const url = `${ICONIFY_API}/search?query=${encodeURIComponent(query)}&prefix=${ICON_PREFIX}&limit=48`;
             const response = await fetch(url);
             const data = await response.json();
 
@@ -119,9 +247,8 @@
         }
     };
 
-    // Enter key to search
     searchQuery.onkeypress = (e) => {
-        if (e.key === 'Enter' && !searchBtn.disabled) {
+        if (e.key === 'Enter') {
             searchBtn.click();
         }
     };
@@ -137,7 +264,6 @@
     async function renderIcons(icons) {
         resultsContainer.innerHTML = '';
 
-        // First, render all placeholders immediately for instant feedback
         const iconElements = icons.map(iconName => {
             const nameParts = iconName.split(':');
             const displayName = nameParts.length > 1 ? nameParts[1] : nameParts[0];
@@ -147,12 +273,11 @@
             iconItem.dataset.icon = iconName;
             iconItem.title = iconName;
 
-            // Check if already in queue
-            if (importQueueList.some(q => q.name === iconName)) {
+            // Check if already pending or existing
+            if (pendingIcons.some(q => q.name === iconName)) {
                 iconItem.classList.add('in-queue');
             }
 
-            // Show loading placeholder
             iconItem.innerHTML = `
                 <div class="icon-skeleton"></div>
                 <span class="icon-name">${displayName}</span>
@@ -164,14 +289,13 @@
             return { iconName, displayName, element: iconItem };
         });
 
-        // Now fetch all SVGs in parallel (in batches of 10 for performance)
+        // Fetch SVGs in parallel batches
         const batchSize = 10;
         for (let i = 0; i < iconElements.length; i += batchSize) {
             const batch = iconElements.slice(i, i + batchSize);
 
             await Promise.all(batch.map(async ({ iconName, displayName, element }) => {
                 try {
-                    // Check cache first
                     if (iconCache[iconName]) {
                         element.innerHTML = `
                             ${iconCache[iconName]}
@@ -200,74 +324,30 @@
         }
     }
 
+    // ========================================
+    // Add to Pending Queue
+    // ========================================
+
     function addToQueue(iconName, displayName, element) {
-        // Check if already in queue
-        const existingIndex = importQueueList.findIndex(q => q.name === iconName);
+        const existingIndex = pendingIcons.findIndex(q => q.name === iconName);
         if (existingIndex !== -1) {
-            // Remove from queue
-            importQueueList.splice(existingIndex, 1);
+            pendingIcons.splice(existingIndex, 1);
             element.classList.remove('in-queue');
         } else {
-            // Add to queue
             const svg = iconCache[iconName] || '';
-            importQueueList.push({ name: iconName, displayName, svg });
+            pendingIcons.push({ name: iconName, displayName, svg });
             element.classList.add('in-queue');
         }
 
-        renderQueue();
+        renderLibrary();
     }
 
-    function renderQueue() {
-        if (importQueueList.length === 0) {
-            importQueue.innerHTML = '<div class="queue-placeholder"><span>Click icons above to add them here</span></div>';
-            queueCountBadge.style.display = 'none';
-            clearQueueBtn.disabled = true;
-            importBtn.disabled = true;
-            return;
-        }
+    // ========================================
+    // Import Icons
+    // ========================================
 
-        queueCountBadge.textContent = importQueueList.length;
-        queueCountBadge.style.display = 'inline-flex';
-        clearQueueBtn.disabled = false;
-        importBtn.disabled = false;
-
-        importQueue.innerHTML = '';
-        importQueueList.forEach((item, index) => {
-            const queueItem = document.createElement('div');
-            queueItem.className = 'queue-item';
-            queueItem.title = `Click to remove: ${item.name}`;
-
-            const svgHtml = item.svg || '<span>?</span>';
-            queueItem.innerHTML = `
-                ${svgHtml}
-                <span>${item.displayName}</span>
-                <span class="remove-icon">✕</span>
-            `;
-
-            queueItem.onclick = () => {
-                importQueueList.splice(index, 1);
-                // Update the grid item if visible
-                const gridItem = resultsContainer.querySelector(`[data-icon="${item.name}"]`);
-                if (gridItem) gridItem.classList.remove('in-queue');
-                renderQueue();
-            };
-
-            importQueue.appendChild(queueItem);
-        });
-    }
-
-    // Clear Queue
-    clearQueueBtn.onclick = () => {
-        importQueueList = [];
-        document.querySelectorAll('.icon-item.in-queue').forEach(el => {
-            el.classList.remove('in-queue');
-        });
-        renderQueue();
-    };
-
-    // Import icons
     importBtn.onclick = async () => {
-        if (importQueueList.length === 0) return;
+        if (pendingIcons.length === 0) return;
 
         const progress = document.getElementById('icons-progress');
         const progressFill = progress.querySelector('.progress-fill');
@@ -277,13 +357,12 @@
         importBtn.disabled = true;
 
         const iconsToImport = [];
-        const total = importQueueList.length;
+        const total = pendingIcons.length;
         let fetched = 0;
 
         progressText.textContent = 'Preparing icons...';
 
-        // Fetch full-size SVGs for any missing
-        for (const item of importQueueList) {
+        for (const item of pendingIcons) {
             try {
                 let svg = item.svg;
                 if (!svg) {
@@ -306,49 +385,72 @@
             }
         }
 
-        // Send to plugin
-        progressText.textContent = 'Creating components...';
+        progressText.textContent = 'Adding to library...';
         progressFill.style.width = '60%';
 
         parent.postMessage({
             pluginMessage: {
-                type: 'import-icons',
+                type: 'add-icons-to-library',
                 icons: iconsToImport,
                 options: {
                     size: parseInt(iconSize.value),
-                    prefix: iconPrefix.value.trim(),
+                    prefix: iconPrefix.value.trim() || 'Icon/',
                     asComponents: asComponents.checked,
                     addColorProperty: true
-                }
+                },
+                libraryFrameId: libraryFrameId
             }
         }, '*');
     };
 
-    // Listen for completion
+    // ========================================
+    // Message Handler
+    // ========================================
+
     window.addEventListener('message', (event) => {
         const msg = event.data.pluginMessage;
         if (!msg) return;
 
-        if (msg.type === 'icons-import-complete') {
-            const progress = document.getElementById('icons-progress');
-            progress.style.display = 'none';
-            importBtn.disabled = false;
+        switch (msg.type) {
+            case 'existing-icons-loaded':
+                existingIcons = msg.icons || [];
+                libraryFrameId = msg.libraryFrameId;
+                selectedForDelete.clear();
+                renderLibrary();
+                break;
 
-            // Clear queue after successful import
-            importQueueList = [];
-            document.querySelectorAll('.icon-item.in-queue').forEach(el => {
-                el.classList.remove('in-queue');
-            });
-            renderQueue();
-        } else if (msg.type === 'icons-import-progress') {
-            const progress = document.getElementById('icons-progress');
-            const progressFill = progress.querySelector('.progress-fill');
-            const progressText = progress.querySelector('.progress-text');
-            progressFill.style.width = `${msg.percent}%`;
-            progressText.textContent = msg.message;
+            case 'icons-deleted':
+                existingIcons = existingIcons.filter(icon => !selectedForDelete.has(icon.id));
+                selectedForDelete.clear();
+                renderLibrary();
+                break;
+
+            case 'icons-import-complete':
+                const progress = document.getElementById('icons-progress');
+                progress.style.display = 'none';
+                importBtn.disabled = false;
+
+                pendingIcons = [];
+                document.querySelectorAll('.icon-item.in-queue').forEach(el => {
+                    el.classList.remove('in-queue');
+                });
+
+                // Rescan library to show new icons
+                setTimeout(() => {
+                    scanLibraryBtn.click();
+                }, 500);
+                break;
+
+            case 'icons-import-progress':
+                const progressEl = document.getElementById('icons-progress');
+                const progressFillEl = progressEl.querySelector('.progress-fill');
+                const progressTextEl = progressEl.querySelector('.progress-text');
+                progressFillEl.style.width = `${msg.percent}%`;
+                progressTextEl.textContent = msg.message;
+                break;
         }
     });
 
     // Initialize
-    renderQueue();
+    renderLibrary();
 })();

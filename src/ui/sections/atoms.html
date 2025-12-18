@@ -34,7 +34,15 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="gen-buttons" checked>
                         <span class="checkmark"></span>
-                        <strong>🔘 Buttons</strong>
+                        <span class="component-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="8" width="18" height="8" rx="2" />
+                                <path d="M12 8v8" />
+                                <path d="M19 12h-2" />
+                                <path d="M7 12H5" />
+                            </svg></span>
+                        <strong>Buttons</strong>
                     </label>
                 </div>
                 <div class="component-options" id="button-options">
@@ -78,7 +86,14 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="gen-inputs" checked>
                         <span class="checkmark"></span>
-                        <strong>📝 Form Inputs</strong>
+                        <span class="component-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="5" width="18" height="14" rx="2" />
+                                <path d="M7 9h3" />
+                                <path d="M7 13h10" />
+                            </svg></span>
+                        <strong>Form Inputs</strong>
                     </label>
                 </div>
                 <div class="component-options" id="input-options">
@@ -126,7 +141,14 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="gen-badges" checked>
                         <span class="checkmark"></span>
-                        <strong>🏷️ Badges/Tags</strong>
+                        <span class="component-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+                                <path d="M7 7h.01" />
+                            </svg></span>
+                        <strong>Badges/Tags</strong>
                     </label>
                 </div>
                 <div class="component-options" id="badge-options">
@@ -207,7 +229,10 @@
     <!-- Generate Button -->
     <div class="card">
         <button id="generate-atoms-btn" class="primary" style="width: 100%;">
-            <span class="icon">⚡</span> Generate Components
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg></span> Generate Components
         </button>
 
         <!-- Progress Bar -->
@@ -236,6 +261,28 @@
 
     .component-group-header {
         margin-bottom: var(--space-2);
+    }
+
+    .component-group-header .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .component-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: var(--accent-primary);
+        border-radius: var(--radius-sm);
+        color: white;
+    }
+
+    .component-icon svg {
+        width: 14px;
+        height: 14px;
     }
 
     .component-options,

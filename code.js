@@ -966,6 +966,165 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           }
         });
       }
+      function scanExistingIcons(prefix) {
+        return __async(this, null, function* () {
+          try {
+            const icons = [];
+            const allNodes = figma.currentPage.findAll((node) => {
+              return node.type === "COMPONENT" && node.name.startsWith(prefix);
+            });
+            for (const node of allNodes) {
+              const displayName = node.name.replace(prefix, "");
+              icons.push({
+                id: node.id,
+                name: node.name,
+                displayName
+              });
+            }
+            const libraryFrame = figma.currentPage.findOne((node) => {
+              return node.type === "FRAME" && node.name === `${prefix}Library`;
+            });
+            figma.ui.postMessage({
+              type: "existing-icons-loaded",
+              icons,
+              libraryFrameId: (libraryFrame == null ? void 0 : libraryFrame.id) || null,
+              prefix
+            });
+          } catch (error) {
+            console.error("Error scanning icons:", error);
+            figma.ui.postMessage({ type: "existing-icons-loaded", icons: [], libraryFrameId: null });
+          }
+        });
+      }
+      function deleteIcons(iconIds) {
+        return __async(this, null, function* () {
+          try {
+            let deleted = 0;
+            for (const id of iconIds) {
+              const node = yield figma.getNodeByIdAsync(id);
+              if (node) {
+                node.remove();
+                deleted++;
+              }
+            }
+            figma.notify(`Deleted ${deleted} icon(s)`);
+            figma.ui.postMessage({ type: "icons-deleted", count: deleted });
+          } catch (error) {
+            console.error("Error deleting icons:", error);
+            figma.notify("Error deleting icons");
+          }
+        });
+      }
+      function addIconsToLibrary(icons, options, libraryFrameId) {
+        return __async(this, null, function* () {
+          try {
+            let iconsFrame;
+            if (libraryFrameId) {
+              const existingFrame = yield figma.getNodeByIdAsync(libraryFrameId);
+              if (existingFrame && existingFrame.type === "FRAME") {
+                iconsFrame = existingFrame;
+              } else {
+                iconsFrame = createIconLibraryFrame(options.prefix);
+              }
+            } else {
+              const existing = figma.currentPage.findOne((node) => {
+                return node.type === "FRAME" && node.name === `${options.prefix}Library`;
+              });
+              if (existing && existing.type === "FRAME") {
+                iconsFrame = existing;
+              } else {
+                iconsFrame = createIconLibraryFrame(options.prefix);
+              }
+            }
+            figma.ui.postMessage({ type: "icons-import-progress", percent: 60, message: "Adding to library..." });
+            let processed = 0;
+            for (const icon of icons) {
+              try {
+                const nameParts = icon.name.split(":");
+                const iconName = nameParts.length > 1 ? nameParts[1] : nameParts[0];
+                const cleanName = iconName.replace(/-/g, "_");
+                const fullName = `${options.prefix}${cleanName}`;
+                const existing = iconsFrame.findOne((node) => node.name === fullName);
+                if (existing) {
+                  processed++;
+                  continue;
+                }
+                const svgNode = figma.createNodeFromSvg(icon.svg);
+                const scale = options.size / Math.max(svgNode.width, svgNode.height);
+                svgNode.resize(svgNode.width * scale, svgNode.height * scale);
+                if (options.asComponents) {
+                  const component = figma.createComponent();
+                  component.name = fullName;
+                  component.resize(options.size, options.size);
+                  component.layoutMode = "HORIZONTAL";
+                  component.primaryAxisSizingMode = "FIXED";
+                  component.counterAxisSizingMode = "FIXED";
+                  component.primaryAxisAlignItems = "CENTER";
+                  component.counterAxisAlignItems = "CENTER";
+                  component.fills = [];
+                  const flattenedIcon = figma.flatten([svgNode]);
+                  flattenedIcon.name = "Icon";
+                  component.appendChild(flattenedIcon);
+                  flattenedIcon.x = (component.width - flattenedIcon.width) / 2;
+                  flattenedIcon.y = (component.height - flattenedIcon.height) / 2;
+                  if (options.addColorProperty) {
+                    const strokes = flattenedIcon.strokes;
+                    const fills = flattenedIcon.fills;
+                    if (Array.isArray(strokes) && strokes.length > 0) {
+                      flattenedIcon.strokes = [{ type: "SOLID", color: { r: 0.2, g: 0.2, b: 0.2 } }];
+                    }
+                    if (Array.isArray(fills) && fills.length > 0) {
+                      flattenedIcon.fills = [{ type: "SOLID", color: { r: 0.2, g: 0.2, b: 0.2 } }];
+                    }
+                  }
+                  iconsFrame.appendChild(component);
+                } else {
+                  const flattenedIcon = figma.flatten([svgNode]);
+                  flattenedIcon.name = fullName;
+                  iconsFrame.appendChild(flattenedIcon);
+                }
+                processed++;
+                const percent = 60 + Math.round(processed / icons.length * 35);
+                figma.ui.postMessage({
+                  type: "icons-import-progress",
+                  percent,
+                  message: `Adding ${processed}/${icons.length}...`
+                });
+              } catch (iconError) {
+                console.error(`Error adding icon ${icon.name}:`, iconError);
+              }
+            }
+            figma.currentPage.selection = [iconsFrame];
+            figma.viewport.scrollAndZoomIntoView([iconsFrame]);
+            figma.ui.postMessage({ type: "icons-import-progress", percent: 100, message: "Complete!" });
+            figma.ui.postMessage({ type: "icons-import-complete", count: processed });
+            figma.notify(`Added ${processed} icon(s) to library! \u2705`);
+          } catch (error) {
+            console.error("Error adding icons:", error);
+            figma.notify("Error adding icons: " + error.message);
+          }
+        });
+      }
+      function createIconLibraryFrame(prefix) {
+        const frame = figma.createFrame();
+        frame.name = `${prefix}Library`;
+        frame.layoutMode = "HORIZONTAL";
+        frame.layoutWrap = "WRAP";
+        frame.primaryAxisSizingMode = "FIXED";
+        frame.counterAxisSizingMode = "AUTO";
+        frame.resize(800, frame.height);
+        frame.itemSpacing = 16;
+        frame.counterAxisSpacing = 16;
+        frame.paddingTop = 24;
+        frame.paddingBottom = 24;
+        frame.paddingLeft = 24;
+        frame.paddingRight = 24;
+        frame.fills = [{ type: "SOLID", color: { r: 0.98, g: 0.98, b: 0.98 } }];
+        frame.x = figma.viewport.center.x - frame.width / 2;
+        frame.y = figma.viewport.center.y - frame.height / 2;
+        figma.currentPage.appendChild(frame);
+        return frame;
+      }
       function generateAtomicComponents(config) {
         return __async(this, null, function* () {
           try {
@@ -1369,7 +1528,17 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             badge.paddingLeft = hPaddingFallback[size] || 8;
             badge.paddingRight = hPaddingFallback[size] || 8;
           }
-          const radiusVar = findVar(["radius/full", "radius/pill"], "FLOAT");
+          let radiusVar = findVar([
+            "radius/full",
+            "radius/pill",
+            "radius/round",
+            "radius/xl",
+            "radius/2xl",
+            "radius/3xl"
+          ], "FLOAT");
+          if (!radiusVar) {
+            radiusVar = findVar(["radius/md", "radius/sm", "radius/lg"], "FLOAT");
+          }
           if (radiusVar) {
             badge.setBoundVariable("topLeftRadius", radiusVar);
             badge.setBoundVariable("topRightRadius", radiusVar);
@@ -1637,29 +1806,36 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               setModeVal(mobileId, item.mobile);
             }
             const radiusMap = [
-              { name: "Radius/none", val: "0px" },
-              { name: "Radius/2xs", val: "2px" },
-              { name: "Radius/xs", val: "4px" },
-              { name: "Radius/sm", val: "6px" },
-              { name: "Radius/md", val: "8px" },
-              { name: "Radius/lg", val: "12px" },
-              { name: "Radius/xl", val: "16px" },
-              { name: "Radius/2xl", val: "24px" },
-              { name: "Radius/3xl", val: "32px" },
-              { name: "Radius/full", val: "999px" }
-              // Assuming this might exist or fallback
+              { name: "Radius/none", desktop: "0px", tablet: "0px", mobile: "0px" },
+              { name: "Radius/2xs", desktop: "2px", tablet: "2px", mobile: "2px" },
+              { name: "Radius/xs", desktop: "4px", tablet: "4px", mobile: "2px" },
+              { name: "Radius/sm", desktop: "6px", tablet: "4px", mobile: "4px" },
+              { name: "Radius/md", desktop: "8px", tablet: "6px", mobile: "4px" },
+              { name: "Radius/lg", desktop: "12px", tablet: "8px", mobile: "6px" },
+              { name: "Radius/xl", desktop: "16px", tablet: "12px", mobile: "8px" },
+              { name: "Radius/2xl", desktop: "24px", tablet: "16px", mobile: "12px" },
+              { name: "Radius/3xl", desktop: "32px", tablet: "24px", mobile: "16px" },
+              { name: "Radius/full", desktop: "full", tablet: "full", mobile: "full" }
+              // Special case
             ];
             for (const item of radiusMap) {
               const v = yield findOrCreateVar(item.name);
-              let sourceVar = findSource(measureGroup, item.val);
-              if (!sourceVar && item.name.includes("full")) {
-                sourceVar = findSource(measureGroup, "100px");
-              }
-              if (sourceVar) {
-                v.setValueForMode(desktopId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
-                v.setValueForMode(tabletId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
-                v.setValueForMode(mobileId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
-              }
+              const setModeVal = (modeId, val) => {
+                if (val === "full") {
+                  v.setValueForMode(modeId, 9999);
+                  return;
+                }
+                const sourceVar = findSource(measureGroup, val);
+                if (sourceVar) {
+                  v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
+                } else {
+                  const numVal = parseFloat(val) || 0;
+                  v.setValueForMode(modeId, numVal);
+                }
+              };
+              setModeVal(desktopId, item.desktop);
+              setModeVal(tabletId, item.tablet);
+              setModeVal(mobileId, item.mobile);
             }
             const borderMap = [
               { name: "Border Width/none", desktop: "0px", tablet: "0px", mobile: "0px" },
@@ -2813,6 +2989,19 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               yield importIconsFromSvg(
                 msg.icons,
                 msg.options
+              );
+              break;
+            case "scan-existing-icons":
+              yield scanExistingIcons(msg.prefix);
+              break;
+            case "delete-icons":
+              yield deleteIcons(msg.iconIds);
+              break;
+            case "add-icons-to-library":
+              yield addIconsToLibrary(
+                msg.icons,
+                msg.options,
+                msg.libraryFrameId
               );
               break;
             case "resize-window":

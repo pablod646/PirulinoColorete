@@ -1,76 +1,90 @@
 <div class="section-content" id="section-icons">
-    <!-- Step 1: Icon Set Selection -->
+    <!-- Search Icons -->
     <div class="card" style="margin-bottom: var(--space-4);">
-        <div class="section-title">1. Choose Icon Set</div>
-        <p class="step-description">Select an icon library and style variant</p>
-
-        <div class="flex-row" style="margin-top: var(--space-3);">
-            <div class="form-group" style="flex: 1;">
-                <label>Icon Set</label>
-                <select id="icon-set-select">
-                    <option value="" disabled selected>Select set...</option>
-                    <option value="mdi">Material Design Icons</option>
-                    <option value="lucide">Lucide</option>
-                    <option value="ph">Phosphor</option>
-                    <option value="heroicons">Heroicons</option>
-                    <option value="tabler">Tabler</option>
-                    <option value="carbon">Carbon</option>
-                    <option value="ri">Remix Icon</option>
-                    <option value="bi">Bootstrap Icons</option>
-                    <option value="feather">Feather</option>
-                    <option value="ion">Ionicons</option>
-                </select>
-            </div>
-            <div class="form-group" style="flex: 1;">
-                <label>Style</label>
-                <select id="icon-style-select" disabled>
-                    <option value="">Select set first...</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- Step 2: Search -->
-    <div class="card" style="margin-bottom: var(--space-4);">
-        <div class="section-title">2. Search Icons</div>
-        <div class="flex-row" style="gap: var(--space-2);">
+        <div class="section-title">Search Icons</div>
+        <p class="step-description">Search Material Design Icons library</p>
+        <div class="flex-row" style="gap: var(--space-2); margin-top: var(--space-2);">
             <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                <input type="text" id="icon-search-query" placeholder="Search icons..." disabled />
+                <input type="text" id="icon-search-query" placeholder="Search icons (e.g. arrow, home, user)..." />
             </div>
-            <button id="search-icons-btn" class="secondary" disabled style="white-space: nowrap;">
-                🔍 Search
+            <button id="search-icons-btn" class="secondary" style="white-space: nowrap;">
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg></span> Search
             </button>
         </div>
 
         <!-- Search Results Grid -->
         <div id="icon-results" class="icon-grid" style="margin-top: var(--space-3);">
             <div class="icon-placeholder">
-                <span>Select an icon set to start searching</span>
+                <span>Enter a search term to find icons</span>
             </div>
         </div>
     </div>
 
-    <!-- Step 3: Import Queue -->
+    <!-- Icon Library (Combined: Existing + Queue) -->
     <div class="card" style="margin-bottom: var(--space-4);">
         <div class="section-title">
-            3. Import Queue
-            <span id="queue-count-badge" class="count-badge" style="display: none;">0</span>
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                </svg></span>
+            Icon Library
+            <span id="library-count-badge" class="count-badge" style="display: none;">0</span>
         </div>
 
-        <div id="import-queue" class="import-queue">
-            <div class="queue-placeholder">
-                <span>Click icons above to add them here</span>
+        <div class="flex-row" style="margin-bottom: var(--space-3);">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label>Component Prefix</label>
+                <input type="text" id="icon-prefix" value="Icon/" placeholder="e.g. Icons/">
+            </div>
+            <button id="scan-library-btn" class="secondary" style="align-self: flex-end;">
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                        <path d="M16 16h5v5" />
+                    </svg></span> Sync
+            </button>
+        </div>
+
+        <!-- Unified Library Grid -->
+        <div id="icon-library" class="icon-library-grid">
+            <div class="library-placeholder">
+                <span>Click "Sync" to load existing icons or search & add new ones</span>
             </div>
         </div>
 
-        <button id="clear-queue-btn" class="secondary" style="width: 100%; margin-top: var(--space-2);" disabled>
-            🗑️ Clear Queue
-        </button>
+        <!-- Library Actions -->
+        <div class="library-actions" style="margin-top: var(--space-3); display: flex; gap: var(--space-2);">
+            <button id="delete-selected-btn" class="secondary danger" style="flex: 1;" disabled>
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg></span> Delete Selected
+            </button>
+            <button id="clear-pending-btn" class="secondary" style="flex: 1;" disabled>
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                    </svg></span> Clear Pending
+            </button>
+        </div>
     </div>
 
-    <!-- Step 4: Import Options -->
+    <!-- Import Options -->
     <div class="card" style="margin-bottom: var(--space-4);">
-        <div class="section-title">4. Import Settings</div>
+        <div class="section-title">Import Settings</div>
 
         <div class="flex-row">
             <div class="form-group">
@@ -82,10 +96,6 @@
                     <option value="32">32px</option>
                     <option value="48">48px</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <label>Component Prefix</label>
-                <input type="text" id="icon-prefix" value="Icon/" placeholder="e.g. Icons/">
             </div>
         </div>
 
@@ -101,7 +111,14 @@
     <!-- Import Button -->
     <div class="card">
         <button id="import-icons-btn" class="primary" style="width: 100%;" disabled>
-            <span class="icon">📥</span> Import Icons
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                </svg></span> Import Pending Icons
+            <span id="pending-count-badge" class="count-badge"
+                style="display: none; margin-left: var(--space-2);">0</span>
         </button>
 
         <div id="icons-progress" class="progress-container" style="display: none; margin-top: var(--space-3);">
@@ -114,16 +131,115 @@
 </div>
 
 <style>
-    .icon-grid {
+    .icon-library-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
         gap: var(--space-2);
-        max-height: 240px;
+        max-height: 280px;
         overflow-y: auto;
         padding: var(--space-3);
         background: var(--bg-secondary);
         border-radius: var(--radius-md);
-        min-height: 100px;
+        min-height: 80px;
+    }
+
+    .library-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-1);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border: 2px solid transparent;
+        background: var(--bg-primary);
+        aspect-ratio: 1;
+        position: relative;
+    }
+
+    .library-icon:hover {
+        background: var(--bg-tertiary);
+    }
+
+    .library-icon.existing {
+        border-color: var(--accent-primary);
+    }
+
+    .library-icon.pending {
+        border-color: var(--status-success);
+        background: rgba(34, 197, 94, 0.08);
+    }
+
+    .library-icon.selected-for-delete {
+        border-color: var(--status-error);
+        background: rgba(239, 68, 68, 0.15);
+    }
+
+    .library-icon .status-dot {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .library-icon.existing .status-dot {
+        background: var(--accent-primary);
+    }
+
+    .library-icon.pending .status-dot {
+        background: var(--status-success);
+    }
+
+    .library-icon svg,
+    .library-icon .icon-char {
+        width: 22px;
+        height: 22px;
+        color: var(--text-primary);
+    }
+
+    .library-icon .icon-name {
+        font-size: 7px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .library-placeholder {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 60px;
+        color: var(--text-tertiary);
+        font-size: var(--text-sm);
+    }
+
+    .secondary.danger {
+        color: var(--status-error);
+        border-color: var(--status-error);
+    }
+
+    .secondary.danger:hover {
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+        gap: var(--space-2);
+        max-height: 200px;
+        overflow-y: auto;
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        min-height: 80px;
     }
 
     .icon-item {
@@ -146,8 +262,8 @@
     }
 
     .icon-item.in-queue {
-        border-color: var(--accent-primary);
-        background: rgba(99, 102, 241, 0.15);
+        border-color: var(--status-success);
+        background: rgba(34, 197, 94, 0.15);
     }
 
     .icon-item svg {
@@ -167,75 +283,14 @@
         max-width: 100%;
     }
 
-    .icon-placeholder,
-    .queue-placeholder {
+    .icon-placeholder {
         grid-column: 1 / -1;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 80px;
+        min-height: 60px;
         color: var(--text-tertiary);
         font-size: var(--text-sm);
-    }
-
-    .import-queue {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-        padding: var(--space-3);
-        background: var(--bg-secondary);
-        border-radius: var(--radius-md);
-        min-height: 60px;
-        max-height: 120px;
-        overflow-y: auto;
-    }
-
-    .queue-item {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        padding: var(--space-1) var(--space-2);
-        background: var(--bg-primary);
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--border-default);
-        font-size: var(--text-xs);
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-
-    .queue-item:hover {
-        border-color: var(--status-error);
-        background: rgba(239, 68, 68, 0.1);
-    }
-
-    .queue-item svg {
-        width: 16px;
-        height: 16px;
-    }
-
-    .queue-item .remove-icon {
-        color: var(--text-tertiary);
-        font-size: 12px;
-        margin-left: var(--space-1);
-    }
-
-    .queue-item:hover .remove-icon {
-        color: var(--status-error);
-    }
-
-    .count-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 20px;
-        height: 20px;
-        padding: 0 6px;
-        background: var(--accent-primary);
-        color: white;
-        border-radius: var(--radius-full);
-        font-size: 11px;
-        font-weight: 600;
-        margin-left: var(--space-2);
     }
 
     .icon-loading {
@@ -243,7 +298,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 80px;
+        min-height: 60px;
         color: var(--text-secondary);
         gap: var(--space-2);
     }

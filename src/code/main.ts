@@ -1521,6 +1521,8 @@ async function createAtomsCollection(
         { name: 'Button/padding-y', type: 'FLOAT', desktop: ['padding/y/md'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
         { name: 'Button/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
         { name: 'Button/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
+        { name: 'Button/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
+        { name: 'Button/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
         { name: 'Button/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
         { name: 'Button/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
         { name: 'Button/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
@@ -1529,6 +1531,8 @@ async function createAtomsCollection(
         { name: 'Input/padding-y', type: 'FLOAT', desktop: ['padding/y/md'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
         { name: 'Input/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
         { name: 'Input/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
+        { name: 'Input/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
+        { name: 'Input/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], tablet: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], mobile: ['Typography/Font Weight/Regular', 'Font Weight/Regular'] },
         { name: 'Input/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
         { name: 'Input/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
         { name: 'Input/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
@@ -1537,6 +1541,8 @@ async function createAtomsCollection(
         { name: 'Badge/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/xs'], mobile: ['padding/y/xs'] },
         { name: 'Badge/padding-x', type: 'FLOAT', desktop: ['padding/x/md'], tablet: ['padding/x/sm'], mobile: ['padding/x/xs'] },
         { name: 'Badge/font-size', type: 'FLOAT', desktop: ['Typography/Body/sm', 'Body/sm'], tablet: ['Typography/Body/xs', 'Body/xs'], mobile: ['Typography/Body/xs', 'Body/xs'] },
+        { name: 'Badge/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
+        { name: 'Badge/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
         { name: 'Badge/icon-size', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
         { name: 'Badge/gap', type: 'FLOAT', desktop: ['gap/sm'], tablet: ['gap/xs'], mobile: ['gap/xs'] },
         { name: 'Badge/radius', type: 'FLOAT', desktop: ['radius/full', 'radius/lg'], tablet: ['radius/full', 'radius/md'], mobile: ['radius/full', 'radius/sm'] },
@@ -1561,39 +1567,67 @@ async function createAtomsCollection(
         const tabletAlias = findVar(def.tablet, def.type as VariableResolvedDataType);
         const mobileAlias = findVar(def.mobile, def.type as VariableResolvedDataType);
 
-        // Set values (aliases or fallback numbers)
-        if (desktopAlias) {
-            atomVar.setValueForMode(modeIds.desktop, { type: 'VARIABLE_ALIAS', id: desktopAlias.id });
-        } else {
-            // Fallback values
-            const fallbacks: Record<string, number> = {
-                'Button/padding-y': 12, 'Button/padding-x': 24, 'Button/font-size': 16, 'Button/icon-size': 24, 'Button/gap': 12, 'Button/radius': 8,
-                'Input/padding-y': 12, 'Input/padding-x': 16, 'Input/font-size': 16, 'Input/icon-size': 20, 'Input/gap': 8, 'Input/radius': 8,
-                'Badge/padding-y': 4, 'Badge/padding-x': 12, 'Badge/font-size': 14, 'Badge/icon-size': 16, 'Badge/gap': 4, 'Badge/radius': 999,
-            };
-            atomVar.setValueForMode(modeIds.desktop, fallbacks[def.name] || 16);
-        }
+        // Fallback values for FLOAT types
+        const floatFallbacksDesktop: Record<string, number> = {
+            'Button/padding-y': 12, 'Button/padding-x': 24, 'Button/font-size': 16, 'Button/icon-size': 24, 'Button/gap': 12, 'Button/radius': 8, 'Button/font-weight': 500,
+            'Input/padding-y': 12, 'Input/padding-x': 16, 'Input/font-size': 16, 'Input/icon-size': 20, 'Input/gap': 8, 'Input/radius': 8, 'Input/font-weight': 400,
+            'Badge/padding-y': 4, 'Badge/padding-x': 12, 'Badge/font-size': 14, 'Badge/icon-size': 16, 'Badge/gap': 4, 'Badge/radius': 999, 'Badge/font-weight': 500,
+        };
+        const floatFallbacksTablet: Record<string, number> = {
+            'Button/padding-y': 10, 'Button/padding-x': 20, 'Button/font-size': 14, 'Button/icon-size': 20, 'Button/gap': 8, 'Button/radius': 6, 'Button/font-weight': 500,
+            'Input/padding-y': 10, 'Input/padding-x': 14, 'Input/font-size': 14, 'Input/icon-size': 18, 'Input/gap': 6, 'Input/radius': 6, 'Input/font-weight': 400,
+            'Badge/padding-y': 3, 'Badge/padding-x': 10, 'Badge/font-size': 12, 'Badge/icon-size': 14, 'Badge/gap': 3, 'Badge/radius': 999, 'Badge/font-weight': 500,
+        };
+        const floatFallbacksMobile: Record<string, number> = {
+            'Button/padding-y': 8, 'Button/padding-x': 16, 'Button/font-size': 12, 'Button/icon-size': 16, 'Button/gap': 6, 'Button/radius': 4, 'Button/font-weight': 500,
+            'Input/padding-y': 8, 'Input/padding-x': 12, 'Input/font-size': 12, 'Input/icon-size': 16, 'Input/gap': 4, 'Input/radius': 4, 'Input/font-weight': 400,
+            'Badge/padding-y': 2, 'Badge/padding-x': 8, 'Badge/font-size': 10, 'Badge/icon-size': 12, 'Badge/gap': 2, 'Badge/radius': 999, 'Badge/font-weight': 500,
+        };
 
-        if (tabletAlias) {
-            atomVar.setValueForMode(modeIds.tablet, { type: 'VARIABLE_ALIAS', id: tabletAlias.id });
-        } else {
-            const fallbacks: Record<string, number> = {
-                'Button/padding-y': 10, 'Button/padding-x': 20, 'Button/font-size': 14, 'Button/icon-size': 20, 'Button/gap': 8, 'Button/radius': 6,
-                'Input/padding-y': 10, 'Input/padding-x': 14, 'Input/font-size': 14, 'Input/icon-size': 18, 'Input/gap': 6, 'Input/radius': 6,
-                'Badge/padding-y': 3, 'Badge/padding-x': 10, 'Badge/font-size': 12, 'Badge/icon-size': 14, 'Badge/gap': 3, 'Badge/radius': 999,
-            };
-            atomVar.setValueForMode(modeIds.tablet, fallbacks[def.name] || 14);
-        }
+        // Fallback values for STRING types 
+        const stringFallbacks: Record<string, string> = {
+            'Button/font-family': 'Inter',
+            'Input/font-family': 'Inter',
+            'Badge/font-family': 'Inter',
+        };
 
-        if (mobileAlias) {
-            atomVar.setValueForMode(modeIds.mobile, { type: 'VARIABLE_ALIAS', id: mobileAlias.id });
+        // Set values based on type
+        if (def.type === 'STRING') {
+            // STRING type variables (font-family)
+            if (desktopAlias) {
+                atomVar.setValueForMode(modeIds.desktop, { type: 'VARIABLE_ALIAS', id: desktopAlias.id });
+            } else {
+                atomVar.setValueForMode(modeIds.desktop, stringFallbacks[def.name] || 'Inter');
+            }
+            if (tabletAlias) {
+                atomVar.setValueForMode(modeIds.tablet, { type: 'VARIABLE_ALIAS', id: tabletAlias.id });
+            } else {
+                atomVar.setValueForMode(modeIds.tablet, stringFallbacks[def.name] || 'Inter');
+            }
+            if (mobileAlias) {
+                atomVar.setValueForMode(modeIds.mobile, { type: 'VARIABLE_ALIAS', id: mobileAlias.id });
+            } else {
+                atomVar.setValueForMode(modeIds.mobile, stringFallbacks[def.name] || 'Inter');
+            }
         } else {
-            const fallbacks: Record<string, number> = {
-                'Button/padding-y': 8, 'Button/padding-x': 16, 'Button/font-size': 12, 'Button/icon-size': 16, 'Button/gap': 6, 'Button/radius': 4,
-                'Input/padding-y': 8, 'Input/padding-x': 12, 'Input/font-size': 12, 'Input/icon-size': 16, 'Input/gap': 4, 'Input/radius': 4,
-                'Badge/padding-y': 2, 'Badge/padding-x': 8, 'Badge/font-size': 10, 'Badge/icon-size': 12, 'Badge/gap': 2, 'Badge/radius': 999,
-            };
-            atomVar.setValueForMode(modeIds.mobile, fallbacks[def.name] || 12);
+            // FLOAT type variables
+            if (desktopAlias) {
+                atomVar.setValueForMode(modeIds.desktop, { type: 'VARIABLE_ALIAS', id: desktopAlias.id });
+            } else {
+                atomVar.setValueForMode(modeIds.desktop, floatFallbacksDesktop[def.name] || 16);
+            }
+
+            if (tabletAlias) {
+                atomVar.setValueForMode(modeIds.tablet, { type: 'VARIABLE_ALIAS', id: tabletAlias.id });
+            } else {
+                atomVar.setValueForMode(modeIds.tablet, floatFallbacksTablet[def.name] || 14);
+            }
+
+            if (mobileAlias) {
+                atomVar.setValueForMode(modeIds.mobile, { type: 'VARIABLE_ALIAS', id: mobileAlias.id });
+            } else {
+                atomVar.setValueForMode(modeIds.mobile, floatFallbacksMobile[def.name] || 12);
+            }
         }
 
         atomVars[def.name] = atomVar;
@@ -1646,7 +1680,7 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         if (config.output === 'page') {
             container = figma.createPage();
             container.name = `${config.prefix}Components`;
-            figma.currentPage = container as PageNode;
+            await figma.setCurrentPageAsync(container as PageNode);
         } else {
             container = figma.createFrame();
             container.name = `${config.prefix}Components`;
@@ -2176,7 +2210,7 @@ async function createButton(
     iconLeft.visible = false;
     btn.appendChild(iconLeft);
 
-    // Text
+    // Text - Load font first (required before any text operations)
     const text = figma.createText();
     text.name = 'Label';
     await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
@@ -2191,6 +2225,18 @@ async function createButton(
         text.setBoundVariable('fontSize', fontSizeVar);
     } else {
         text.fontSize = 16;
+    }
+
+    // Bind font family to Atoms variable
+    const fontFamilyVar = atomVars['Button/font-family'];
+    if (fontFamilyVar) {
+        text.setBoundVariable('fontFamily', fontFamilyVar);
+    }
+
+    // Bind font weight to Atoms variable
+    const fontWeightVar = atomVars['Button/font-weight'];
+    if (fontWeightVar) {
+        text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
     // Text color
@@ -2360,6 +2406,19 @@ async function createInput(
     } else {
         text.fontSize = 16;
     }
+
+    // Bind font family to Atoms variable
+    const fontFamilyVar = atomVars['Input/font-family'];
+    if (fontFamilyVar) {
+        text.setBoundVariable('fontFamily', fontFamilyVar);
+    }
+
+    // Bind font weight to Atoms variable
+    const fontWeightVar = atomVars['Input/font-weight'];
+    if (fontWeightVar) {
+        text.setBoundVariable('fontWeight', fontWeightVar);
+    }
+
     text.layoutGrow = 1;
 
     // Text color
@@ -2561,6 +2620,18 @@ async function createBadge(
         text.setBoundVariable('fontSize', fontSizeVar);
     } else {
         text.fontSize = 14;
+    }
+
+    // Bind font family to Atoms variable
+    const fontFamilyVar = atomVars['Badge/font-family'];
+    if (fontFamilyVar) {
+        text.setBoundVariable('fontFamily', fontFamilyVar);
+    }
+
+    // Bind font weight to Atoms variable
+    const fontWeightVar = atomVars['Badge/font-weight'];
+    if (fontWeightVar) {
+        text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
     if (textVar) {
@@ -2861,7 +2932,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
         };
 
         // Progress tracking with yield for UI updates
-        const totalSteps = 13; // Total number of alias categories
+        const totalSteps = 15; // Total number of alias categories
         let currentStep = 0;
         const updateProgress = async (message: string): Promise<void> => {
             currentStep++;
@@ -2910,6 +2981,81 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             setModeVal(desktopId, item.desktop);
             setModeVal(tabletId, item.tablet);
             setModeVal(mobileId, item.mobile);
+        }
+
+        await updateProgress('Creating font-family aliases...');
+
+        // Font Family Aliases - Reference Typography Font Family primitives
+        // These are the same across all modes (not responsive)
+        const fontFamilyMap = [
+            { name: 'Typography/Font Family/Body' },
+            { name: 'Typography/Font Family/Heading' },
+            { name: 'Typography/Font Family/Code' },
+        ];
+
+        for (const item of fontFamilyMap) {
+            // Check if alias already exists
+            let aliasVar = allVars.find(v => v.variableCollectionId === targetCollection!.id && v.name === item.name);
+
+            if (!aliasVar) {
+                // Find the primitive variable to reference
+                const primitiveName = item.name.replace('Typography/', `${typoGroup}/`);
+                const primitiveVar = allVars.find(v =>
+                    v.variableCollectionId === sourceCollectionId &&
+                    (v.name === primitiveName || v.name === item.name.replace('Typography/', ''))
+                );
+
+                if (primitiveVar) {
+                    aliasVar = figma.variables.createVariable(item.name, targetCollection!, 'STRING');
+                    aliasVar.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
+                    aliasVar.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
+                    aliasVar.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
+                    console.log(`✅ Created font-family alias: ${item.name} → ${primitiveVar.name}`);
+                } else {
+                    // Create with fallback value
+                    aliasVar = figma.variables.createVariable(item.name, targetCollection!, 'STRING');
+                    const fallback = item.name.includes('Code') ? 'Roboto Mono' : 'Inter';
+                    aliasVar.setValueForMode(desktopId, fallback);
+                    aliasVar.setValueForMode(tabletId, fallback);
+                    aliasVar.setValueForMode(mobileId, fallback);
+                    console.log(`⚠️ Created font-family alias with fallback: ${item.name} = ${fallback}`);
+                }
+            }
+        }
+
+        await updateProgress('Creating font-weight aliases...');
+
+        // Font Weight Aliases - Reference Typography Font Weight primitives
+        const fontWeightMap = [
+            { name: 'Typography/Font Weight/Regular', primitiveLeaf: 'Regular' },
+            { name: 'Typography/Font Weight/Medium', primitiveLeaf: 'Medium' },
+            { name: 'Typography/Font Weight/SemiBold', primitiveLeaf: 'SemiBold' },
+            { name: 'Typography/Font Weight/Bold', primitiveLeaf: 'Bold' },
+        ];
+
+        for (const item of fontWeightMap) {
+            let aliasVar = allVars.find(v => v.variableCollectionId === targetCollection!.id && v.name === item.name);
+
+            if (!aliasVar) {
+                // Find the primitive variable
+                const primitiveVar = findSource(typoGroup, item.primitiveLeaf);
+
+                if (primitiveVar) {
+                    aliasVar = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
+                    aliasVar.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
+                    aliasVar.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
+                    aliasVar.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
+                    console.log(`✅ Created font-weight alias: ${item.name} → ${primitiveVar.name}`);
+                } else {
+                    // Create with fallback numeric value
+                    const fallbacks: Record<string, number> = { 'Regular': 400, 'Medium': 500, 'SemiBold': 600, 'Bold': 700 };
+                    aliasVar = figma.variables.createVariable(item.name, targetCollection!, 'FLOAT');
+                    aliasVar.setValueForMode(desktopId, fallbacks[item.primitiveLeaf] || 400);
+                    aliasVar.setValueForMode(tabletId, fallbacks[item.primitiveLeaf] || 400);
+                    aliasVar.setValueForMode(mobileId, fallbacks[item.primitiveLeaf] || 400);
+                    console.log(`⚠️ Created font-weight alias with fallback: ${item.name} = ${fallbacks[item.primitiveLeaf]}`);
+                }
+            }
         }
 
         await updateProgress('Creating radius aliases...');

@@ -1351,6 +1351,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               return void 0;
             };
             figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 5, message: "Creating Atoms variables..." } });
+            yield new Promise((resolve) => setTimeout(resolve, 50));
             const { atomVars } = yield createAtomsCollection(findVar);
             let container;
             if (config.output === "page") {
@@ -1374,6 +1375,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             if (config.components.buttons) {
               const { variants } = config.components.buttons;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 10, message: "Creating buttons..." } });
+              yield new Promise((resolve) => setTimeout(resolve, 50));
               const buttonComponents = [];
               const states = ["Default", "Hover", "Active", "Disabled"];
               for (const variant of variants) {
@@ -1406,6 +1408,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             if (config.components.inputs) {
               const { variants, states } = config.components.inputs;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 40, message: "Creating inputs..." } });
+              yield new Promise((resolve) => setTimeout(resolve, 50));
               const inputComponents = [];
               for (const variant of variants) {
                 for (const state of states) {
@@ -1438,6 +1441,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             if (config.components.badges) {
               const { variants } = config.components.badges;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 70, message: "Creating badges..." } });
+              yield new Promise((resolve) => setTimeout(resolve, 50));
               const badgeComponents = [];
               for (const variant of variants) {
                 const originalAsComponents = config.asComponents;
@@ -1464,6 +1468,9 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 badgeComponentSet.paddingRight = 24;
               }
             }
+            figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 95, message: "Finalizing component sets..." } });
+            yield new Promise((resolve) => setTimeout(resolve, 50));
+            figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 100, message: "Complete!" } });
             figma.ui.postMessage({ type: "progress-end" });
             figma.ui.postMessage({ type: "atoms-generation-complete", payload: { count: componentCount } });
             figma.notify(`Generated ${componentCount} atomic components!`);

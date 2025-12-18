@@ -169,21 +169,49 @@
 
     function showProgress() {
         const progress = document.getElementById('atoms-progress');
-        if (progress) progress.style.display = 'block';
-        if (generateBtn) generateBtn.disabled = true;
+        const fill = document.getElementById('atoms-progress-bar-fill');
+        const message = document.getElementById('atoms-progress-message');
+        const percent = document.getElementById('atoms-progress-percent');
+
+        if (progress) {
+            progress.style.display = 'block';
+            if (fill) fill.style.width = '0%';
+            if (message) message.textContent = 'Initializing...';
+            if (percent) percent.textContent = '0%';
+        }
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.style.opacity = '0.5';
+        }
     }
 
     function hideProgress() {
         const progress = document.getElementById('atoms-progress');
-        if (progress) progress.style.display = 'none';
-        if (generateBtn) generateBtn.disabled = false;
+        const fill = document.getElementById('atoms-progress-bar-fill');
+        const message = document.getElementById('atoms-progress-message');
+        const percent = document.getElementById('atoms-progress-percent');
+
+        if (fill) fill.style.width = '100%';
+        if (message) message.textContent = 'Complete!';
+        if (percent) percent.textContent = '100%';
+
+        setTimeout(() => {
+            if (progress) progress.style.display = 'none';
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.style.opacity = '1';
+            }
+        }, 1500);
     }
 
     function updateProgress(data) {
-        const fill = document.querySelector('#atoms-progress .progress-fill');
-        const text = document.querySelector('#atoms-progress .progress-text');
+        const fill = document.getElementById('atoms-progress-bar-fill');
+        const message = document.getElementById('atoms-progress-message');
+        const percent = document.getElementById('atoms-progress-percent');
+
         if (fill) fill.style.width = `${data.percent}%`;
-        if (text) text.textContent = data.message || 'Generating...';
+        if (message) message.textContent = data.message || 'Generating...';
+        if (percent) percent.textContent = `${data.percent}%`;
     }
 
     function showNotification(message, type) {

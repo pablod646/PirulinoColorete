@@ -1672,6 +1672,7 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
 
         // Step 1: Create the Atoms collection with responsive variables
         figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 5, message: 'Creating Atoms variables...' } });
+        await new Promise(resolve => setTimeout(resolve, 50));
         const { atomVars } = await createAtomsCollection(findVar);
 
         // Create output container
@@ -1704,6 +1705,7 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const { variants } = config.components.buttons;
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 10, message: 'Creating buttons...' } });
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Collect all button components for combining into variants
             const buttonComponents: ComponentNode[] = [];
@@ -1754,6 +1756,7 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const { variants, states } = config.components.inputs;
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 40, message: 'Creating inputs...' } });
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Collect all input components for combining into variants
             const inputComponents: ComponentNode[] = [];
@@ -1804,6 +1807,7 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const { variants } = config.components.badges;
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 70, message: 'Creating badges...' } });
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Collect all badge components for combining into variants
             const badgeComponents: ComponentNode[] = [];
@@ -1844,6 +1848,13 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             }
         }
 
+        // Final progress update
+        figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 95, message: 'Finalizing component sets...' } });
+
+        // Small delay to allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 100, message: 'Complete!' } });
         figma.ui.postMessage({ type: 'progress-end' });
         figma.ui.postMessage({ type: 'atoms-generation-complete', payload: { count: componentCount } });
         figma.notify(`Generated ${componentCount} atomic components!`);

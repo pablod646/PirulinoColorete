@@ -228,20 +228,27 @@
 
     <!-- Generate Button -->
     <div class="card">
+        <!-- Progress Bar -->
+        <div id="atoms-progress" style="display: none; margin-bottom: var(--space-4);">
+            <div
+                style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                <span id="atoms-progress-message">Initializing...</span>
+                <span id="atoms-progress-percent">0%</span>
+            </div>
+            <div
+                style="height: 6px; background: var(--bg-surface-active); border-radius: var(--radius-full); overflow: hidden;">
+                <div id="atoms-progress-bar-fill"
+                    style="height: 100%; width: 0%; background: var(--accent-primary); transition: width 0.3s ease;">
+                </div>
+            </div>
+        </div>
+
         <button id="generate-atoms-btn" class="primary" style="width: 100%;">
             <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                 </svg></span> Generate Components
         </button>
-
-        <!-- Progress Bar -->
-        <div id="atoms-progress" class="progress-container" style="display: none; margin-top: var(--space-3);">
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 0%;"></div>
-            </div>
-            <span class="progress-text">Generating...</span>
-        </div>
     </div>
 </div>
 

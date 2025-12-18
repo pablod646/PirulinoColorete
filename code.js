@@ -932,17 +932,13 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                   const component = figma.createComponent();
                   component.name = `${options.prefix}${cleanName}`;
                   component.resize(options.size, options.size);
-                  component.layoutMode = "HORIZONTAL";
-                  component.primaryAxisSizingMode = "FIXED";
-                  component.counterAxisSizingMode = "FIXED";
-                  component.primaryAxisAlignItems = "CENTER";
-                  component.counterAxisAlignItems = "CENTER";
                   component.fills = [];
                   const flattenedIcon = figma.flatten([svgNode]);
                   flattenedIcon.name = "Icon";
                   component.appendChild(flattenedIcon);
                   flattenedIcon.x = (component.width - flattenedIcon.width) / 2;
                   flattenedIcon.y = (component.height - flattenedIcon.height) / 2;
+                  flattenedIcon.constraints = { horizontal: "SCALE", vertical: "SCALE" };
                   if (options.addColorProperty) {
                     const strokes = flattenedIcon.strokes;
                     const fills = flattenedIcon.fills;
@@ -1075,17 +1071,13 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                   const component = figma.createComponent();
                   component.name = fullName;
                   component.resize(options.size, options.size);
-                  component.layoutMode = "HORIZONTAL";
-                  component.primaryAxisSizingMode = "FIXED";
-                  component.counterAxisSizingMode = "FIXED";
-                  component.primaryAxisAlignItems = "CENTER";
-                  component.counterAxisAlignItems = "CENTER";
                   component.fills = [];
                   const flattenedIcon = figma.flatten([svgNode]);
                   flattenedIcon.name = "Icon";
                   component.appendChild(flattenedIcon);
                   flattenedIcon.x = (component.width - flattenedIcon.width) / 2;
                   flattenedIcon.y = (component.height - flattenedIcon.height) / 2;
+                  flattenedIcon.constraints = { horizontal: "SCALE", vertical: "SCALE" };
                   if (options.addColorProperty) {
                     const strokes = flattenedIcon.strokes;
                     const fills = flattenedIcon.fills;
@@ -2634,10 +2626,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
             yield updateProgress("Creating icon-size aliases...");
             const iconSizeMap = [
-              { name: "Icon-Size/sm", desktop: "16px", tablet: "14px", mobile: "12px" },
-              { name: "Icon-Size/md", desktop: "20px", tablet: "18px", mobile: "16px" },
-              { name: "Icon-Size/lg", desktop: "24px", tablet: "20px", mobile: "18px" },
-              { name: "Icon-Size/xl", desktop: "32px", tablet: "28px", mobile: "24px" }
+              { name: "Icon-Size/sm", desktop: "16", tablet: "14", mobile: "12" },
+              { name: "Icon-Size/md", desktop: "20", tablet: "18", mobile: "16" },
+              { name: "Icon-Size/lg", desktop: "24", tablet: "20", mobile: "18" },
+              { name: "Icon-Size/xl", desktop: "32", tablet: "28", mobile: "24" }
             ];
             for (const item of iconSizeMap) {
               const v = yield findOrCreateVar(item.name);

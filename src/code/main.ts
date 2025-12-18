@@ -1206,15 +1206,10 @@ async function importIconsFromSvg(
                 svgNode.resize(svgNode.width * scale, svgNode.height * scale);
 
                 if (options.asComponents) {
-                    // Create a component wrapper
+                    // Create a component wrapper (NO auto-layout so constraints work)
                     const component = figma.createComponent();
                     component.name = `${options.prefix}${cleanName}`;
                     component.resize(options.size, options.size);
-                    component.layoutMode = 'HORIZONTAL';
-                    component.primaryAxisSizingMode = 'FIXED';
-                    component.counterAxisSizingMode = 'FIXED';
-                    component.primaryAxisAlignItems = 'CENTER';
-                    component.counterAxisAlignItems = 'CENTER';
                     component.fills = [];
 
                     // Flatten the SVG to a single vector and add to component
@@ -1225,6 +1220,9 @@ async function importIconsFromSvg(
                     // Center the icon
                     flattenedIcon.x = (component.width - flattenedIcon.width) / 2;
                     flattenedIcon.y = (component.height - flattenedIcon.height) / 2;
+
+                    // Set constraints to SCALE so icon content resizes with container
+                    flattenedIcon.constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
 
                     // Add color property if requested
                     if (options.addColorProperty) {
@@ -1390,14 +1388,10 @@ async function addIconsToLibrary(
                 svgNode.resize(svgNode.width * scale, svgNode.height * scale);
 
                 if (options.asComponents) {
+                    // Create component without auto-layout so constraints work
                     const component = figma.createComponent();
                     component.name = fullName;
                     component.resize(options.size, options.size);
-                    component.layoutMode = 'HORIZONTAL';
-                    component.primaryAxisSizingMode = 'FIXED';
-                    component.counterAxisSizingMode = 'FIXED';
-                    component.primaryAxisAlignItems = 'CENTER';
-                    component.counterAxisAlignItems = 'CENTER';
                     component.fills = [];
 
                     const flattenedIcon = figma.flatten([svgNode]);
@@ -1405,6 +1399,9 @@ async function addIconsToLibrary(
                     component.appendChild(flattenedIcon);
                     flattenedIcon.x = (component.width - flattenedIcon.width) / 2;
                     flattenedIcon.y = (component.height - flattenedIcon.height) / 2;
+
+                    // Set constraints to SCALE so icon content resizes with container
+                    flattenedIcon.constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
 
                     if (options.addColorProperty) {
                         const strokes = flattenedIcon.strokes;
@@ -3488,10 +3485,10 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
         // Icon Size Aliases - Responsive icon sizes for component integration
         // Icons scale down on smaller screens for visual balance
         const iconSizeMap = [
-            { name: 'Icon-Size/sm', desktop: '16px', tablet: '14px', mobile: '12px' },
-            { name: 'Icon-Size/md', desktop: '20px', tablet: '18px', mobile: '16px' },
-            { name: 'Icon-Size/lg', desktop: '24px', tablet: '20px', mobile: '18px' },
-            { name: 'Icon-Size/xl', desktop: '32px', tablet: '28px', mobile: '24px' },
+            { name: 'Icon-Size/sm', desktop: '16', tablet: '14', mobile: '12' },
+            { name: 'Icon-Size/md', desktop: '20', tablet: '18', mobile: '16' },
+            { name: 'Icon-Size/lg', desktop: '24', tablet: '20', mobile: '18' },
+            { name: 'Icon-Size/xl', desktop: '32', tablet: '28', mobile: '24' },
         ];
 
         for (const item of iconSizeMap) {

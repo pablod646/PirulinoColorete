@@ -5,6 +5,7 @@ const sectionTitles = {
     'typography': { title: 'Typography System', desc: 'Define font families, sizes, and weights.' },
     'aliases': { title: 'Responsive Semantics', desc: 'Generate semantic tokens that adapt to viewport size.' },
     'theme': { title: 'Theme Generator', desc: 'Create intelligent Light/Dark themes from your color primitives.' },
+    'icons': { title: 'Icon Library', desc: 'Search and import icons from Iconify (100,000+ icons).' },
     'atoms': { title: 'Atomic Components', desc: 'Generate Buttons, Inputs, and Badges using your design tokens.' },
     'collections': { title: 'Documentation', desc: 'View and manage your variable collections.' },
     'devtools': { title: "Dev's Tools", desc: 'Export your design tokens for developers in multiple formats.' }

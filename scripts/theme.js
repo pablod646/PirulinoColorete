@@ -329,6 +329,11 @@ function initTheme() {
 
     createThemeBtn.onclick = () => {
         if (!generatedThemeData) return;
+
+        // Always use the current theme name from the input field
+        const currentThemeName = themeNameInput ? themeNameInput.value.trim() : 'Theme';
+        generatedThemeData.themeName = currentThemeName || 'Theme';
+
         parent.postMessage({
             pluginMessage: {
                 type: 'create-theme',

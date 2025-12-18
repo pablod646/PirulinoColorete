@@ -1610,6 +1610,10 @@ button:active .icon,
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
                 <span class="nav-item-label">Theme</span>
             </div>
+            <div class="nav-item" data-section="icons">
+                <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+                <span class="nav-item-label">Icons</span>
+            </div>
             <div class="nav-item" data-section="atoms">
                 <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
                 <span class="nav-item-label">Atoms</span>
@@ -2894,6 +2898,291 @@ button:active .icon,
 
     .summary-icon {
         font-size: var(--font-size-md);
+    }
+</style>
+<div class="section-content" id="section-icons">
+    <!-- Step 1: Icon Set Selection -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">1. Choose Icon Set</div>
+        <p class="step-description">Select an icon library and style variant</p>
+
+        <div class="flex-row" style="margin-top: var(--space-3);">
+            <div class="form-group" style="flex: 1;">
+                <label>Icon Set</label>
+                <select id="icon-set-select">
+                    <option value="" disabled selected>Select set...</option>
+                    <option value="mdi">Material Design Icons</option>
+                    <option value="lucide">Lucide</option>
+                    <option value="ph">Phosphor</option>
+                    <option value="heroicons">Heroicons</option>
+                    <option value="tabler">Tabler</option>
+                    <option value="carbon">Carbon</option>
+                    <option value="ri">Remix Icon</option>
+                    <option value="bi">Bootstrap Icons</option>
+                    <option value="feather">Feather</option>
+                    <option value="ion">Ionicons</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Style</label>
+                <select id="icon-style-select" disabled>
+                    <option value="">Select set first...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Search -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">2. Search Icons</div>
+        <div class="flex-row" style="gap: var(--space-2);">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <input type="text" id="icon-search-query" placeholder="Search icons..." disabled />
+            </div>
+            <button id="search-icons-btn" class="secondary" disabled style="white-space: nowrap;">
+                🔍 Search
+            </button>
+        </div>
+
+        <!-- Search Results Grid -->
+        <div id="icon-results" class="icon-grid" style="margin-top: var(--space-3);">
+            <div class="icon-placeholder">
+                <span>Select an icon set to start searching</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Import Queue -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">
+            3. Import Queue
+            <span id="queue-count-badge" class="count-badge" style="display: none;">0</span>
+        </div>
+
+        <div id="import-queue" class="import-queue">
+            <div class="queue-placeholder">
+                <span>Click icons above to add them here</span>
+            </div>
+        </div>
+
+        <button id="clear-queue-btn" class="secondary" style="width: 100%; margin-top: var(--space-2);" disabled>
+            🗑️ Clear Queue
+        </button>
+    </div>
+
+    <!-- Step 4: Import Options -->
+    <div class="card" style="margin-bottom: var(--space-4);">
+        <div class="section-title">4. Import Settings</div>
+
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Icon Size</label>
+                <select id="icon-size">
+                    <option value="16">16px</option>
+                    <option value="20">20px</option>
+                    <option value="24" selected>24px</option>
+                    <option value="32">32px</option>
+                    <option value="48">48px</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Component Prefix</label>
+                <input type="text" id="icon-prefix" value="Icon/" placeholder="e.g. Icons/">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top: var(--space-2);">
+            <label class="checkbox-label">
+                <input type="checkbox" id="icon-as-components" checked>
+                <span class="checkmark"></span>
+                Create as Components
+            </label>
+        </div>
+    </div>
+
+    <!-- Import Button -->
+    <div class="card">
+        <button id="import-icons-btn" class="primary" style="width: 100%;" disabled>
+            <span class="icon">📥</span> Import Icons
+        </button>
+
+        <div id="icons-progress" class="progress-container" style="display: none; margin-top: var(--space-3);">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%;"></div>
+            </div>
+            <span class="progress-text">Importing...</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+        gap: var(--space-2);
+        max-height: 240px;
+        overflow-y: auto;
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        min-height: 100px;
+    }
+
+    .icon-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-2);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border: 2px solid transparent;
+        background: var(--bg-primary);
+        aspect-ratio: 1;
+    }
+
+    .icon-item:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--border-default);
+    }
+
+    .icon-item.in-queue {
+        border-color: var(--accent-primary);
+        background: rgba(99, 102, 241, 0.15);
+    }
+
+    .icon-item svg {
+        width: 24px;
+        height: 24px;
+        color: var(--text-primary);
+    }
+
+    .icon-item .icon-name {
+        font-size: 8px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .icon-placeholder,
+    .queue-placeholder {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+        color: var(--text-tertiary);
+        font-size: var(--text-sm);
+    }
+
+    .import-queue {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        min-height: 60px;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+
+    .queue-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-1) var(--space-2);
+        background: var(--bg-primary);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-default);
+        font-size: var(--text-xs);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .queue-item:hover {
+        border-color: var(--status-error);
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .queue-item svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .queue-item .remove-icon {
+        color: var(--text-tertiary);
+        font-size: 12px;
+        margin-left: var(--space-1);
+    }
+
+    .queue-item:hover .remove-icon {
+        color: var(--status-error);
+    }
+
+    .count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        background: var(--accent-primary);
+        color: white;
+        border-radius: var(--radius-full);
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: var(--space-2);
+    }
+
+    .icon-loading {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+        color: var(--text-secondary);
+        gap: var(--space-2);
+    }
+
+    .icon-loading::after {
+        content: '';
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-default);
+        border-top-color: var(--accent-primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .icon-skeleton {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border-default) 50%, var(--bg-tertiary) 75%);
+        background-size: 200% 100%;
+        border-radius: var(--radius-sm);
+        animation: shimmer 1.2s infinite;
+    }
+
+    @keyframes shimmer {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
     }
 </style>
 <div class="section-content" id="section-atoms">
@@ -5363,6 +5652,11 @@ function initTheme() {
 
     createThemeBtn.onclick = () => {
         if (!generatedThemeData) return;
+
+        // Always use the current theme name from the input field
+        const currentThemeName = themeNameInput ? themeNameInput.value.trim() : 'Theme';
+        generatedThemeData.themeName = currentThemeName || 'Theme';
+
         parent.postMessage({
             pluginMessage: {
                 type: 'create-theme',
@@ -5965,6 +6259,363 @@ if (document.readyState === 'loading') {
 }
 
 
+/* --- icons.js --- */
+// Icons Section - Import icons from Iconify API
+(function () {
+    'use strict';
+
+    // Elements
+    const iconSetSelect = document.getElementById('icon-set-select');
+    const iconStyleSelect = document.getElementById('icon-style-select');
+    const searchQuery = document.getElementById('icon-search-query');
+    const searchBtn = document.getElementById('search-icons-btn');
+    const resultsContainer = document.getElementById('icon-results');
+    const importQueue = document.getElementById('import-queue');
+    const queueCountBadge = document.getElementById('queue-count-badge');
+    const clearQueueBtn = document.getElementById('clear-queue-btn');
+    const importBtn = document.getElementById('import-icons-btn');
+    const iconSize = document.getElementById('icon-size');
+    const iconPrefix = document.getElementById('icon-prefix');
+    const asComponents = document.getElementById('icon-as-components');
+
+    if (!iconSetSelect) return;
+
+    // Iconify API base URL
+    const ICONIFY_API = 'https://api.iconify.design';
+
+    // Icon set styles configuration
+    const iconSetStyles = {
+        'mdi': [
+            { value: 'mdi', label: 'Default' },
+            { value: 'mdi-light', label: 'Light' }
+        ],
+        'lucide': [
+            { value: 'lucide', label: 'Default' }
+        ],
+        'ph': [
+            { value: 'ph', label: 'Regular' },
+            { value: 'ph-thin', label: 'Thin' },
+            { value: 'ph-light', label: 'Light' },
+            { value: 'ph-bold', label: 'Bold' },
+            { value: 'ph-fill', label: 'Fill' },
+            { value: 'ph-duotone', label: 'Duotone' }
+        ],
+        'heroicons': [
+            { value: 'heroicons', label: 'Outline (24)' },
+            { value: 'heroicons-solid', label: 'Solid (24)' },
+            { value: 'heroicons-outline', label: 'Outline (20)' }
+        ],
+        'tabler': [
+            { value: 'tabler', label: 'Default' }
+        ],
+        'carbon': [
+            { value: 'carbon', label: 'Default' }
+        ],
+        'ri': [
+            { value: 'ri', label: 'Default (includes line/fill)' }
+        ],
+        'bi': [
+            { value: 'bi', label: 'Default' }
+        ],
+        'feather': [
+            { value: 'feather', label: 'Default' }
+        ],
+        'ion': [
+            { value: 'ion', label: 'Default (includes outline/sharp/filled)' }
+        ]
+    };
+
+    // State
+    let currentPrefix = '';
+    let importQueueList = []; // Array of { name, svg, displayName }
+    let iconCache = {};
+
+    // Icon Set Selection
+    iconSetSelect.onchange = () => {
+        const setKey = iconSetSelect.value;
+        const styles = iconSetStyles[setKey] || [];
+
+        iconStyleSelect.innerHTML = '';
+        styles.forEach(style => {
+            const opt = document.createElement('option');
+            opt.value = style.value;
+            opt.textContent = style.label;
+            iconStyleSelect.appendChild(opt);
+        });
+
+        iconStyleSelect.disabled = false;
+        searchQuery.disabled = false;
+        searchBtn.disabled = false;
+
+        currentPrefix = styles[0]?.value || setKey;
+        showPlaceholder('Search for icons in this set');
+    };
+
+    iconStyleSelect.onchange = () => {
+        currentPrefix = iconStyleSelect.value;
+    };
+
+    // Search icons
+    searchBtn.onclick = async () => {
+        const query = searchQuery.value.trim();
+        if (!query || !currentPrefix) {
+            showPlaceholder('Enter a search term');
+            return;
+        }
+
+        showLoading();
+
+        try {
+            const url = `${ICONIFY_API}/search?query=${encodeURIComponent(query)}&prefix=${currentPrefix}&limit=60`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.icons && data.icons.length > 0) {
+                await renderIcons(data.icons);
+            } else {
+                showPlaceholder('No icons found. Try a different search term.');
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            showPlaceholder('Error searching icons. Check your connection.');
+        }
+    };
+
+    // Enter key to search
+    searchQuery.onkeypress = (e) => {
+        if (e.key === 'Enter' && !searchBtn.disabled) {
+            searchBtn.click();
+        }
+    };
+
+    function showLoading() {
+        resultsContainer.innerHTML = '<div class="icon-loading">Searching</div>';
+    }
+
+    function showPlaceholder(text) {
+        resultsContainer.innerHTML = `<div class="icon-placeholder"><span>${text}</span></div>`;
+    }
+
+    async function renderIcons(icons) {
+        resultsContainer.innerHTML = '';
+
+        // First, render all placeholders immediately for instant feedback
+        const iconElements = icons.map(iconName => {
+            const nameParts = iconName.split(':');
+            const displayName = nameParts.length > 1 ? nameParts[1] : nameParts[0];
+
+            const iconItem = document.createElement('div');
+            iconItem.className = 'icon-item';
+            iconItem.dataset.icon = iconName;
+            iconItem.title = iconName;
+
+            // Check if already in queue
+            if (importQueueList.some(q => q.name === iconName)) {
+                iconItem.classList.add('in-queue');
+            }
+
+            // Show loading placeholder
+            iconItem.innerHTML = `
+                <div class="icon-skeleton"></div>
+                <span class="icon-name">${displayName}</span>
+            `;
+
+            iconItem.onclick = () => addToQueue(iconName, displayName, iconItem);
+            resultsContainer.appendChild(iconItem);
+
+            return { iconName, displayName, element: iconItem };
+        });
+
+        // Now fetch all SVGs in parallel (in batches of 10 for performance)
+        const batchSize = 10;
+        for (let i = 0; i < iconElements.length; i += batchSize) {
+            const batch = iconElements.slice(i, i + batchSize);
+
+            await Promise.all(batch.map(async ({ iconName, displayName, element }) => {
+                try {
+                    // Check cache first
+                    if (iconCache[iconName]) {
+                        element.innerHTML = `
+                            ${iconCache[iconName]}
+                            <span class="icon-name">${displayName}</span>
+                        `;
+                        return;
+                    }
+
+                    const svgUrl = `${ICONIFY_API}/${iconName}.svg?height=24`;
+                    const svgResponse = await fetch(svgUrl);
+                    const svgText = await svgResponse.text();
+
+                    iconCache[iconName] = svgText;
+
+                    element.innerHTML = `
+                        ${svgText}
+                        <span class="icon-name">${displayName}</span>
+                    `;
+                } catch (e) {
+                    element.innerHTML = `
+                        <span style="font-size: 20px; color: var(--text-tertiary);">?</span>
+                        <span class="icon-name">${displayName}</span>
+                    `;
+                }
+            }));
+        }
+    }
+
+    function addToQueue(iconName, displayName, element) {
+        // Check if already in queue
+        const existingIndex = importQueueList.findIndex(q => q.name === iconName);
+        if (existingIndex !== -1) {
+            // Remove from queue
+            importQueueList.splice(existingIndex, 1);
+            element.classList.remove('in-queue');
+        } else {
+            // Add to queue
+            const svg = iconCache[iconName] || '';
+            importQueueList.push({ name: iconName, displayName, svg });
+            element.classList.add('in-queue');
+        }
+
+        renderQueue();
+    }
+
+    function renderQueue() {
+        if (importQueueList.length === 0) {
+            importQueue.innerHTML = '<div class="queue-placeholder"><span>Click icons above to add them here</span></div>';
+            queueCountBadge.style.display = 'none';
+            clearQueueBtn.disabled = true;
+            importBtn.disabled = true;
+            return;
+        }
+
+        queueCountBadge.textContent = importQueueList.length;
+        queueCountBadge.style.display = 'inline-flex';
+        clearQueueBtn.disabled = false;
+        importBtn.disabled = false;
+
+        importQueue.innerHTML = '';
+        importQueueList.forEach((item, index) => {
+            const queueItem = document.createElement('div');
+            queueItem.className = 'queue-item';
+            queueItem.title = `Click to remove: ${item.name}`;
+
+            const svgHtml = item.svg || '<span>?</span>';
+            queueItem.innerHTML = `
+                ${svgHtml}
+                <span>${item.displayName}</span>
+                <span class="remove-icon">✕</span>
+            `;
+
+            queueItem.onclick = () => {
+                importQueueList.splice(index, 1);
+                // Update the grid item if visible
+                const gridItem = resultsContainer.querySelector(`[data-icon="${item.name}"]`);
+                if (gridItem) gridItem.classList.remove('in-queue');
+                renderQueue();
+            };
+
+            importQueue.appendChild(queueItem);
+        });
+    }
+
+    // Clear Queue
+    clearQueueBtn.onclick = () => {
+        importQueueList = [];
+        document.querySelectorAll('.icon-item.in-queue').forEach(el => {
+            el.classList.remove('in-queue');
+        });
+        renderQueue();
+    };
+
+    // Import icons
+    importBtn.onclick = async () => {
+        if (importQueueList.length === 0) return;
+
+        const progress = document.getElementById('icons-progress');
+        const progressFill = progress.querySelector('.progress-fill');
+        const progressText = progress.querySelector('.progress-text');
+
+        progress.style.display = 'block';
+        importBtn.disabled = true;
+
+        const iconsToImport = [];
+        const total = importQueueList.length;
+        let fetched = 0;
+
+        progressText.textContent = 'Preparing icons...';
+
+        // Fetch full-size SVGs for any missing
+        for (const item of importQueueList) {
+            try {
+                let svg = item.svg;
+                if (!svg) {
+                    const size = iconSize.value;
+                    const svgUrl = `${ICONIFY_API}/${item.name}.svg?height=${size}`;
+                    const response = await fetch(svgUrl);
+                    svg = await response.text();
+                }
+
+                iconsToImport.push({
+                    name: item.name,
+                    svg: svg
+                });
+
+                fetched++;
+                progressFill.style.width = `${Math.round((fetched / total) * 50)}%`;
+                progressText.textContent = `Fetching ${fetched}/${total}...`;
+            } catch (error) {
+                console.error(`Error fetching ${item.name}:`, error);
+            }
+        }
+
+        // Send to plugin
+        progressText.textContent = 'Creating components...';
+        progressFill.style.width = '60%';
+
+        parent.postMessage({
+            pluginMessage: {
+                type: 'import-icons',
+                icons: iconsToImport,
+                options: {
+                    size: parseInt(iconSize.value),
+                    prefix: iconPrefix.value.trim(),
+                    asComponents: asComponents.checked,
+                    addColorProperty: true
+                }
+            }
+        }, '*');
+    };
+
+    // Listen for completion
+    window.addEventListener('message', (event) => {
+        const msg = event.data.pluginMessage;
+        if (!msg) return;
+
+        if (msg.type === 'icons-import-complete') {
+            const progress = document.getElementById('icons-progress');
+            progress.style.display = 'none';
+            importBtn.disabled = false;
+
+            // Clear queue after successful import
+            importQueueList = [];
+            document.querySelectorAll('.icon-item.in-queue').forEach(el => {
+                el.classList.remove('in-queue');
+            });
+            renderQueue();
+        } else if (msg.type === 'icons-import-progress') {
+            const progress = document.getElementById('icons-progress');
+            const progressFill = progress.querySelector('.progress-fill');
+            const progressText = progress.querySelector('.progress-text');
+            progressFill.style.width = `${msg.percent}%`;
+            progressText.textContent = msg.message;
+        }
+    });
+
+    // Initialize
+    renderQueue();
+})();
+
+
 /* --- atoms.js --- */
 // Atoms Section - Generate Atomic Components
 (function () {
@@ -6516,6 +7167,7 @@ const sectionTitles = {
     'typography': { title: 'Typography System', desc: 'Define font families, sizes, and weights.' },
     'aliases': { title: 'Responsive Semantics', desc: 'Generate semantic tokens that adapt to viewport size.' },
     'theme': { title: 'Theme Generator', desc: 'Create intelligent Light/Dark themes from your color primitives.' },
+    'icons': { title: 'Icon Library', desc: 'Search and import icons from Iconify (100,000+ icons).' },
     'atoms': { title: 'Atomic Components', desc: 'Generate Buttons, Inputs, and Badges using your design tokens.' },
     'collections': { title: 'Documentation', desc: 'View and manage your variable collections.' },
     'devtools': { title: "Dev's Tools", desc: 'Export your design tokens for developers in multiple formats.' }

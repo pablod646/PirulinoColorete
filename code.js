@@ -881,6 +881,91 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
         lines.push("export type TokenKey = keyof typeof tokens;");
         return lines.join("\n");
       }
+      function importIconsFromSvg(icons, options) {
+        return __async(this, null, function* () {
+          try {
+            figma.ui.postMessage({ type: "icons-import-progress", percent: 60, message: "Creating icons..." });
+            const iconsFrame = figma.createFrame();
+            iconsFrame.name = `${options.prefix}Library`;
+            iconsFrame.layoutMode = "HORIZONTAL";
+            iconsFrame.layoutWrap = "WRAP";
+            iconsFrame.primaryAxisSizingMode = "FIXED";
+            iconsFrame.counterAxisSizingMode = "AUTO";
+            iconsFrame.resize(800, iconsFrame.height);
+            iconsFrame.itemSpacing = 16;
+            iconsFrame.counterAxisSpacing = 16;
+            iconsFrame.paddingTop = 24;
+            iconsFrame.paddingBottom = 24;
+            iconsFrame.paddingLeft = 24;
+            iconsFrame.paddingRight = 24;
+            iconsFrame.fills = [{ type: "SOLID", color: { r: 0.98, g: 0.98, b: 0.98 } }];
+            const created = [];
+            let processed = 0;
+            for (const icon of icons) {
+              try {
+                const nameParts = icon.name.split(":");
+                const iconName = nameParts.length > 1 ? nameParts[1] : nameParts[0];
+                const cleanName = iconName.replace(/-/g, "_");
+                const svgNode = figma.createNodeFromSvg(icon.svg);
+                const scale = options.size / Math.max(svgNode.width, svgNode.height);
+                svgNode.resize(svgNode.width * scale, svgNode.height * scale);
+                if (options.asComponents) {
+                  const component = figma.createComponent();
+                  component.name = `${options.prefix}${cleanName}`;
+                  component.resize(options.size, options.size);
+                  component.layoutMode = "HORIZONTAL";
+                  component.primaryAxisSizingMode = "FIXED";
+                  component.counterAxisSizingMode = "FIXED";
+                  component.primaryAxisAlignItems = "CENTER";
+                  component.counterAxisAlignItems = "CENTER";
+                  component.fills = [];
+                  const flattenedIcon = figma.flatten([svgNode]);
+                  flattenedIcon.name = "Icon";
+                  component.appendChild(flattenedIcon);
+                  flattenedIcon.x = (component.width - flattenedIcon.width) / 2;
+                  flattenedIcon.y = (component.height - flattenedIcon.height) / 2;
+                  if (options.addColorProperty) {
+                    const strokes = flattenedIcon.strokes;
+                    const fills = flattenedIcon.fills;
+                    if (Array.isArray(strokes) && strokes.length > 0) {
+                      flattenedIcon.strokes = [{ type: "SOLID", color: { r: 0.2, g: 0.2, b: 0.2 } }];
+                    }
+                    if (Array.isArray(fills) && fills.length > 0) {
+                      flattenedIcon.fills = [{ type: "SOLID", color: { r: 0.2, g: 0.2, b: 0.2 } }];
+                    }
+                  }
+                  iconsFrame.appendChild(component);
+                  created.push(component);
+                } else {
+                  const flattenedIcon = figma.flatten([svgNode]);
+                  flattenedIcon.name = `${options.prefix}${cleanName}`;
+                  iconsFrame.appendChild(flattenedIcon);
+                }
+                processed++;
+                const percent = 60 + Math.round(processed / icons.length * 35);
+                figma.ui.postMessage({
+                  type: "icons-import-progress",
+                  percent,
+                  message: `Creating ${processed}/${icons.length}...`
+                });
+              } catch (iconError) {
+                console.error(`Error creating icon ${icon.name}:`, iconError);
+              }
+            }
+            iconsFrame.x = figma.viewport.center.x - iconsFrame.width / 2;
+            iconsFrame.y = figma.viewport.center.y - iconsFrame.height / 2;
+            figma.currentPage.appendChild(iconsFrame);
+            figma.currentPage.selection = [iconsFrame];
+            figma.viewport.scrollAndZoomIntoView([iconsFrame]);
+            figma.ui.postMessage({ type: "icons-import-progress", percent: 100, message: "Complete!" });
+            figma.ui.postMessage({ type: "icons-import-complete", count: processed });
+            figma.notify(`Imported ${processed} icons! \u2705`);
+          } catch (error) {
+            console.error("Icon import error:", error);
+            figma.notify("Error importing icons: " + error.message);
+          }
+        });
+      }
       function generateAtomicComponents(config) {
         return __async(this, null, function* () {
           try {
@@ -929,89 +1014,100 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             if (config.components.buttons) {
               const { variants, sizes } = config.components.buttons;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 10, message: "Creating buttons..." } });
-              const buttonsFrame = figma.createFrame();
-              buttonsFrame.name = `${config.prefix}Buttons`;
-              buttonsFrame.layoutMode = "VERTICAL";
-              buttonsFrame.primaryAxisSizingMode = "AUTO";
-              buttonsFrame.counterAxisSizingMode = "AUTO";
-              buttonsFrame.itemSpacing = 24;
-              buttonsFrame.fills = [];
+              const buttonComponents = [];
+              const states = ["Default", "Hover", "Active", "Disabled"];
               for (const variant of variants) {
-                const variantFrame = figma.createFrame();
-                variantFrame.name = `Button/${variant}`;
-                variantFrame.layoutMode = "HORIZONTAL";
-                variantFrame.primaryAxisSizingMode = "AUTO";
-                variantFrame.counterAxisSizingMode = "AUTO";
-                variantFrame.itemSpacing = 16;
-                variantFrame.fills = [];
                 for (const size of sizes) {
-                  const states = ["default", "hover", "active", "disabled"];
                   for (const state of states) {
-                    const btn = yield createButton(variant, size, state, config, findVar);
-                    variantFrame.appendChild(btn);
+                    const originalAsComponents = config.asComponents;
+                    config.asComponents = true;
+                    const btn = yield createButton(variant, size, state.toLowerCase(), config, findVar);
+                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                    const sizeUpper = size.toUpperCase();
+                    btn.name = `Variant=${variantCapitalized}, Size=${sizeUpper}, State=${state}`;
+                    buttonComponents.push(btn);
                     componentCount++;
+                    config.asComponents = originalAsComponents;
                   }
                 }
-                buttonsFrame.appendChild(variantFrame);
               }
-              if (config.output === "page") {
-                container.appendChild(buttonsFrame);
-              } else {
-                container.appendChild(buttonsFrame);
+              if (buttonComponents.length > 0) {
+                const buttonComponentSet = figma.combineAsVariants(buttonComponents, container);
+                buttonComponentSet.name = `${config.prefix}Button`;
+                buttonComponentSet.layoutMode = "HORIZONTAL";
+                buttonComponentSet.layoutWrap = "WRAP";
+                buttonComponentSet.primaryAxisSizingMode = "AUTO";
+                buttonComponentSet.counterAxisSizingMode = "AUTO";
+                buttonComponentSet.itemSpacing = 16;
+                buttonComponentSet.counterAxisSpacing = 16;
+                buttonComponentSet.paddingTop = 24;
+                buttonComponentSet.paddingBottom = 24;
+                buttonComponentSet.paddingLeft = 24;
+                buttonComponentSet.paddingRight = 24;
               }
             }
             if (config.components.inputs) {
               const { variants, states } = config.components.inputs;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 40, message: "Creating inputs..." } });
-              const inputsFrame = figma.createFrame();
-              inputsFrame.name = `${config.prefix}Inputs`;
-              inputsFrame.layoutMode = "VERTICAL";
-              inputsFrame.primaryAxisSizingMode = "AUTO";
-              inputsFrame.counterAxisSizingMode = "AUTO";
-              inputsFrame.itemSpacing = 24;
-              inputsFrame.fills = [];
+              const inputComponents = [];
               for (const variant of variants) {
-                const variantFrame = figma.createFrame();
-                variantFrame.name = `Input/${variant}`;
-                variantFrame.layoutMode = "HORIZONTAL";
-                variantFrame.primaryAxisSizingMode = "AUTO";
-                variantFrame.counterAxisSizingMode = "AUTO";
-                variantFrame.itemSpacing = 16;
-                variantFrame.fills = [];
                 for (const state of states) {
+                  const originalAsComponents = config.asComponents;
+                  config.asComponents = true;
                   const input = yield createInput(variant, state, config, findVar);
-                  variantFrame.appendChild(input);
+                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                  const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                  input.name = `Type=${variantCapitalized}, State=${stateCapitalized}`;
+                  inputComponents.push(input);
                   componentCount++;
+                  config.asComponents = originalAsComponents;
                 }
-                inputsFrame.appendChild(variantFrame);
               }
-              if (config.output === "page") {
-                container.appendChild(inputsFrame);
-              } else {
-                container.appendChild(inputsFrame);
+              if (inputComponents.length > 0) {
+                const inputComponentSet = figma.combineAsVariants(inputComponents, container);
+                inputComponentSet.name = `${config.prefix}Input`;
+                inputComponentSet.layoutMode = "HORIZONTAL";
+                inputComponentSet.layoutWrap = "WRAP";
+                inputComponentSet.primaryAxisSizingMode = "AUTO";
+                inputComponentSet.counterAxisSizingMode = "AUTO";
+                inputComponentSet.itemSpacing = 16;
+                inputComponentSet.counterAxisSpacing = 16;
+                inputComponentSet.paddingTop = 24;
+                inputComponentSet.paddingBottom = 24;
+                inputComponentSet.paddingLeft = 24;
+                inputComponentSet.paddingRight = 24;
               }
             }
             if (config.components.badges) {
               const { variants, sizes } = config.components.badges;
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 70, message: "Creating badges..." } });
-              const badgesFrame = figma.createFrame();
-              badgesFrame.name = `${config.prefix}Badges`;
-              badgesFrame.layoutMode = "HORIZONTAL";
-              badgesFrame.primaryAxisSizingMode = "AUTO";
-              badgesFrame.counterAxisSizingMode = "AUTO";
-              badgesFrame.itemSpacing = 16;
-              badgesFrame.fills = [];
+              const badgeComponents = [];
               for (const variant of variants) {
                 for (const size of sizes) {
+                  const originalAsComponents = config.asComponents;
+                  config.asComponents = true;
                   const badge = yield createBadge(variant, size, config, findVar);
-                  badgesFrame.appendChild(badge);
+                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                  const sizeUpper = size.toUpperCase();
+                  badge.name = `Variant=${variantCapitalized}, Size=${sizeUpper}`;
+                  badgeComponents.push(badge);
                   componentCount++;
+                  config.asComponents = originalAsComponents;
                 }
               }
-              if (config.output === "page") {
-                container.appendChild(badgesFrame);
-              } else {
-                container.appendChild(badgesFrame);
+              if (badgeComponents.length > 0) {
+                const badgeComponentSet = figma.combineAsVariants(badgeComponents, container);
+                badgeComponentSet.name = `${config.prefix}Badge`;
+                badgeComponentSet.layoutMode = "HORIZONTAL";
+                badgeComponentSet.layoutWrap = "WRAP";
+                badgeComponentSet.primaryAxisSizingMode = "AUTO";
+                badgeComponentSet.counterAxisSizingMode = "AUTO";
+                badgeComponentSet.itemSpacing = 16;
+                badgeComponentSet.counterAxisSpacing = 16;
+                badgeComponentSet.paddingTop = 24;
+                badgeComponentSet.paddingBottom = 24;
+                badgeComponentSet.paddingLeft = 24;
+                badgeComponentSet.paddingRight = 24;
               }
             }
             figma.ui.postMessage({ type: "progress-end" });
@@ -1121,7 +1217,8 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           const text = figma.createText();
           yield figma.loadFontAsync({ family: "Inter", style: "Medium" });
           text.fontName = { family: "Inter", style: "Medium" };
-          text.characters = variant.charAt(0).toUpperCase() + variant.slice(1);
+          const defaultLabel = variant.charAt(0).toUpperCase() + variant.slice(1);
+          text.characters = defaultLabel;
           const fontSizeMap = { sm: 12, md: 14, lg: 16 };
           text.fontSize = fontSizeMap[size] || 14;
           const textVar = findVar(textVarTerms, "COLOR");
@@ -1129,6 +1226,11 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", textVar)];
           }
           btn.appendChild(text);
+          if (config.asComponents && btn.type === "COMPONENT") {
+            const component = btn;
+            const propName = component.addComponentProperty("Text", "TEXT", defaultLabel);
+            text.componentPropertyReferences = { characters: propName };
+          }
           return btn;
         });
       }
@@ -1201,10 +1303,35 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.6, g: 0.6, b: 0.6 } }, "color", textVar)];
           }
           input.appendChild(text);
+          if (variant === "select") {
+            const chevron = figma.createVector();
+            chevron.vectorPaths = [{
+              windingRule: "NONZERO",
+              data: "M 0 0 L 6 6 L 12 0"
+            }];
+            chevron.resize(12, 6);
+            chevron.strokeWeight = 2;
+            chevron.strokeCap = "ROUND";
+            chevron.strokeJoin = "ROUND";
+            const iconVar = findVar(["text/secondary", "icon/default"], "COLOR");
+            if (iconVar) {
+              chevron.strokes = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", iconVar)];
+            } else {
+              chevron.strokes = [{ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            }
+            chevron.fills = [];
+            input.appendChild(chevron);
+          }
           if (variant === "textarea") {
             input.layoutMode = "VERTICAL";
             input.resize(240, 100);
             input.primaryAxisSizingMode = "FIXED";
+          }
+          if (config.asComponents && input.type === "COMPONENT") {
+            const component = input;
+            const defaultPlaceholder = text.characters;
+            const propName = component.addComponentProperty("Placeholder", "TEXT", defaultPlaceholder);
+            text.componentPropertyReferences = { characters: propName };
           }
           return input;
         });
@@ -1300,6 +1427,12 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", textVar)];
           }
           badge.appendChild(text);
+          if (config.asComponents && badge.type === "COMPONENT") {
+            const component = badge;
+            const defaultLabel = text.characters;
+            const propName = component.addComponentProperty("Text", "TEXT", defaultLabel);
+            text.componentPropertyReferences = { characters: propName };
+          }
           return badge;
         });
       }
@@ -2675,6 +2808,12 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               break;
             case "create-theme":
               yield createThemeCollection(msg.themeData);
+              break;
+            case "import-icons":
+              yield importIconsFromSvg(
+                msg.icons,
+                msg.options
+              );
               break;
             case "resize-window":
               figma.ui.resize(msg.width, msg.height);

@@ -1521,6 +1521,7 @@ async function createAtomsCollection(
         { name: 'Button/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
         { name: 'Button/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
         { name: 'Button/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
+        { name: 'Button/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
         { name: 'Button/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
         { name: 'Button/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
 
@@ -1531,6 +1532,7 @@ async function createAtomsCollection(
         { name: 'Input/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
         { name: 'Input/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], tablet: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], mobile: ['Typography/Font Weight/Regular', 'Font Weight/Regular'] },
         { name: 'Input/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
+        { name: 'Input/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
         { name: 'Input/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
         { name: 'Input/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
 
@@ -1541,6 +1543,7 @@ async function createAtomsCollection(
         { name: 'Badge/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
         { name: 'Badge/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
         { name: 'Badge/icon-size', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
+        { name: 'Badge/line-height', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
         { name: 'Badge/gap', type: 'FLOAT', desktop: ['gap/sm'], tablet: ['gap/xs'], mobile: ['gap/xs'] },
         { name: 'Badge/radius', type: 'FLOAT', desktop: ['radius/full', 'radius/lg'], tablet: ['radius/full', 'radius/md'], mobile: ['radius/full', 'radius/sm'] },
     ];
@@ -1566,19 +1569,19 @@ async function createAtomsCollection(
 
         // Fallback values for FLOAT types
         const floatFallbacksDesktop: Record<string, number> = {
-            'Button/padding-y': 12, 'Button/padding-x': 24, 'Button/font-size': 16, 'Button/icon-size': 24, 'Button/gap': 12, 'Button/radius': 8, 'Button/font-weight': 500,
-            'Input/padding-y': 12, 'Input/padding-x': 16, 'Input/font-size': 16, 'Input/icon-size': 20, 'Input/gap': 8, 'Input/radius': 8, 'Input/font-weight': 400,
-            'Badge/padding-y': 4, 'Badge/padding-x': 12, 'Badge/font-size': 14, 'Badge/icon-size': 16, 'Badge/gap': 4, 'Badge/radius': 999, 'Badge/font-weight': 500,
+            'Button/padding-y': 12, 'Button/padding-x': 24, 'Button/font-size': 16, 'Button/icon-size': 24, 'Button/line-height': 24, 'Button/gap': 12, 'Button/radius': 8, 'Button/font-weight': 500,
+            'Input/padding-y': 12, 'Input/padding-x': 16, 'Input/font-size': 16, 'Input/icon-size': 20, 'Input/line-height': 20, 'Input/gap': 8, 'Input/radius': 8, 'Input/font-weight': 400,
+            'Badge/padding-y': 4, 'Badge/padding-x': 12, 'Badge/font-size': 14, 'Badge/icon-size': 16, 'Badge/line-height': 16, 'Badge/gap': 4, 'Badge/radius': 999, 'Badge/font-weight': 500,
         };
         const floatFallbacksTablet: Record<string, number> = {
-            'Button/padding-y': 10, 'Button/padding-x': 20, 'Button/font-size': 14, 'Button/icon-size': 20, 'Button/gap': 8, 'Button/radius': 6, 'Button/font-weight': 500,
-            'Input/padding-y': 10, 'Input/padding-x': 14, 'Input/font-size': 14, 'Input/icon-size': 18, 'Input/gap': 6, 'Input/radius': 6, 'Input/font-weight': 400,
-            'Badge/padding-y': 3, 'Badge/padding-x': 10, 'Badge/font-size': 12, 'Badge/icon-size': 14, 'Badge/gap': 3, 'Badge/radius': 999, 'Badge/font-weight': 500,
+            'Button/padding-y': 10, 'Button/padding-x': 20, 'Button/font-size': 14, 'Button/icon-size': 20, 'Button/line-height': 20, 'Button/gap': 8, 'Button/radius': 6, 'Button/font-weight': 500,
+            'Input/padding-y': 10, 'Input/padding-x': 14, 'Input/font-size': 14, 'Input/icon-size': 18, 'Input/line-height': 18, 'Input/gap': 6, 'Input/radius': 6, 'Input/font-weight': 400,
+            'Badge/padding-y': 3, 'Badge/padding-x': 10, 'Badge/font-size': 12, 'Badge/icon-size': 14, 'Badge/line-height': 14, 'Badge/gap': 3, 'Badge/radius': 999, 'Badge/font-weight': 500,
         };
         const floatFallbacksMobile: Record<string, number> = {
-            'Button/padding-y': 8, 'Button/padding-x': 16, 'Button/font-size': 12, 'Button/icon-size': 16, 'Button/gap': 6, 'Button/radius': 4, 'Button/font-weight': 500,
-            'Input/padding-y': 8, 'Input/padding-x': 12, 'Input/font-size': 12, 'Input/icon-size': 16, 'Input/gap': 4, 'Input/radius': 4, 'Input/font-weight': 400,
-            'Badge/padding-y': 2, 'Badge/padding-x': 8, 'Badge/font-size': 10, 'Badge/icon-size': 12, 'Badge/gap': 2, 'Badge/radius': 999, 'Badge/font-weight': 500,
+            'Button/padding-y': 8, 'Button/padding-x': 16, 'Button/font-size': 12, 'Button/icon-size': 16, 'Button/line-height': 16, 'Button/gap': 6, 'Button/radius': 4, 'Button/font-weight': 500,
+            'Input/padding-y': 8, 'Input/padding-x': 12, 'Input/font-size': 12, 'Input/icon-size': 16, 'Input/line-height': 16, 'Input/gap': 4, 'Input/radius': 4, 'Input/font-weight': 400,
+            'Badge/padding-y': 2, 'Badge/padding-x': 8, 'Badge/font-size': 10, 'Badge/icon-size': 12, 'Badge/line-height': 12, 'Badge/gap': 2, 'Badge/radius': 999, 'Badge/font-weight': 500,
         };
 
         // Fallback values for STRING types 
@@ -2247,6 +2250,12 @@ async function createButton(
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
+    // Bind line height to Atoms variable (matches icon-size for consistent component height)
+    const lineHeightVar = atomVars['Button/line-height'];
+    if (lineHeightVar) {
+        text.setBoundVariable('lineHeight', lineHeightVar);
+    }
+
     // Text color
     if (textVar) {
         text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }, 'color', textVar)];
@@ -2425,6 +2434,12 @@ async function createInput(
     const fontWeightVar = atomVars['Input/font-weight'];
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
+    }
+
+    // Bind line height to Atoms variable (matches icon-size for consistent component height)
+    const lineHeightVar = atomVars['Input/line-height'];
+    if (lineHeightVar) {
+        text.setBoundVariable('lineHeight', lineHeightVar);
     }
 
     text.layoutGrow = 1;
@@ -2640,6 +2655,12 @@ async function createBadge(
     const fontWeightVar = atomVars['Badge/font-weight'];
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
+    }
+
+    // Bind line height to Atoms variable (matches icon-size for consistent component height)
+    const lineHeightVar = atomVars['Badge/line-height'];
+    if (lineHeightVar) {
+        text.setBoundVariable('lineHeight', lineHeightVar);
     }
 
     if (textVar) {

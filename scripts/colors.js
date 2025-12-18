@@ -1,8 +1,8 @@
 // Colors Section Logic
-console.log('🎨 Colors script loaded');
+
 
 function initColors() {
-    console.log('🎨 Initializing Colors section...');
+    
 
     // UI Elements
     const collectionSelect = document.getElementById('var-collection-select');
@@ -38,7 +38,7 @@ function initColors() {
     }
 
     // Initial Load
-    console.log('📨 Requesting collections...');
+    
     parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
 
     // State
@@ -103,7 +103,7 @@ function initColors() {
                 option.textContent = c.name;
                 collectionSelect.appendChild(option);
             });
-            console.log(`✅ Loaded ${payload.length} collections into dropdown`);
+            
 
         } else if (type === 'load-groups-tab1') {
             if (!groupSelect) return;
@@ -318,7 +318,7 @@ function initColors() {
 
     // Add to Queue
     addColorBtn.onclick = () => {
-        console.log('➕ Add Color Button Clicked');
+        
         const name = newColorName.value.trim();
         const colorVal = newColorHex.value.trim();
 
@@ -326,7 +326,6 @@ function initColors() {
         if (!name || !colorVal) {
             addError.style.display = 'block';
             addError.textContent = 'Name and Value are required';
-            console.warn('⚠️ Empty input');
             return;
         }
         addError.style.display = 'none';
@@ -385,13 +384,13 @@ function initColors() {
 
     // Preview
     previewScaleBtn.onclick = () => {
-        console.log('👁️ Preview Scale Clicked', colorQueue);
+        
         parent.postMessage({ pluginMessage: { type: 'preview-scale-batch', colors: colorQueue } }, '*');
     };
 
     // Create Variables
     createVarsBtn.onclick = () => {
-        console.log('🚀 Create Variables Clicked');
+        
         if (colorQueue.length === 0) return;
 
         let collectionId = collectionSelect.value;

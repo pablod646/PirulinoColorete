@@ -1,8 +1,8 @@
 // Theme Generator Logic
-console.log('🌓 Theme script loaded');
+
 
 function initTheme() {
-    console.log('🌓 Initializing Theme section...');
+
 
     // UI Elements
     const sourceCollection = document.getElementById('theme-source-collection');
@@ -69,7 +69,7 @@ function initTheme() {
                 opt2.textContent = c.name;
                 editCollectionSelect.appendChild(opt2);
             });
-            console.log('🌓 Theme: Collections loaded');
+
 
         } else if (type === 'load-groups-theme') {
             sourceGroup.innerHTML = '<option value="">All groups</option>';
@@ -79,7 +79,7 @@ function initTheme() {
                 opt.textContent = g;
                 sourceGroup.appendChild(opt);
             });
-            console.log('🌓 Theme: Groups loaded');
+
             sourceGroup.disabled = false;
 
         } else if (type === 'load-groups-theme-edit') { // For Edit Mode
@@ -126,9 +126,8 @@ function initTheme() {
                 // Extract paletteData first for custom dropdowns
                 if (payload.paletteData) {
                     paletteData = payload.paletteData;
-                    console.log('📊 Palette Data loaded for edit mode:', paletteData);
+
                     Object.keys(paletteData).forEach(paletteName => {
-                        console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors');
                     });
                 }
 
@@ -141,7 +140,7 @@ function initTheme() {
                     // The paletteData has keys like: accent, neutral, success, warning, error
                     // But we need to also load the original palettes from the collection
                     // For now, at least show what we have and mark them as detected
-                    console.log('⚠️ No availablePalettes, using detected palettes from theme tokens');
+
 
                     // We'll show detected palette info but selectores need to load proper palettes
                     // Enable dropdowns with "Detected" values
@@ -166,7 +165,7 @@ function initTheme() {
                     fill(errorSelect, 'Select error palette...');
                 } else if (loadedPalettes && loadedPalettes.length > 0) {
                     // Use previously loaded palettes if available
-                    console.log('📦 Using previously loaded palettes:', loadedPalettes.length);
+
                     const fill = (sel, placeholder) => {
                         sel.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
                         loadedPalettes.forEach(p => {
@@ -213,7 +212,7 @@ function initTheme() {
                 if (createThemeBtn) createThemeBtn.disabled = false;
             }
 
-            console.log('🌓 Theme Data Ready:', payload);
+
             renderPreview();
             renderTokenEditor();
         }
@@ -319,7 +318,7 @@ function initTheme() {
             isRegenerate: true // Flag to tell backend this is a live update
         };
 
-        console.log('🔄 Auto-updating preview...', msg);
+
         parent.postMessage({ pluginMessage: msg }, '*');
     };
 
@@ -551,7 +550,7 @@ function initTheme() {
                     // Robust parsing: split by space, trim, remove empty strings
                     const tokens = el.dataset.tokens.split(' ').map(t => t.trim()).filter(Boolean);
 
-                    console.log('🖱️ Clicked element with tokens:', tokens);
+
 
                     if (tokens.length > 0) {
                         let scrolled = false;
@@ -562,7 +561,7 @@ function initTheme() {
                             const targetId = `token-row-${safeName}`;
                             const targetRow = document.getElementById(targetId);
 
-                            console.log(`  Looking for ID: "${targetId}"`, targetRow ? '✅ Found' : '❌ Not found');
+
 
                             if (targetRow) {
                                 foundAny = true;
@@ -571,7 +570,7 @@ function initTheme() {
                                     // First, ensure the parent <details> is open
                                     const parentDetails = targetRow.closest('details');
                                     if (parentDetails && !parentDetails.open) {
-                                        console.log('📂 Opening parent accordion');
+
                                         parentDetails.open = true;
                                     }
 
@@ -595,7 +594,7 @@ function initTheme() {
                                     }
 
                                     // Use scrollIntoView which works better with accordions
-                                    console.log('📜 Scrolling to row');
+
                                     setTimeout(() => {
                                         targetRow.scrollIntoView({
                                             behavior: 'smooth',
@@ -607,16 +606,14 @@ function initTheme() {
                                     scrolled = true;
                                 }
                                 // Flash ALL compatible rows
-                                console.log('⚡ Adding flash effect to row');
+
                                 targetRow.classList.add('editor-flash');
                                 setTimeout(() => targetRow.classList.remove('editor-flash'), 1500);
                             } else {
-                                console.warn('Target row not found:', safeName);
                             }
                         });
 
                         if (!foundAny) {
-                            console.warn('No valid token rows found for:', tokens);
                         }
                     }
                 });
@@ -627,7 +624,7 @@ function initTheme() {
     function renderTokenEditor() {
         if (!generatedThemeData || !generatedThemeData.tokens) return;
 
-        console.log('🌓 Rendering Token Editor...');
+
         const { tokens, paletteData } = generatedThemeData;
 
         // Clear containers
@@ -642,16 +639,11 @@ function initTheme() {
         Object.values(containers).forEach(el => { if (el) el.innerHTML = ''; });
 
         // DEBUG: Log palette data to see what we're working with
-        console.log('📊 Palette Data received:', paletteData);
+
         if (paletteData && typeof paletteData === 'object') {
             Object.keys(paletteData).forEach(paletteName => {
                 const colors = paletteData[paletteName];
-                if (colors && typeof colors === 'object') {
-                    console.log(`  ${paletteName}:`, Object.keys(colors).length, 'colors', colors);
-                }
             });
-        } else {
-            console.warn('⚠️ Palette Data is not available');
         }
 
         // Helper: Determine which palette a token should use
@@ -724,7 +716,6 @@ function initTheme() {
                 }
 
                 actualTargetVal = String(closest);
-                console.warn(`⚠️ ${tokenName} ${mode} requested ${targetVal} but palette only has ${availableScales.join(', ')}. Using closest: ${closest}`);
             }
 
             const selectedHex = paletteColors[actualTargetVal] || '#cccccc';

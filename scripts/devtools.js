@@ -1,8 +1,8 @@
 // Dev Tools Section Logic
-console.log('🛠️ Dev Tools script loaded');
+
 
 function initDevTools() {
-    console.log('🛠️ Initializing Dev Tools section...');
+    
 
     // UI Elements
     const collectionSelect = document.getElementById('devtools-collection');
@@ -53,7 +53,7 @@ function initDevTools() {
                 option.textContent = c.name;
                 collectionSelect.appendChild(option);
             });
-            console.log('🛠️ Dev Tools: Collections loaded');
+            
 
         } else if (type === 'load-groups-devtools') {
             groupSelect.innerHTML = '<option value="">All Groups</option>';

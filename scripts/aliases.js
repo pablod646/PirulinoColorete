@@ -1,8 +1,8 @@
 // Aliases (Responsive Semantics) Section Logic
-console.log('🔗 Aliases script loaded');
+
 
 function initAliases() {
-    console.log('🔗 Initializing Aliases section...');
+    
 
     // Elements
     const sourceCollection = document.getElementById('alias-source-collection');
@@ -37,7 +37,7 @@ function initAliases() {
                     sourceCollection.appendChild(opt);
                 });
             }
-            console.log('🔗 Aliases: Loaded collections');
+            
 
         } else if (type === 'load-groups-alias') {
             const fill = (sel, label) => {
@@ -53,7 +53,7 @@ function initAliases() {
 
             fill(measureGroup, 'Select Measures Group...');
             fill(typoGroup, 'Select Typography Group...');
-            console.log('🔗 Aliases: Loaded groups for tokens mode');
+            
 
         } else if (type === 'progress-start') {
             if (progressDiv) {
@@ -90,7 +90,7 @@ function initAliases() {
 
     // Events
     sourceCollection.onchange = () => {
-        console.log('🔗 Aliases: Collection changed', sourceCollection.value);
+        
         parent.postMessage({ pluginMessage: { type: 'get-groups-for-alias', collectionId: sourceCollection.value } }, '*');
     };
 
@@ -109,7 +109,7 @@ function initAliases() {
             targetName: targetName
         };
 
-        console.log('🔗 Creating aliases with config:', config);
+        
 
         parent.postMessage({
             pluginMessage: {

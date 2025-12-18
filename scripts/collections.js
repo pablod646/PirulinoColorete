@@ -1,8 +1,8 @@
 // Collections (Documentation) Section Logic
-console.log('📚 Collections script loaded');
+
 
 function initCollections() {
-    console.log('📚 Initializing Collections section...');
+    
 
     // UI Elements
     const collectionSelect = document.getElementById('collection-select');
@@ -28,7 +28,7 @@ function initCollections() {
                 opt.textContent = c.name;
                 collectionSelect.appendChild(opt);
             });
-            console.log('📚 Collections loaded');
+            
 
         } else if (type === 'load-groups') {
             groupSelect.innerHTML = '<option value="">All Groups</option>';
@@ -39,7 +39,7 @@ function initCollections() {
                 groupSelect.appendChild(opt);
             });
             groupSelect.disabled = false;
-            console.log('📚 Groups loaded');
+            
 
         } else if (type === 'conversion-result') {
             // Render result in UI
@@ -78,7 +78,7 @@ function initCollections() {
     // Events
     collectionSelect.onchange = () => {
         const id = collectionSelect.value;
-        console.log('📚 Collection changed:', id);
+        
         parent.postMessage({ pluginMessage: { type: 'get-groups', collectionId: id } }, '*');
     };
 
@@ -86,7 +86,7 @@ function initCollections() {
         const id = collectionSelect.value;
         if (!id) return;
 
-        console.log('📚 Converting/Listing JSON...');
+        
         parent.postMessage({
             pluginMessage: {
                 type: 'convert-json',
@@ -101,7 +101,7 @@ function initCollections() {
         const id = collectionSelect.value;
         if (!id) return;
 
-        console.log('📚 Generating canvas documentation...');
+        
         parent.postMessage({
             pluginMessage: {
                 type: 'generate-canvas',

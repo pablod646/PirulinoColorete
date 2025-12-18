@@ -215,7 +215,7 @@
     }
 
     function showNotification(message, type) {
-        console.log(`[${type}] ${message}`);
+        
         // Could use figma.notify via postMessage
     }
 

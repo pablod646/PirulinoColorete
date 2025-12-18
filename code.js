@@ -1511,7 +1511,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             if (allNodes.length > 0)
               return allNodes[0];
           } catch (e) {
-            console.log("Could not load all pages, using current page only");
           }
           return null;
         });
@@ -2284,14 +2283,12 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                   aliasVar.setValueForMode(desktopId, { type: "VARIABLE_ALIAS", id: primitiveVar.id });
                   aliasVar.setValueForMode(tabletId, { type: "VARIABLE_ALIAS", id: primitiveVar.id });
                   aliasVar.setValueForMode(mobileId, { type: "VARIABLE_ALIAS", id: primitiveVar.id });
-                  console.log(`\u2705 Created font-family alias: ${item.name} \u2192 ${primitiveVar.name}`);
                 } else {
                   aliasVar = figma.variables.createVariable(item.name, targetCollection, "STRING");
                   const fallback = item.name.includes("Code") ? "Roboto Mono" : "Inter";
                   aliasVar.setValueForMode(desktopId, fallback);
                   aliasVar.setValueForMode(tabletId, fallback);
                   aliasVar.setValueForMode(mobileId, fallback);
-                  console.log(`\u26A0\uFE0F Created font-family alias with fallback: ${item.name} = ${fallback}`);
                 }
               }
             }
@@ -2311,14 +2308,12 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                   aliasVar.setValueForMode(desktopId, { type: "VARIABLE_ALIAS", id: primitiveVar.id });
                   aliasVar.setValueForMode(tabletId, { type: "VARIABLE_ALIAS", id: primitiveVar.id });
                   aliasVar.setValueForMode(mobileId, { type: "VARIABLE_ALIAS", id: primitiveVar.id });
-                  console.log(`\u2705 Created font-weight alias: ${item.name} \u2192 ${primitiveVar.name}`);
                 } else {
                   const fallbacks = { "Regular": 400, "Medium": 500, "SemiBold": 600, "Bold": 700 };
                   aliasVar = figma.variables.createVariable(item.name, targetCollection, "FLOAT");
                   aliasVar.setValueForMode(desktopId, fallbacks[item.primitiveLeaf] || 400);
                   aliasVar.setValueForMode(tabletId, fallbacks[item.primitiveLeaf] || 400);
                   aliasVar.setValueForMode(mobileId, fallbacks[item.primitiveLeaf] || 400);
-                  console.log(`\u26A0\uFE0F Created font-weight alias with fallback: ${item.name} = ${fallbacks[item.primitiveLeaf]}`);
                 }
               }
             }
@@ -2552,14 +2547,12 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 const sourceVar = findSource(typoGroup, valName);
                 if (sourceVar) {
                   v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: sourceVar.id });
-                  console.log(`\u2705 Linked ${item.name} \u2192 ${sourceVar.name}`);
                 } else {
                   const fallbackVar = allVars.find(
                     (fv) => fv.variableCollectionId === sourceCollectionId && fv.name.toLowerCase().includes(valName.toLowerCase()) && fv.resolvedType === "FLOAT"
                   );
                   if (fallbackVar) {
                     v.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: fallbackVar.id });
-                    console.log(`\u2705 Fallback linked ${item.name} \u2192 ${fallbackVar.name}`);
                   } else {
                     console.warn(`\u26A0\uFE0F No source found for ${item.name} (looking for "${valName}" in ${typoGroup})`);
                   }
@@ -3201,7 +3194,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 }
               });
             }
-            console.log("\u{1F50D} Palette usage counts:", paletteUsageCount);
             if (detectedConfig.accent)
               paletteData.accent = extractPaletteColors2(detectedConfig.accent);
             if (detectedConfig.neutral)
@@ -3256,11 +3248,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 }
               };
             };
-            console.log("\u{1F4CA} Detected config:", detectedConfig);
-            console.log("\u{1F4E6} Available palettes:", availablePalettes.length);
-            console.log("\u{1F3A8} Palette data:", Object.keys(paletteData).map(
-              (k) => `${k}(${Object.keys(paletteData[k]).length})`
-            ).join(", "));
             figma.ui.postMessage({
               type: "theme-loaded-for-edit",
               payload: {
@@ -3562,7 +3549,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             case "convert-json": {
               const collectionId = msg.collectionId;
               const groupName = msg.groupName;
-              console.log("\u{1F4DA} Converting JSON for collection:", collectionId, "group:", groupName);
               try {
                 const collection = yield figma.variables.getVariableCollectionByIdAsync(collectionId);
                 if (!collection) {
@@ -3571,7 +3557,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                   figma.ui.postMessage({ type: "conversion-result", payload: [] });
                   return;
                 }
-                console.log("\u{1F4DA} Collection found:", collection.name, "with", collection.variableIds.length, "variables");
                 const variables = [];
                 for (const id of collection.variableIds) {
                   const variable = yield figma.variables.getVariableByIdAsync(id);
@@ -3579,9 +3564,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                     variables.push(variable);
                   }
                 }
-                console.log("\u{1F4DA} Loaded", variables.length, "variables");
                 const filtered = groupName && groupName !== "" ? variables.filter((v) => v.name.startsWith(groupName + "/")) : variables;
-                console.log("\u{1F4DA} Filtered to", filtered.length, "variables");
                 const palettes = {};
                 const otherVars = [];
                 for (const v of filtered) {
@@ -3629,7 +3612,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                     other: otherVars
                   }
                 });
-                console.log("\u{1F4DA} Sent", Object.keys(palettes).length, "palettes and", otherVars.length, "other variables to UI");
               } catch (error) {
                 console.error("Error converting JSON:", error);
                 figma.notify("Error loading variables: " + error.message);
@@ -3645,7 +3627,6 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                   name: style.name
                 }));
                 figma.ui.postMessage({ type: "load-text-styles", payload: stylesList });
-                console.log("\u{1F4DA} Loaded", stylesList.length, "text styles");
               } catch (error) {
                 console.error("Error loading text styles:", error);
               }

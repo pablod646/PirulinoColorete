@@ -1,8 +1,8 @@
 // Measures Section Logic
-console.log('📏 Measures script loaded');
+
 
 function initMeasures() {
-    console.log('📏 Initializing Measures section...');
+    
 
     // UI Elements
     const measureValues = document.getElementById('measure-values');
@@ -49,7 +49,7 @@ function initMeasures() {
         const { type, payload } = event.detail;
 
         if (type === 'load-collections') {
-            console.log('📏 Measures received load-collections. Payload:', payload);
+            
 
             if (!collectionSelect) {
                 console.error('❌ measure-collection-select lost reference!');
@@ -68,7 +68,7 @@ function initMeasures() {
                         option.textContent = c.name;
                         collectionSelect.appendChild(option);
                     });
-                    console.log(`✅ Measures: Populated ${payload.length} collections.`);
+                    
 
                     // Restore selection if valid
                     if (currentVal && payload.find(c => c.id === currentVal)) {
@@ -82,7 +82,7 @@ function initMeasures() {
             }
 
         } else if (type === 'load-groups-measures') {
-            console.log('📏 Measures: Loaded groups', payload);
+            
             groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
             payload.forEach(g => {
                 const option = document.createElement('option');
@@ -113,7 +113,7 @@ function initMeasures() {
 
     // UI Events
     previewBtn.onclick = () => {
-        console.log('📏 Preview Measures Clicked');
+        
         const raw = measureValues.value;
         const values = raw.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
 
@@ -149,13 +149,13 @@ function initMeasures() {
         }
 
         // Always request collections to ensure freshness
-        console.log('📏 Requesting collections refresh from preview...');
+        
         parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
     };
 
     collectionSelect.onchange = () => {
         const val = collectionSelect.value;
-        console.log('📏 Collection changed:', val);
+        
         // Request groups
         parent.postMessage({ pluginMessage: { type: 'get-groups-for-measures', collectionId: val } }, '*');
     };
@@ -182,7 +182,7 @@ function initMeasures() {
                 groupName
             };
 
-            console.log('📏 Creating measures:', values, config);
+            
 
             parent.postMessage({
                 pluginMessage: {
@@ -204,7 +204,7 @@ function initMeasures() {
 
     // Initial load request
     // This handles the case where navigation.js might have missed it or we reloaded the script context
-    console.log('📏 Sending initial load-collections request from init.');
+    
     parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
 }
 

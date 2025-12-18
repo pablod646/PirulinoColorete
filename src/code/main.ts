@@ -1911,7 +1911,7 @@ async function findIconComponent(preferredNames: string[] = ['add_rounded', 'add
 
         if (allNodes.length > 0) return allNodes[0];
     } catch (e) {
-        console.log('Could not load all pages, using current page only');
+        // Pages not loaded, using current page only
     }
 
     return null;
@@ -3021,7 +3021,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                     aliasVar.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
                     aliasVar.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
                     aliasVar.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
-                    console.log(`✅ Created font-family alias: ${item.name} → ${primitiveVar.name}`);
+
                 } else {
                     // Create with fallback value
                     aliasVar = figma.variables.createVariable(item.name, targetCollection!, 'STRING');
@@ -3029,7 +3029,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                     aliasVar.setValueForMode(desktopId, fallback);
                     aliasVar.setValueForMode(tabletId, fallback);
                     aliasVar.setValueForMode(mobileId, fallback);
-                    console.log(`⚠️ Created font-family alias with fallback: ${item.name} = ${fallback}`);
+
                 }
             }
         }
@@ -3056,7 +3056,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                     aliasVar.setValueForMode(desktopId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
                     aliasVar.setValueForMode(tabletId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
                     aliasVar.setValueForMode(mobileId, { type: 'VARIABLE_ALIAS', id: primitiveVar.id });
-                    console.log(`✅ Created font-weight alias: ${item.name} → ${primitiveVar.name}`);
+
                 } else {
                     // Create with fallback numeric value
                     const fallbacks: Record<string, number> = { 'Regular': 400, 'Medium': 500, 'SemiBold': 600, 'Bold': 700 };
@@ -3064,7 +3064,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                     aliasVar.setValueForMode(desktopId, fallbacks[item.primitiveLeaf] || 400);
                     aliasVar.setValueForMode(tabletId, fallbacks[item.primitiveLeaf] || 400);
                     aliasVar.setValueForMode(mobileId, fallbacks[item.primitiveLeaf] || 400);
-                    console.log(`⚠️ Created font-weight alias with fallback: ${item.name} = ${fallbacks[item.primitiveLeaf]}`);
+
                 }
             }
         }
@@ -3366,7 +3366,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                 const sourceVar = findSource(typoGroup, valName);
                 if (sourceVar) {
                     v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: sourceVar.id });
-                    console.log(`✅ Linked ${item.name} → ${sourceVar.name}`);
+
                 } else {
                     // Fallback: try to find by partial name match
                     const fallbackVar = allVars.find(fv =>
@@ -3376,7 +3376,7 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
                     );
                     if (fallbackVar) {
                         v.setValueForMode(modeId, { type: 'VARIABLE_ALIAS', id: fallbackVar.id });
-                        console.log(`✅ Fallback linked ${item.name} → ${fallbackVar.name}`);
+
                     } else {
                         console.warn(`⚠️ No source found for ${item.name} (looking for "${valName}" in ${typoGroup})`);
                     }
@@ -4158,7 +4158,7 @@ async function loadThemeFromCollection(collectionId: string): Promise<void> {
             });
         }
 
-        console.log('🔍 Palette usage counts:', paletteUsageCount);
+
 
         // Extract palette colors for detected roles
         if (detectedConfig.accent) paletteData.accent = extractPaletteColors(detectedConfig.accent);
@@ -4212,12 +4212,6 @@ async function loadThemeFromCollection(collectionId: string): Promise<void> {
                 }
             };
         };
-
-        console.log('📊 Detected config:', detectedConfig);
-        console.log('📦 Available palettes:', availablePalettes.length);
-        console.log('🎨 Palette data:', Object.keys(paletteData).map(k =>
-            `${k}(${Object.keys(paletteData[k]).length})`
-        ).join(', '));
 
         figma.ui.postMessage({
             type: 'theme-loaded-for-edit',
@@ -4590,7 +4584,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                 const collectionId = msg.collectionId as string;
                 const groupName = msg.groupName as string;
 
-                console.log('📚 Converting JSON for collection:', collectionId, 'group:', groupName);
+
 
                 try {
                     const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
@@ -4601,7 +4595,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                         return;
                     }
 
-                    console.log('📚 Collection found:', collection.name, 'with', collection.variableIds.length, 'variables');
+
 
                     const variables: Variable[] = [];
                     for (const id of collection.variableIds) {
@@ -4611,14 +4605,14 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                         }
                     }
 
-                    console.log('📚 Loaded', variables.length, 'variables');
+
 
                     // Filter by group if specified
                     const filtered = groupName && groupName !== ''
                         ? variables.filter(v => v.name.startsWith(groupName + '/'))
                         : variables;
 
-                    console.log('📚 Filtered to', filtered.length, 'variables');
+
 
                     // Group color variables by palette
                     const palettes: Record<string, any[]> = {};
@@ -4677,7 +4671,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                             other: otherVars
                         }
                     });
-                    console.log('📚 Sent', Object.keys(palettes).length, 'palettes and', otherVars.length, 'other variables to UI');
+
                 } catch (error) {
                     console.error('Error converting JSON:', error);
                     figma.notify('Error loading variables: ' + (error as Error).message);
@@ -4694,7 +4688,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                         name: style.name
                     }));
                     figma.ui.postMessage({ type: 'load-text-styles', payload: stylesList });
-                    console.log('📚 Loaded', stylesList.length, 'text styles');
+
                 } catch (error) {
                     console.error('Error loading text styles:', error);
                 }

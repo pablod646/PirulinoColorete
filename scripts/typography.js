@@ -1,8 +1,8 @@
 // Typography Section Logic
-console.log('✍️ Typography script loaded');
+
 
 function initTypography() {
-    console.log('✍️ Initializing Typography section...');
+    
 
     // UI Elements
     const fontHeading = document.getElementById('font-heading');
@@ -22,7 +22,7 @@ function initTypography() {
     }
 
     // Initial Load of Fonts
-    console.log('✍️ Requesting font list...');
+    
     parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
 
     // Message Listener
@@ -31,7 +31,7 @@ function initTypography() {
 
         if (type === 'load-fonts') {
             const fonts = payload; // ['Inter', 'Roboto', ...]
-            console.log('✍️ Fonts loaded:', fonts.length);
+            
             const updateSelect = (sel) => {
                 sel.innerHTML = '<option value="" disabled selected>Select Font...</option>';
                 fonts.forEach(f => {
@@ -63,10 +63,10 @@ function initTypography() {
                 opt.textContent = c.name;
                 typoCollection.appendChild(opt);
             });
-            console.log('✍️ Typography: Collections loaded');
+            
 
         } else if (type === 'load-groups-typo') {
-            console.log('✍️ Typography: Groups loaded');
+            
             typoGroup.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
             payload.forEach(g => {
                 const opt = document.createElement('option');
@@ -80,7 +80,7 @@ function initTypography() {
 
     // Events
     typoCollection.onchange = () => {
-        console.log('✍️ Typography: Collection changed');
+        
         parent.postMessage({ pluginMessage: { type: 'get-groups-for-typo', collectionId: typoCollection.value } }, '*');
     };
 
@@ -122,7 +122,7 @@ function initTypography() {
             groupName
         };
 
-        console.log('✍️ Creating typography...', config);
+        
 
         parent.postMessage({
             pluginMessage: {

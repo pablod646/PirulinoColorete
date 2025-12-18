@@ -4522,10 +4522,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* --- colors.js --- */
 // Colors Section Logic
-console.log('🎨 Colors script loaded');
+
 
 function initColors() {
-    console.log('🎨 Initializing Colors section...');
+    
 
     // UI Elements
     const collectionSelect = document.getElementById('var-collection-select');
@@ -4561,7 +4561,7 @@ function initColors() {
     }
 
     // Initial Load
-    console.log('📨 Requesting collections...');
+    
     parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
 
     // State
@@ -4626,7 +4626,7 @@ function initColors() {
                 option.textContent = c.name;
                 collectionSelect.appendChild(option);
             });
-            console.log(`✅ Loaded ${payload.length} collections into dropdown`);
+            
 
         } else if (type === 'load-groups-tab1') {
             if (!groupSelect) return;
@@ -4841,7 +4841,7 @@ function initColors() {
 
     // Add to Queue
     addColorBtn.onclick = () => {
-        console.log('➕ Add Color Button Clicked');
+        
         const name = newColorName.value.trim();
         const colorVal = newColorHex.value.trim();
 
@@ -4849,7 +4849,6 @@ function initColors() {
         if (!name || !colorVal) {
             addError.style.display = 'block';
             addError.textContent = 'Name and Value are required';
-            console.warn('⚠️ Empty input');
             return;
         }
         addError.style.display = 'none';
@@ -4908,13 +4907,13 @@ function initColors() {
 
     // Preview
     previewScaleBtn.onclick = () => {
-        console.log('👁️ Preview Scale Clicked', colorQueue);
+        
         parent.postMessage({ pluginMessage: { type: 'preview-scale-batch', colors: colorQueue } }, '*');
     };
 
     // Create Variables
     createVarsBtn.onclick = () => {
-        console.log('🚀 Create Variables Clicked');
+        
         if (colorQueue.length === 0) return;
 
         let collectionId = collectionSelect.value;
@@ -4961,10 +4960,10 @@ if (document.readyState === 'loading') {
 
 /* --- measures.js --- */
 // Measures Section Logic
-console.log('📏 Measures script loaded');
+
 
 function initMeasures() {
-    console.log('📏 Initializing Measures section...');
+    
 
     // UI Elements
     const measureValues = document.getElementById('measure-values');
@@ -5011,7 +5010,7 @@ function initMeasures() {
         const { type, payload } = event.detail;
 
         if (type === 'load-collections') {
-            console.log('📏 Measures received load-collections. Payload:', payload);
+            
 
             if (!collectionSelect) {
                 console.error('❌ measure-collection-select lost reference!');
@@ -5030,7 +5029,7 @@ function initMeasures() {
                         option.textContent = c.name;
                         collectionSelect.appendChild(option);
                     });
-                    console.log(`✅ Measures: Populated ${payload.length} collections.`);
+                    
 
                     // Restore selection if valid
                     if (currentVal && payload.find(c => c.id === currentVal)) {
@@ -5044,7 +5043,7 @@ function initMeasures() {
             }
 
         } else if (type === 'load-groups-measures') {
-            console.log('📏 Measures: Loaded groups', payload);
+            
             groupSelect.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
             payload.forEach(g => {
                 const option = document.createElement('option');
@@ -5075,7 +5074,7 @@ function initMeasures() {
 
     // UI Events
     previewBtn.onclick = () => {
-        console.log('📏 Preview Measures Clicked');
+        
         const raw = measureValues.value;
         const values = raw.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
 
@@ -5111,13 +5110,13 @@ function initMeasures() {
         }
 
         // Always request collections to ensure freshness
-        console.log('📏 Requesting collections refresh from preview...');
+        
         parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
     };
 
     collectionSelect.onchange = () => {
         const val = collectionSelect.value;
-        console.log('📏 Collection changed:', val);
+        
         // Request groups
         parent.postMessage({ pluginMessage: { type: 'get-groups-for-measures', collectionId: val } }, '*');
     };
@@ -5144,7 +5143,7 @@ function initMeasures() {
                 groupName
             };
 
-            console.log('📏 Creating measures:', values, config);
+            
 
             parent.postMessage({
                 pluginMessage: {
@@ -5166,7 +5165,7 @@ function initMeasures() {
 
     // Initial load request
     // This handles the case where navigation.js might have missed it or we reloaded the script context
-    console.log('📏 Sending initial load-collections request from init.');
+    
     parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
 }
 
@@ -5180,10 +5179,10 @@ if (document.readyState === 'loading') {
 
 /* --- typography.js --- */
 // Typography Section Logic
-console.log('✍️ Typography script loaded');
+
 
 function initTypography() {
-    console.log('✍️ Initializing Typography section...');
+    
 
     // UI Elements
     const fontHeading = document.getElementById('font-heading');
@@ -5203,7 +5202,7 @@ function initTypography() {
     }
 
     // Initial Load of Fonts
-    console.log('✍️ Requesting font list...');
+    
     parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
 
     // Message Listener
@@ -5212,7 +5211,7 @@ function initTypography() {
 
         if (type === 'load-fonts') {
             const fonts = payload; // ['Inter', 'Roboto', ...]
-            console.log('✍️ Fonts loaded:', fonts.length);
+            
             const updateSelect = (sel) => {
                 sel.innerHTML = '<option value="" disabled selected>Select Font...</option>';
                 fonts.forEach(f => {
@@ -5244,10 +5243,10 @@ function initTypography() {
                 opt.textContent = c.name;
                 typoCollection.appendChild(opt);
             });
-            console.log('✍️ Typography: Collections loaded');
+            
 
         } else if (type === 'load-groups-typo') {
-            console.log('✍️ Typography: Groups loaded');
+            
             typoGroup.innerHTML = '<option value="">(Root / No Group)</option><option value="NEW_GROUP">+ New Group...</option>';
             payload.forEach(g => {
                 const opt = document.createElement('option');
@@ -5261,7 +5260,7 @@ function initTypography() {
 
     // Events
     typoCollection.onchange = () => {
-        console.log('✍️ Typography: Collection changed');
+        
         parent.postMessage({ pluginMessage: { type: 'get-groups-for-typo', collectionId: typoCollection.value } }, '*');
     };
 
@@ -5303,7 +5302,7 @@ function initTypography() {
             groupName
         };
 
-        console.log('✍️ Creating typography...', config);
+        
 
         parent.postMessage({
             pluginMessage: {
@@ -5328,10 +5327,10 @@ if (document.readyState === 'loading') {
 
 /* --- aliases.js --- */
 // Aliases (Responsive Semantics) Section Logic
-console.log('🔗 Aliases script loaded');
+
 
 function initAliases() {
-    console.log('🔗 Initializing Aliases section...');
+    
 
     // Elements
     const sourceCollection = document.getElementById('alias-source-collection');
@@ -5366,7 +5365,7 @@ function initAliases() {
                     sourceCollection.appendChild(opt);
                 });
             }
-            console.log('🔗 Aliases: Loaded collections');
+            
 
         } else if (type === 'load-groups-alias') {
             const fill = (sel, label) => {
@@ -5382,7 +5381,7 @@ function initAliases() {
 
             fill(measureGroup, 'Select Measures Group...');
             fill(typoGroup, 'Select Typography Group...');
-            console.log('🔗 Aliases: Loaded groups for tokens mode');
+            
 
         } else if (type === 'progress-start') {
             if (progressDiv) {
@@ -5419,7 +5418,7 @@ function initAliases() {
 
     // Events
     sourceCollection.onchange = () => {
-        console.log('🔗 Aliases: Collection changed', sourceCollection.value);
+        
         parent.postMessage({ pluginMessage: { type: 'get-groups-for-alias', collectionId: sourceCollection.value } }, '*');
     };
 
@@ -5438,7 +5437,7 @@ function initAliases() {
             targetName: targetName
         };
 
-        console.log('🔗 Creating aliases with config:', config);
+        
 
         parent.postMessage({
             pluginMessage: {
@@ -5459,10 +5458,10 @@ if (document.readyState === 'loading') {
 
 /* --- theme.js --- */
 // Theme Generator Logic
-console.log('🌓 Theme script loaded');
+
 
 function initTheme() {
-    console.log('🌓 Initializing Theme section...');
+
 
     // UI Elements
     const sourceCollection = document.getElementById('theme-source-collection');
@@ -5529,7 +5528,7 @@ function initTheme() {
                 opt2.textContent = c.name;
                 editCollectionSelect.appendChild(opt2);
             });
-            console.log('🌓 Theme: Collections loaded');
+
 
         } else if (type === 'load-groups-theme') {
             sourceGroup.innerHTML = '<option value="">All groups</option>';
@@ -5539,7 +5538,7 @@ function initTheme() {
                 opt.textContent = g;
                 sourceGroup.appendChild(opt);
             });
-            console.log('🌓 Theme: Groups loaded');
+
             sourceGroup.disabled = false;
 
         } else if (type === 'load-groups-theme-edit') { // For Edit Mode
@@ -5586,9 +5585,8 @@ function initTheme() {
                 // Extract paletteData first for custom dropdowns
                 if (payload.paletteData) {
                     paletteData = payload.paletteData;
-                    console.log('📊 Palette Data loaded for edit mode:', paletteData);
+
                     Object.keys(paletteData).forEach(paletteName => {
-                        console.log(`  ${paletteName}:`, Object.keys(paletteData[paletteName]).length, 'colors');
                     });
                 }
 
@@ -5601,7 +5599,7 @@ function initTheme() {
                     // The paletteData has keys like: accent, neutral, success, warning, error
                     // But we need to also load the original palettes from the collection
                     // For now, at least show what we have and mark them as detected
-                    console.log('⚠️ No availablePalettes, using detected palettes from theme tokens');
+
 
                     // We'll show detected palette info but selectores need to load proper palettes
                     // Enable dropdowns with "Detected" values
@@ -5626,7 +5624,7 @@ function initTheme() {
                     fill(errorSelect, 'Select error palette...');
                 } else if (loadedPalettes && loadedPalettes.length > 0) {
                     // Use previously loaded palettes if available
-                    console.log('📦 Using previously loaded palettes:', loadedPalettes.length);
+
                     const fill = (sel, placeholder) => {
                         sel.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
                         loadedPalettes.forEach(p => {
@@ -5673,7 +5671,7 @@ function initTheme() {
                 if (createThemeBtn) createThemeBtn.disabled = false;
             }
 
-            console.log('🌓 Theme Data Ready:', payload);
+
             renderPreview();
             renderTokenEditor();
         }
@@ -5779,7 +5777,7 @@ function initTheme() {
             isRegenerate: true // Flag to tell backend this is a live update
         };
 
-        console.log('🔄 Auto-updating preview...', msg);
+
         parent.postMessage({ pluginMessage: msg }, '*');
     };
 
@@ -6011,7 +6009,7 @@ function initTheme() {
                     // Robust parsing: split by space, trim, remove empty strings
                     const tokens = el.dataset.tokens.split(' ').map(t => t.trim()).filter(Boolean);
 
-                    console.log('🖱️ Clicked element with tokens:', tokens);
+
 
                     if (tokens.length > 0) {
                         let scrolled = false;
@@ -6022,7 +6020,7 @@ function initTheme() {
                             const targetId = `token-row-${safeName}`;
                             const targetRow = document.getElementById(targetId);
 
-                            console.log(`  Looking for ID: "${targetId}"`, targetRow ? '✅ Found' : '❌ Not found');
+
 
                             if (targetRow) {
                                 foundAny = true;
@@ -6031,7 +6029,7 @@ function initTheme() {
                                     // First, ensure the parent <details> is open
                                     const parentDetails = targetRow.closest('details');
                                     if (parentDetails && !parentDetails.open) {
-                                        console.log('📂 Opening parent accordion');
+
                                         parentDetails.open = true;
                                     }
 
@@ -6055,7 +6053,7 @@ function initTheme() {
                                     }
 
                                     // Use scrollIntoView which works better with accordions
-                                    console.log('📜 Scrolling to row');
+
                                     setTimeout(() => {
                                         targetRow.scrollIntoView({
                                             behavior: 'smooth',
@@ -6067,16 +6065,14 @@ function initTheme() {
                                     scrolled = true;
                                 }
                                 // Flash ALL compatible rows
-                                console.log('⚡ Adding flash effect to row');
+
                                 targetRow.classList.add('editor-flash');
                                 setTimeout(() => targetRow.classList.remove('editor-flash'), 1500);
                             } else {
-                                console.warn('Target row not found:', safeName);
                             }
                         });
 
                         if (!foundAny) {
-                            console.warn('No valid token rows found for:', tokens);
                         }
                     }
                 });
@@ -6087,7 +6083,7 @@ function initTheme() {
     function renderTokenEditor() {
         if (!generatedThemeData || !generatedThemeData.tokens) return;
 
-        console.log('🌓 Rendering Token Editor...');
+
         const { tokens, paletteData } = generatedThemeData;
 
         // Clear containers
@@ -6102,16 +6098,11 @@ function initTheme() {
         Object.values(containers).forEach(el => { if (el) el.innerHTML = ''; });
 
         // DEBUG: Log palette data to see what we're working with
-        console.log('📊 Palette Data received:', paletteData);
+
         if (paletteData && typeof paletteData === 'object') {
             Object.keys(paletteData).forEach(paletteName => {
                 const colors = paletteData[paletteName];
-                if (colors && typeof colors === 'object') {
-                    console.log(`  ${paletteName}:`, Object.keys(colors).length, 'colors', colors);
-                }
             });
-        } else {
-            console.warn('⚠️ Palette Data is not available');
         }
 
         // Helper: Determine which palette a token should use
@@ -6184,7 +6175,6 @@ function initTheme() {
                 }
 
                 actualTargetVal = String(closest);
-                console.warn(`⚠️ ${tokenName} ${mode} requested ${targetVal} but palette only has ${availableScales.join(', ')}. Using closest: ${closest}`);
             }
 
             const selectedHex = paletteColors[actualTargetVal] || '#cccccc';
@@ -7241,7 +7231,7 @@ if (document.readyState === 'loading') {
     }
 
     function showNotification(message, type) {
-        console.log(`[${type}] ${message}`);
+        
         // Could use figma.notify via postMessage
     }
 
@@ -7258,10 +7248,10 @@ if (document.readyState === 'loading') {
 
 /* --- collections.js --- */
 // Collections (Documentation) Section Logic
-console.log('📚 Collections script loaded');
+
 
 function initCollections() {
-    console.log('📚 Initializing Collections section...');
+    
 
     // UI Elements
     const collectionSelect = document.getElementById('collection-select');
@@ -7287,7 +7277,7 @@ function initCollections() {
                 opt.textContent = c.name;
                 collectionSelect.appendChild(opt);
             });
-            console.log('📚 Collections loaded');
+            
 
         } else if (type === 'load-groups') {
             groupSelect.innerHTML = '<option value="">All Groups</option>';
@@ -7298,7 +7288,7 @@ function initCollections() {
                 groupSelect.appendChild(opt);
             });
             groupSelect.disabled = false;
-            console.log('📚 Groups loaded');
+            
 
         } else if (type === 'conversion-result') {
             // Render result in UI
@@ -7337,7 +7327,7 @@ function initCollections() {
     // Events
     collectionSelect.onchange = () => {
         const id = collectionSelect.value;
-        console.log('📚 Collection changed:', id);
+        
         parent.postMessage({ pluginMessage: { type: 'get-groups', collectionId: id } }, '*');
     };
 
@@ -7345,7 +7335,7 @@ function initCollections() {
         const id = collectionSelect.value;
         if (!id) return;
 
-        console.log('📚 Converting/Listing JSON...');
+        
         parent.postMessage({
             pluginMessage: {
                 type: 'convert-json',
@@ -7360,7 +7350,7 @@ function initCollections() {
         const id = collectionSelect.value;
         if (!id) return;
 
-        console.log('📚 Generating canvas documentation...');
+        
         parent.postMessage({
             pluginMessage: {
                 type: 'generate-canvas',
@@ -7381,10 +7371,10 @@ if (document.readyState === 'loading') {
 
 /* --- devtools.js --- */
 // Dev Tools Section Logic
-console.log('🛠️ Dev Tools script loaded');
+
 
 function initDevTools() {
-    console.log('🛠️ Initializing Dev Tools section...');
+    
 
     // UI Elements
     const collectionSelect = document.getElementById('devtools-collection');
@@ -7435,7 +7425,7 @@ function initDevTools() {
                 option.textContent = c.name;
                 collectionSelect.appendChild(option);
             });
-            console.log('🛠️ Dev Tools: Collections loaded');
+            
 
         } else if (type === 'load-groups-devtools') {
             groupSelect.innerHTML = '<option value="">All Groups</option>';
@@ -7609,7 +7599,7 @@ const sectionTitles = {
 };
 
 function initNavigation() {
-    console.log('🧭 Initializing Navigation...');
+    
     const navItems = document.querySelectorAll('.nav-item');
 
     if (navItems.length === 0) {
@@ -7620,7 +7610,7 @@ function initNavigation() {
     navItems.forEach(navItem => {
         navItem.addEventListener('click', () => {
             const section = navItem.dataset.section;
-            console.log(`📍 Navigating to: ${section}`);
+            
 
             // Remove active class from all nav items and sections
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -7646,12 +7636,12 @@ function initNavigation() {
 
             // Load collections when entering sections that require them
             if (['theme', 'measures', 'scale', 'typography', 'aliases', 'collections', 'devtools', 'atoms'].includes(section)) {
-                console.log(`Using common loader for ${section}`);
+                
                 parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
             }
         });
     });
-    console.log('✅ Navigation initialized');
+    
 }
 
 // Robust Initialization

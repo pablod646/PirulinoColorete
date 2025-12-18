@@ -12,7 +12,7 @@ const sectionTitles = {
 };
 
 function initNavigation() {
-    console.log('🧭 Initializing Navigation...');
+    
     const navItems = document.querySelectorAll('.nav-item');
 
     if (navItems.length === 0) {
@@ -23,7 +23,7 @@ function initNavigation() {
     navItems.forEach(navItem => {
         navItem.addEventListener('click', () => {
             const section = navItem.dataset.section;
-            console.log(`📍 Navigating to: ${section}`);
+            
 
             // Remove active class from all nav items and sections
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -49,12 +49,12 @@ function initNavigation() {
 
             // Load collections when entering sections that require them
             if (['theme', 'measures', 'scale', 'typography', 'aliases', 'collections', 'devtools', 'atoms'].includes(section)) {
-                console.log(`Using common loader for ${section}`);
+                
                 parent.postMessage({ pluginMessage: { type: 'load-collections' } }, '*');
             }
         });
     });
-    console.log('✅ Navigation initialized');
+    
 }
 
 // Robust Initialization

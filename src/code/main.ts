@@ -2398,6 +2398,26 @@ async function createInput(
     }
     input.strokeWeight = state === 'focus' ? 2 : 1;
 
+    // Add drop shadow for focus, error, and success states
+    if (state === 'focus' || state === 'error' || state === 'success') {
+        const shadowColor = borderVar; // Use the same color as border
+        if (shadowColor) {
+            const shadowEffect: DropShadowEffect = {
+                type: 'DROP_SHADOW',
+                color: { r: 0.5, g: 0.5, b: 1, a: 0.25 }, // Fallback color
+                offset: { x: 0, y: 0 },
+                radius: 0, // blur
+                spread: 4,
+                visible: true,
+                blendMode: 'NORMAL'
+            };
+
+            // Bind shadow color to the border variable
+            const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, 'color', shadowColor)];
+            input.effects = effects;
+        }
+    }
+
     // Opacity for disabled
     if (state === 'disabled') {
         input.opacity = 0.5;

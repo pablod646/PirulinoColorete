@@ -1810,6 +1810,24 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.strokes = [{ type: "SOLID", color: { r: 0.8, g: 0.8, b: 0.8 } }];
           }
           input.strokeWeight = state === "focus" ? 2 : 1;
+          if (state === "focus" || state === "error" || state === "success") {
+            const shadowColor = borderVar;
+            if (shadowColor) {
+              const shadowEffect = {
+                type: "DROP_SHADOW",
+                color: { r: 0.5, g: 0.5, b: 1, a: 0.25 },
+                // Fallback color
+                offset: { x: 0, y: 0 },
+                radius: 0,
+                // blur
+                spread: 4,
+                visible: true,
+                blendMode: "NORMAL"
+              };
+              const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, "color", shadowColor)];
+              input.effects = effects;
+            }
+          }
           if (state === "disabled") {
             input.opacity = 0.5;
           }

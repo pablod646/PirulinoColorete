@@ -1838,7 +1838,13 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             text.setBoundVariable("lineHeight", lineHeightVar);
           }
           text.layoutGrow = 1;
-          const textVar = findVar(["text/placeholder", "text/tertiary"], "COLOR");
+          let textColorTerms = ["text/placeholder", "text/tertiary"];
+          if (state === "focus") {
+            textColorTerms = ["text/primary"];
+          } else if (state === "error" || state === "success") {
+            textColorTerms = ["text/primary", "text/secondary"];
+          }
+          const textVar = findVar(textColorTerms, "COLOR");
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.6, g: 0.6, b: 0.6 } }, "color", textVar)];
           }

@@ -2444,8 +2444,15 @@ async function createInput(
 
     text.layoutGrow = 1;
 
-    // Text color
-    const textVar = findVar(['text/placeholder', 'text/tertiary'], 'COLOR');
+    // Text color based on state
+    let textColorTerms: string[] = ['text/placeholder', 'text/tertiary'];
+    if (state === 'focus') {
+        textColorTerms = ['text/primary'];
+    } else if (state === 'error' || state === 'success') {
+        textColorTerms = ['text/primary', 'text/secondary'];
+    }
+
+    const textVar = findVar(textColorTerms, 'COLOR');
     if (textVar) {
         text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.6, g: 0.6, b: 0.6 } }, 'color', textVar)];
     }

@@ -2401,14 +2401,14 @@ async function createInput(
 
     // Add drop shadow for focus, error, and success states
     if (state === 'focus' || state === 'error' || state === 'success') {
-        // Use the 200 value from each palette for shadow color
+        // Use theme variables for shadow colors (responsive to light/dark mode)
         let shadowColorTerms: string[] = [];
         if (state === 'focus') {
-            shadowColorTerms = ['Colors/Indigo/Indigo-200'];
+            shadowColorTerms = ['Interactive/focusRing'];
         } else if (state === 'error') {
-            shadowColorTerms = ['Colors/Red/Red-200'];
+            shadowColorTerms = ['Interactive/errorRing'];
         } else if (state === 'success') {
-            shadowColorTerms = ['Colors/Green/Green-200'];
+            shadowColorTerms = ['Interactive/successRing'];
         }
 
         const shadowColor = findVar(shadowColorTerms, 'COLOR');
@@ -3805,6 +3805,8 @@ async function generateTheme(
             // Interactive (focus states)
             { name: 'Interactive/focus', light: '500', dark: '400', useAccent: true },
             { name: 'Interactive/focusRing', light: '400', dark: '500', useAccent: true },
+            { name: 'Interactive/errorRing', light: '200', dark: '200', useStatus: 'error' },
+            { name: 'Interactive/successRing', light: '200', dark: '200', useStatus: 'success' },
         ];
 
         const resolveVar = (entry: { light: string; dark: string; useAccent?: boolean; useStatus?: string }, mode: 'light' | 'dark'): Variable | null => {

@@ -1814,11 +1814,11 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (state === "focus" || state === "error" || state === "success") {
             let shadowColorTerms = [];
             if (state === "focus") {
-              shadowColorTerms = ["Colors/Indigo/Indigo-200"];
+              shadowColorTerms = ["Interactive/focusRing"];
             } else if (state === "error") {
-              shadowColorTerms = ["Colors/Red/Red-200"];
+              shadowColorTerms = ["Interactive/errorRing"];
             } else if (state === "success") {
-              shadowColorTerms = ["Colors/Green/Green-200"];
+              shadowColorTerms = ["Interactive/successRing"];
             }
             const shadowColor = findVar(shadowColorTerms, "COLOR");
             let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 };
@@ -2898,7 +2898,9 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               { name: "Icon/inverse", light: "50", dark: "900" },
               // Interactive (focus states)
               { name: "Interactive/focus", light: "500", dark: "400", useAccent: true },
-              { name: "Interactive/focusRing", light: "400", dark: "500", useAccent: true }
+              { name: "Interactive/focusRing", light: "400", dark: "500", useAccent: true },
+              { name: "Interactive/errorRing", light: "200", dark: "200", useStatus: "error" },
+              { name: "Interactive/successRing", light: "200", dark: "200", useStatus: "success" }
             ];
             const resolveVar = (entry, mode) => {
               const scale = entry[mode];

@@ -1812,21 +1812,36 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           }
           input.strokeWeight = state === "focus" ? 2 : 1;
           if (state === "focus" || state === "error" || state === "success") {
-            const shadowColor = borderVar;
+            let shadowColorTerms = [];
+            if (state === "focus") {
+              shadowColorTerms = ["Colors/Indigo/Indigo-200"];
+            } else if (state === "error") {
+              shadowColorTerms = ["Colors/Red/Red-200"];
+            } else if (state === "success") {
+              shadowColorTerms = ["Colors/Green/Green-200"];
+            }
+            const shadowColor = findVar(shadowColorTerms, "COLOR");
+            let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 };
+            if (state === "error") {
+              fallbackColor = { r: 0.99, g: 0.82, b: 0.82, a: 1 };
+            } else if (state === "success") {
+              fallbackColor = { r: 0.73, g: 0.92, b: 0.79, a: 1 };
+            }
+            const shadowEffect = {
+              type: "DROP_SHADOW",
+              color: fallbackColor,
+              offset: { x: 0, y: 0 },
+              radius: 0,
+              // blur
+              spread: 4,
+              visible: true,
+              blendMode: "NORMAL"
+            };
             if (shadowColor) {
-              const shadowEffect = {
-                type: "DROP_SHADOW",
-                color: { r: 0.5, g: 0.5, b: 1, a: 0.25 },
-                // Fallback color
-                offset: { x: 0, y: 0 },
-                radius: 0,
-                // blur
-                spread: 4,
-                visible: true,
-                blendMode: "NORMAL"
-              };
               const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, "color", shadowColor)];
               input.effects = effects;
+            } else {
+              input.effects = [shadowEffect];
             }
           }
           if (state === "disabled") {

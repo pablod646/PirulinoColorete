@@ -2401,21 +2401,43 @@ async function createInput(
 
     // Add drop shadow for focus, error, and success states
     if (state === 'focus' || state === 'error' || state === 'success') {
-        const shadowColor = borderVar; // Use the same color as border
-        if (shadowColor) {
-            const shadowEffect: DropShadowEffect = {
-                type: 'DROP_SHADOW',
-                color: { r: 0.5, g: 0.5, b: 1, a: 0.25 }, // Fallback color
-                offset: { x: 0, y: 0 },
-                radius: 0, // blur
-                spread: 4,
-                visible: true,
-                blendMode: 'NORMAL'
-            };
+        // Use the 200 value from each palette for shadow color
+        let shadowColorTerms: string[] = [];
+        if (state === 'focus') {
+            shadowColorTerms = ['Colors/Indigo/Indigo-200'];
+        } else if (state === 'error') {
+            shadowColorTerms = ['Colors/Red/Red-200'];
+        } else if (state === 'success') {
+            shadowColorTerms = ['Colors/Green/Green-200'];
+        }
 
-            // Bind shadow color to the border variable
+        const shadowColor = findVar(shadowColorTerms, 'COLOR');
+
+        // Determine fallback color based on state
+        let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 }; // Indigo-200
+        if (state === 'error') {
+            fallbackColor = { r: 0.99, g: 0.82, b: 0.82, a: 1 }; // Red-200
+        } else if (state === 'success') {
+            fallbackColor = { r: 0.73, g: 0.92, b: 0.79, a: 1 }; // Green-200
+        }
+
+        const shadowEffect: DropShadowEffect = {
+            type: 'DROP_SHADOW',
+            color: fallbackColor,
+            offset: { x: 0, y: 0 },
+            radius: 0, // blur
+            spread: 4,
+            visible: true,
+            blendMode: 'NORMAL'
+        };
+
+        if (shadowColor) {
+            // Bind shadow color to the 200 palette variable
             const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, 'color', shadowColor)];
             input.effects = effects;
+        } else {
+            // Apply with fallback color if variable not found
+            input.effects = [shadowEffect];
         }
     }
 

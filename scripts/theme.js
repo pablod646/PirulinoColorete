@@ -633,7 +633,8 @@ function initTheme() {
             text: document.getElementById('editor-text'),
             action: document.getElementById('editor-action'),
             border: document.getElementById('editor-border'),
-            status: document.getElementById('editor-status')
+            status: document.getElementById('editor-status'),
+            interactive: document.getElementById('editor-interactive')
         };
 
         Object.values(containers).forEach(el => { if (el) el.innerHTML = ''; });
@@ -681,6 +682,11 @@ function initTheme() {
 
             // Inputs
             if (tokenName.startsWith('Input/borderFocus')) return 'accent';
+
+            // Interactive states
+            if (tokenName.startsWith('Interactive/focus')) return 'accent';
+            if (tokenName.startsWith('Interactive/error')) return 'error';
+            if (tokenName.startsWith('Interactive/success')) return 'success';
 
             // Default to neutral for everything else
             return 'neutral';
@@ -829,6 +835,8 @@ function initTheme() {
                 container = containers.border;
             } else if (name.startsWith('Status/') || name.startsWith('Badge/') || name.startsWith('A11y/')) {
                 container = containers.status;
+            } else if (name.startsWith('Interactive/')) {
+                container = containers.interactive;
             }
 
             if (container) {

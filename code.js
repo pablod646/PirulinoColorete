@@ -1756,6 +1756,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           input.counterAxisSizingMode = "AUTO";
           input.counterAxisAlignItems = "CENTER";
           input.resize(240, input.height);
+          input.clipsContent = true;
           const vPaddingVar = atomVars["Input/padding-y"];
           if (vPaddingVar) {
             input.setBoundVariable("paddingTop", vPaddingVar);

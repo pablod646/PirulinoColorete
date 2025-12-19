@@ -2335,6 +2335,7 @@ async function createInput(
     input.counterAxisSizingMode = 'AUTO';
     input.counterAxisAlignItems = 'CENTER';
     input.resize(240, input.height);
+    input.clipsContent = true; // Required to enable spread on drop shadows
 
     // Bind padding to Atoms variables (responsive)
     const vPaddingVar = atomVars['Input/padding-y'];

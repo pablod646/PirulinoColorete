@@ -2347,12 +2347,21 @@ async function createInput(
     }
 
     const hPaddingVar = atomVars['Input/padding-x'];
+    const vPaddingVarForSelect = atomVars['Input/padding-y']; // Use vertical padding for select right padding
+
     if (hPaddingVar) {
         input.setBoundVariable('paddingLeft', hPaddingVar);
-        input.setBoundVariable('paddingRight', hPaddingVar);
+        // For select variant, use vertical padding for right side (balanced padding)
+        if (variant === 'select' && vPaddingVarForSelect) {
+            input.setBoundVariable('paddingRight', vPaddingVarForSelect);
+        } else if (variant === 'select') {
+            input.paddingRight = 12; // Fallback: same as vertical padding
+        } else {
+            input.setBoundVariable('paddingRight', hPaddingVar);
+        }
     } else {
         input.paddingLeft = 16;
-        input.paddingRight = 16;
+        input.paddingRight = variant === 'select' ? 12 : 16;
     }
 
     // Bind corner radius to Atoms variable

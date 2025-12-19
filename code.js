@@ -1764,12 +1764,19 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.paddingBottom = 12;
           }
           const hPaddingVar = atomVars["Input/padding-x"];
+          const vPaddingVarForSelect = atomVars["Input/padding-y"];
           if (hPaddingVar) {
             input.setBoundVariable("paddingLeft", hPaddingVar);
-            input.setBoundVariable("paddingRight", hPaddingVar);
+            if (variant === "select" && vPaddingVarForSelect) {
+              input.setBoundVariable("paddingRight", vPaddingVarForSelect);
+            } else if (variant === "select") {
+              input.paddingRight = 12;
+            } else {
+              input.setBoundVariable("paddingRight", hPaddingVar);
+            }
           } else {
             input.paddingLeft = 16;
-            input.paddingRight = 16;
+            input.paddingRight = variant === "select" ? 12 : 16;
           }
           const radiusVar = atomVars["Input/radius"];
           if (radiusVar) {

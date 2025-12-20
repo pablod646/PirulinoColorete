@@ -69,7 +69,7 @@
     box-shadow:
         0 10px 40px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-    max-height: 240px;
+    max-height: 160px;
     overflow-y: auto;
     z-index: 10000;
     display: none;

@@ -2430,7 +2430,7 @@ async function createInput(
         let actualColor = fallbackColor;
         if (shadowColor) {
             // Find Light mode
-            const collection = figma.variables.getVariableCollectionById(shadowColor.variableCollectionId);
+            const collection = await figma.variables.getVariableCollectionByIdAsync(shadowColor.variableCollectionId);
             const lightMode = collection?.modes.find(m => m.name === 'Light');
             const modeId = lightMode?.modeId || Object.keys(shadowColor.valuesByMode)[0];
 

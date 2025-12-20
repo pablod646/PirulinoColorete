@@ -1835,7 +1835,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
             let actualColor = fallbackColor;
             if (shadowColor) {
-              const collection = figma.variables.getVariableCollectionById(shadowColor.variableCollectionId);
+              const collection = yield figma.variables.getVariableCollectionByIdAsync(shadowColor.variableCollectionId);
               const lightMode = collection == null ? void 0 : collection.modes.find((m) => m.name === "Light");
               const modeId = (lightMode == null ? void 0 : lightMode.modeId) || Object.keys(shadowColor.valuesByMode)[0];
               const colorValue = shadowColor.valuesByMode[modeId];

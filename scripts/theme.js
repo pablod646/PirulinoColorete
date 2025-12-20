@@ -136,6 +136,7 @@ function initTheme() {
     const previewBoard = document.getElementById('theme-preview-board');
     const viewLightBtn = document.getElementById('view-light');
     const viewDarkBtn = document.getElementById('view-dark');
+    const undoThemeBtn = document.getElementById('undo-theme-changes');
 
     if (!loadBtn) {
         console.warn('⚠️ Theme UI elements not found');
@@ -145,6 +146,7 @@ function initTheme() {
     // State
     let loadedPalettes = [];
     let generatedThemeData = null;
+    let originalThemeData = null; // Store original theme for undo
     let tokenOverrides = {}; // Store user overrides
     let currentPreviewMode = 'light'; // 'light' or 'dark'
 
@@ -233,6 +235,8 @@ function initTheme() {
             // Hide Step 2 if in Edit Mode? NO, we want to SHOW it now if we have config
             if (type === 'theme-loaded-for-edit') {
                 generatedThemeData = payload; // Important: update global data
+                originalThemeData = JSON.parse(JSON.stringify(payload)); // Deep copy for undo
+                tokenOverrides = {}; // Reset overrides when loading existing theme
 
                 // Extract paletteData first for custom dropdowns
                 if (payload.paletteData) {
@@ -495,6 +499,19 @@ function initTheme() {
         viewLightBtn.classList.remove('active');
         renderPreview();
     };
+
+    // Undo Changes Button
+    if (undoThemeBtn) {
+        undoThemeBtn.onclick = () => {
+            if (originalThemeData) {
+                generatedThemeData = JSON.parse(JSON.stringify(originalThemeData));
+                tokenOverrides = {};
+                undoThemeBtn.style.display = 'none';
+                renderPreview();
+                renderTokenEditor();
+            }
+        };
+    }
 
     // --- Render Logic ---
 
@@ -1068,6 +1085,11 @@ function initTheme() {
                     if (!tokenOverrides) tokenOverrides = {};
                     if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
                     tokenOverrides[tokenName][mode] = value;
+
+                    // Show Undo button if we have original data
+                    if (undoThemeBtn && originalThemeData) {
+                        undoThemeBtn.style.display = 'flex';
+                    }
 
                     // Trigger Regeneration
                     const msg = {

@@ -2694,29 +2694,39 @@ button:active .icon,
     <div id="theme-preview-section" class="card preview-section" style="display: none;">
         <div class="preview-header">
             <div class="section-title" style="margin: 0;">3. Theme Editor</div>
-            <div class="theme-mode-switch">
-                <button id="view-light" class="mode-switch-btn active">
-                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="4" />
-                            <path d="M12 2v2" />
-                            <path d="M12 20v2" />
-                            <path d="m4.93 4.93 1.41 1.41" />
-                            <path d="m17.66 17.66 1.41 1.41" />
-                            <path d="M2 12h2" />
-                            <path d="M20 12h2" />
-                            <path d="m6.34 17.66-1.41 1.41" />
-                            <path d="m19.07 4.93-1.41 1.41" />
-                        </svg></span> Light
+            <div style="display: flex; gap: var(--space-3); align-items: center;">
+                <button id="undo-theme-changes" class="secondary btn-sm" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7v6h6" />
+                        <path d="M3 13a9 9 0 1 0 2.5-6.5L3 9" />
+                    </svg>
+                    Undo Changes
                 </button>
-                <button id="view-dark" class="mode-switch-btn">
-                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                        </svg></span> Dark
-                </button>
+                <div class="theme-mode-switch">
+                    <button id="view-light" class="mode-switch-btn active">
+                        <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2" />
+                                <path d="M12 20v2" />
+                                <path d="m4.93 4.93 1.41 1.41" />
+                                <path d="m17.66 17.66 1.41 1.41" />
+                                <path d="M2 12h2" />
+                                <path d="M20 12h2" />
+                                <path d="m6.34 17.66-1.41 1.41" />
+                                <path d="m19.07 4.93-1.41 1.41" />
+                            </svg></span> Light
+                    </button>
+                    <button id="view-dark" class="mode-switch-btn">
+                        <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                            </svg></span> Dark
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -5649,6 +5659,7 @@ function initTheme() {
     const previewBoard = document.getElementById('theme-preview-board');
     const viewLightBtn = document.getElementById('view-light');
     const viewDarkBtn = document.getElementById('view-dark');
+    const undoThemeBtn = document.getElementById('undo-theme-changes');
 
     if (!loadBtn) {
         console.warn('⚠️ Theme UI elements not found');
@@ -5658,6 +5669,7 @@ function initTheme() {
     // State
     let loadedPalettes = [];
     let generatedThemeData = null;
+    let originalThemeData = null; // Store original theme for undo
     let tokenOverrides = {}; // Store user overrides
     let currentPreviewMode = 'light'; // 'light' or 'dark'
 
@@ -5746,6 +5758,8 @@ function initTheme() {
             // Hide Step 2 if in Edit Mode? NO, we want to SHOW it now if we have config
             if (type === 'theme-loaded-for-edit') {
                 generatedThemeData = payload; // Important: update global data
+                originalThemeData = JSON.parse(JSON.stringify(payload)); // Deep copy for undo
+                tokenOverrides = {}; // Reset overrides when loading existing theme
 
                 // Extract paletteData first for custom dropdowns
                 if (payload.paletteData) {
@@ -6008,6 +6022,19 @@ function initTheme() {
         viewLightBtn.classList.remove('active');
         renderPreview();
     };
+
+    // Undo Changes Button
+    if (undoThemeBtn) {
+        undoThemeBtn.onclick = () => {
+            if (originalThemeData) {
+                generatedThemeData = JSON.parse(JSON.stringify(originalThemeData));
+                tokenOverrides = {};
+                undoThemeBtn.style.display = 'none';
+                renderPreview();
+                renderTokenEditor();
+            }
+        };
+    }
 
     // --- Render Logic ---
 
@@ -6581,6 +6608,11 @@ function initTheme() {
                     if (!tokenOverrides) tokenOverrides = {};
                     if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
                     tokenOverrides[tokenName][mode] = value;
+
+                    // Show Undo button if we have original data
+                    if (undoThemeBtn && originalThemeData) {
+                        undoThemeBtn.style.display = 'flex';
+                    }
 
                     // Trigger Regeneration
                     const msg = {

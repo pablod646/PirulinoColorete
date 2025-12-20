@@ -1639,25 +1639,25 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               bgVarTerms = ["action/primarydisabled", "primarydisabled"];
             else
               bgVarTerms = ["action/primary"];
-            textVarTerms = ["text/inverse", "inverse"];
+            textVarTerms = ["action/primarytext", "text/inverse"];
           } else if (variant === "secondary") {
             if (state === "hover")
               bgVarTerms = ["action/secondaryhover", "secondaryhover"];
             else
               bgVarTerms = ["action/secondary"];
-            textVarTerms = ["text/primary"];
+            textVarTerms = ["action/secondarytext", "text/primary"];
           } else if (variant === "ghost") {
             if (state === "hover")
               bgVarTerms = ["action/ghosthover", "ghosthover"];
             else
               bgVarTerms = ["action/ghost", "background/primary"];
-            textVarTerms = ["text/brand", "action/primary"];
+            textVarTerms = ["action/ghosttext", "text/brand", "action/primary"];
           } else if (variant === "destructive") {
             if (state === "hover")
               bgVarTerms = ["action/destructivehover", "destructivehover"];
             else
               bgVarTerms = ["action/destructive"];
-            textVarTerms = ["text/inverse", "inverse"];
+            textVarTerms = ["action/destructivetext", "text/inverse"];
           }
           const bgVar = findVar(bgVarTerms, "COLOR");
           if (bgVar) {

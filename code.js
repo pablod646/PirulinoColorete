@@ -2813,8 +2813,9 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
         });
         return result;
       }
-      function generateTheme(accentPalette, neutralPalette, statusPalettes, themeName, isRegenerate, _tokenOverrides) {
+      function generateTheme(accentPalette, neutralPalette, statusPalettes, themeName, isRegenerate, tokenOverrides) {
         return __async(this, null, function* () {
+          const overrides = tokenOverrides || {};
           try {
             const allVariables = yield figma.variables.getLocalVariablesAsync();
             const allVarsMap = {};
@@ -2909,7 +2910,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               { name: "Interactive/successRing", light: "200", dark: "200", useStatus: "success" }
             ];
             const resolveVar = (entry, mode) => {
-              const scale = entry[mode];
+              let scale = entry[mode];
+              if (entry.name && overrides[entry.name] && overrides[entry.name][mode]) {
+                scale = overrides[entry.name][mode];
+              }
               if (!scale)
                 return null;
               let collection = neutralVars;

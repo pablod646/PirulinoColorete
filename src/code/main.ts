@@ -3704,10 +3704,10 @@ async function generateTheme(
     statusPalettes: { success?: string; warning?: string; error?: string },
     themeName: string,
     isRegenerate: boolean,
-    _tokenOverrides?: Record<string, TokenOverride>
+    tokenOverrides?: Record<string, TokenOverride>
 ): Promise<void> {
-    // TODO: Implement tokenOverrides support
-    void _tokenOverrides;
+    // tokenOverrides contains user-specified scale values for tokens
+    const overrides = tokenOverrides || {};
     try {
         const allVariables = await figma.variables.getLocalVariablesAsync();
         const allVarsMap: Record<string, Variable> = {};
@@ -3818,8 +3818,12 @@ async function generateTheme(
             { name: 'Interactive/successRing', light: '200', dark: '200', useStatus: 'success' },
         ];
 
-        const resolveVar = (entry: { light: string; dark: string; useAccent?: boolean; useStatus?: string }, mode: 'light' | 'dark'): Variable | null => {
-            const scale = entry[mode];
+        const resolveVar = (entry: { name?: string; light: string; dark: string; useAccent?: boolean; useStatus?: string }, mode: 'light' | 'dark'): Variable | null => {
+            // Check if there's an override for this token
+            let scale = entry[mode];
+            if (entry.name && overrides[entry.name] && overrides[entry.name][mode]) {
+                scale = overrides[entry.name][mode] as string;
+            }
             if (!scale) return null;
 
             let collection = neutralVars;

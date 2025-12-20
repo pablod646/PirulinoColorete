@@ -1839,12 +1839,15 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 color: fallbackColor,
                 offset: { x: 0, y: 0 },
                 radius: 0,
-                spread: 4,
+                spread: 0,
                 visible: true,
                 blendMode: "NORMAL"
               };
-              const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, "color", shadowColor)];
-              input.effects = effects;
+              const boundEffect = figma.variables.setBoundVariableForEffect(shadowEffect, "color", shadowColor);
+              const finalEffect = __spreadProps(__spreadValues({}, boundEffect), {
+                spread: 4
+              });
+              input.effects = [finalEffect];
             }
           }
           if (state === "disabled") {

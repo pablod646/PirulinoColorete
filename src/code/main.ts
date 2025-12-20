@@ -2432,14 +2432,21 @@ async function createInput(
                 color: fallbackColor,
                 offset: { x: 0, y: 0 },
                 radius: 0,
-                spread: 4,
+                spread: 0,
                 visible: true,
                 blendMode: 'NORMAL'
             };
 
-            // Bind shadow color to the variable
-            const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, 'color', shadowColor)];
-            input.effects = effects;
+            // Bind color variable to the effect
+            const boundEffect = figma.variables.setBoundVariableForEffect(shadowEffect, 'color', shadowColor) as DropShadowEffect;
+
+            // Set spread=4 on the bound effect
+            const finalEffect: DropShadowEffect = {
+                ...boundEffect,
+                spread: 4
+            };
+
+            input.effects = [finalEffect];
         }
     }
 

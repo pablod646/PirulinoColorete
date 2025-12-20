@@ -5583,69 +5583,43 @@ const APCA_THRESHOLDS = {
 };
 
 // Define which background each token should be compared against
+// APCA only applies to content that needs to be readable (text, icons, borders)
+// Surface/Background tokens don't need APCA - they are containers, not content
 const CONTRAST_PAIRS = {
-    // Background tokens - compare secondary layers against primary
-    'Background/secondary': { bg: 'Background/primary', threshold: 'decorative' },
-    'Background/tertiary': { bg: 'Background/primary', threshold: 'decorative' },
-    'Background/brand': { bg: 'Background/primary', threshold: 'decorative' },
-
-    // Text tokens - compared against their typical backgrounds
-    'Text/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
-    'Text/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
-    'Text/tertiary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'largeText' },
-    'Text/brand': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
-    'Text/link': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
-    'Text/linkHover': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
+    // Text tokens - MUST have good contrast for readability
+    'Text/primary': { bg: 'Background/primary', threshold: 'bodyText' },
+    'Text/secondary': { bg: 'Background/primary', threshold: 'bodyText' },
+    'Text/tertiary': { bg: 'Background/primary', threshold: 'largeText' },
+    'Text/brand': { bg: 'Background/primary', threshold: 'bodyText' },
+    'Text/link': { bg: 'Background/primary', threshold: 'bodyText' },
+    'Text/linkHover': { bg: 'Background/primary', threshold: 'bodyText' },
     'Text/inverse': { bg: 'Background/inverse', threshold: 'bodyText' },
-    'Text/disabled': { bg: 'Background/primary', threshold: 'largeText' },
+    'Text/disabled': { bg: 'Background/primary', threshold: 'decorative' }, // Disabled can have lower contrast
     'Text/placeholder': { bg: 'Surface/card', threshold: 'largeText' },
 
-    // Surface tokens - compared against base background
-    'Surface/primary': { bg: 'Background/primary', threshold: 'decorative' },
-    'Surface/card': { bg: 'Background/primary', threshold: 'decorative' },
-    'Surface/modal': { bg: 'Background/primary', threshold: 'decorative' },
-    'Surface/overlay': { bg: 'Background/primary', threshold: 'decorative' },
-    'Surface/elevated': { bg: 'Background/primary', threshold: 'decorative' },
-    'Surface/hover': { bg: 'Surface/card', threshold: 'decorative' },
-    'Surface/pressed': { bg: 'Surface/card', threshold: 'decorative' },
-    'Surface/disabled': { bg: 'Background/primary', threshold: 'decorative' },
-
-    // Action tokens
-    'Action/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Action/primaryHover': { bg: 'Background/primary', threshold: 'uiElement' },
+    // Action text - must be readable on buttons
     'Action/primaryText': { bg: 'Action/primary', threshold: 'uiElement' },
-    'Action/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
-    'Action/secondaryHover': { bg: 'Background/primary', threshold: 'decorative' },
     'Action/secondaryText': { bg: 'Action/secondary', threshold: 'uiElement' },
 
-    // Status tokens
-    'Status/success': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Status/warning': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Status/error': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Status/info': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-
-    // Icon tokens
-    'Icon/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Icon/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Icon/brand': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Icon/disabled': { bg: 'Background/primary', threshold: 'decorative' },
+    // Icon tokens - must be visible
+    'Icon/primary': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Icon/secondary': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Icon/brand': { bg: 'Background/primary', threshold: 'uiElement' },
     'Icon/inverse': { bg: 'Background/inverse', threshold: 'uiElement' },
+    // Icon/disabled intentionally excluded - low contrast is expected
 
-    // Border tokens
-    'Border/default': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
-    'Border/subtle': { bg: 'Background/primary', threshold: 'decorative' },
-    'Border/strong': { bg: 'Background/primary', threshold: 'decorative' },
-    'Border/focus': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Border/disabled': { bg: 'Background/primary', threshold: 'decorative' },
-    'Border/error': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Border/success': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
-    'Border/warning': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    // Border tokens that serve functional purpose
+    'Border/focus': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Border/error': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Border/success': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Border/warning': { bg: 'Background/primary', threshold: 'uiElement' },
+    // Border/default, Border/subtle, Border/disabled intentionally excluded - decorative
 
-    // Interactive ring tokens
-    'Interactive/focusRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
-    'Interactive/errorRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
-    'Interactive/warningRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
-    'Interactive/successRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
+    // Status colors when used as indicators
+    'Status/success': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Status/warning': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Status/error': { bg: 'Background/primary', threshold: 'uiElement' },
+    'Status/info': { bg: 'Background/primary', threshold: 'uiElement' },
 };
 
 function initTheme() {

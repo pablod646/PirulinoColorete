@@ -71,6 +71,11 @@ const APCA_THRESHOLDS = {
 
 // Define which background each token should be compared against
 const CONTRAST_PAIRS = {
+    // Background tokens - compare secondary layers against primary
+    'Background/secondary': { bg: 'Background/primary', threshold: 'decorative' },
+    'Background/tertiary': { bg: 'Background/primary', threshold: 'decorative' },
+    'Background/brand': { bg: 'Background/primary', threshold: 'decorative' },
+
     // Text tokens - compared against their typical backgrounds
     'Text/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
     'Text/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
@@ -82,25 +87,52 @@ const CONTRAST_PAIRS = {
     'Text/disabled': { bg: 'Background/primary', threshold: 'largeText' },
     'Text/placeholder': { bg: 'Surface/card', threshold: 'largeText' },
 
+    // Surface tokens - compared against base background
+    'Surface/primary': { bg: 'Background/primary', threshold: 'decorative' },
+    'Surface/card': { bg: 'Background/primary', threshold: 'decorative' },
+    'Surface/modal': { bg: 'Background/primary', threshold: 'decorative' },
+    'Surface/overlay': { bg: 'Background/primary', threshold: 'decorative' },
+    'Surface/elevated': { bg: 'Background/primary', threshold: 'decorative' },
+    'Surface/hover': { bg: 'Surface/card', threshold: 'decorative' },
+    'Surface/pressed': { bg: 'Surface/card', threshold: 'decorative' },
+    'Surface/disabled': { bg: 'Background/primary', threshold: 'decorative' },
+
     // Action tokens
+    'Action/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Action/primaryHover': { bg: 'Background/primary', threshold: 'uiElement' },
     'Action/primaryText': { bg: 'Action/primary', threshold: 'uiElement' },
+    'Action/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
+    'Action/secondaryHover': { bg: 'Background/primary', threshold: 'decorative' },
     'Action/secondaryText': { bg: 'Action/secondary', threshold: 'uiElement' },
+
+    // Status tokens
+    'Status/success': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Status/warning': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Status/error': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Status/info': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
 
     // Icon tokens
     'Icon/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
     'Icon/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
     'Icon/brand': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
     'Icon/disabled': { bg: 'Background/primary', threshold: 'decorative' },
+    'Icon/inverse': { bg: 'Background/inverse', threshold: 'uiElement' },
 
     // Border tokens
     'Border/default': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
     'Border/subtle': { bg: 'Background/primary', threshold: 'decorative' },
     'Border/strong': { bg: 'Background/primary', threshold: 'decorative' },
     'Border/focus': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Border/disabled': { bg: 'Background/primary', threshold: 'decorative' },
+    'Border/error': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Border/success': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Border/warning': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
 
-    // Surface tokens - compared against base background
-    'Surface/card': { bg: 'Background/primary', threshold: 'decorative' },
-    'Surface/elevated': { bg: 'Background/primary', threshold: 'decorative' },
+    // Interactive ring tokens
+    'Interactive/focusRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
+    'Interactive/errorRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
+    'Interactive/warningRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
+    'Interactive/successRing': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
 };
 
 function initTheme() {
@@ -121,6 +153,7 @@ function initTheme() {
     // Main Actions
     const themeNameInput = document.getElementById('theme-name');
     const createThemeBtn = document.getElementById('create-theme-btn');
+    const generateThemeBtn = document.getElementById('generate-theme-btn');
 
     // Preview Sections
     const previewSection = document.getElementById('theme-preview-section');
@@ -422,11 +455,40 @@ function initTheme() {
 
 
         parent.postMessage({ pluginMessage: msg }, '*');
+
+        // Disable button after generating
+        if (generateThemeBtn) {
+            generateThemeBtn.disabled = true;
+            generateThemeBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                Theme Generated
+            `;
+        }
+    };
+
+    // Enable button when palette selection changes
+    const enableGenerateBtn = () => {
+        if (accentSelect.value && neutralSelect.value && generateThemeBtn) {
+            generateThemeBtn.disabled = false;
+            generateThemeBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3v3m6.36-.36-2.12 2.12M21 12h-3m.36 6.36-2.12-2.12M12 21v-3m-6.36.36 2.12-2.12M3 12h3m-.36-6.36 2.12 2.12"/>
+                </svg>
+                Generate Theme
+            `;
+        }
     };
 
     [accentSelect, neutralSelect, successSelect, warningSelect, errorSelect].forEach(sel => {
-        if (sel) sel.onchange = triggerRegeneration;
+        if (sel) sel.onchange = enableGenerateBtn;
     });
+
+    // Generate Theme Button click
+    if (generateThemeBtn) {
+        generateThemeBtn.onclick = triggerRegeneration;
+    }
 
     createThemeBtn.onclick = () => {
         if (!generatedThemeData) return;

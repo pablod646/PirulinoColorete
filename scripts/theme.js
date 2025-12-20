@@ -1,5 +1,107 @@
 // Theme Generator Logic
 
+// ============================================
+// APCA (Accessible Perceptual Contrast Algorithm)
+// ============================================
+
+// Convert hex to linear RGB
+function hexToLinearRGB(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    // sRGB to linear
+    const toLinear = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+
+    return {
+        r: toLinear(r),
+        g: toLinear(g),
+        b: toLinear(b)
+    };
+}
+
+// Calculate APCA luminance (Y)
+function apcaLuminance(hex) {
+    const rgb = hexToLinearRGB(hex);
+    // APCA coefficients
+    return 0.2126729 * rgb.r + 0.7151522 * rgb.g + 0.0721750 * rgb.b;
+}
+
+// Calculate APCA contrast value (Lc)
+function calculateAPCA(textHex, bgHex) {
+    const Ytext = apcaLuminance(textHex);
+    const Ybg = apcaLuminance(bgHex);
+
+    // APCA constants
+    const normBG = 0.56;
+    const normTXT = 0.57;
+    const revTXT = 0.62;
+    const revBG = 0.65;
+    const blkThrs = 0.022;
+    const blkClmp = 1.414;
+    const scaleBoW = 1.14;
+    const scaleWoB = 1.14;
+    const loBoWoffset = 0.027;
+    const loWoBoffset = 0.027;
+
+    // Clamp black levels
+    let Ytxt = (Ytext > blkThrs) ? Ytext : Ytext + Math.pow(blkThrs - Ytext, blkClmp);
+    let Ybkg = (Ybg > blkThrs) ? Ybg : Ybg + Math.pow(blkThrs - Ybg, blkClmp);
+
+    // SAPC contrast
+    let SAPC = 0;
+    if (Ybkg > Ytxt) {
+        // Light background, dark text
+        SAPC = (Math.pow(Ybkg, normBG) - Math.pow(Ytxt, normTXT)) * scaleBoW;
+        return (SAPC < loBoWoffset) ? 0 : (SAPC - loBoWoffset) * 100;
+    } else {
+        // Dark background, light text
+        SAPC = (Math.pow(Ybkg, revBG) - Math.pow(Ytxt, revTXT)) * scaleWoB;
+        return (SAPC > -loWoBoffset) ? 0 : (SAPC + loWoBoffset) * 100;
+    }
+}
+
+// APCA thresholds by use case
+const APCA_THRESHOLDS = {
+    bodyText: 75,      // Fluent text, body copy
+    largeText: 60,     // Headlines, large text
+    uiElement: 45,     // Icons, UI components
+    decorative: 30,    // Borders, decorative
+};
+
+// Define which background each token should be compared against
+const CONTRAST_PAIRS = {
+    // Text tokens - compared against their typical backgrounds
+    'Text/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
+    'Text/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
+    'Text/tertiary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'largeText' },
+    'Text/brand': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
+    'Text/link': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
+    'Text/linkHover': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'bodyText' },
+    'Text/inverse': { bg: 'Background/inverse', threshold: 'bodyText' },
+    'Text/disabled': { bg: 'Background/primary', threshold: 'largeText' },
+    'Text/placeholder': { bg: 'Surface/card', threshold: 'largeText' },
+
+    // Action tokens
+    'Action/primaryText': { bg: 'Action/primary', threshold: 'uiElement' },
+    'Action/secondaryText': { bg: 'Action/secondary', threshold: 'uiElement' },
+
+    // Icon tokens
+    'Icon/primary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Icon/secondary': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Icon/brand': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+    'Icon/disabled': { bg: 'Background/primary', threshold: 'decorative' },
+
+    // Border tokens
+    'Border/default': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'decorative' },
+    'Border/subtle': { bg: 'Background/primary', threshold: 'decorative' },
+    'Border/strong': { bg: 'Background/primary', threshold: 'decorative' },
+    'Border/focus': { bg: 'Background/primary', altBg: 'Surface/card', threshold: 'uiElement' },
+
+    // Surface tokens - compared against base background
+    'Surface/card': { bg: 'Background/primary', threshold: 'decorative' },
+    'Surface/elevated': { bg: 'Background/primary', threshold: 'decorative' },
+};
 
 function initTheme() {
 
@@ -785,6 +887,30 @@ function initTheme() {
             const paletteName = getPaletteForToken(name);
             const paletteColors = paletteData[paletteName] || {};
 
+            // Calculate APCA if this token has a contrast pair defined
+            const getAPCAIndicator = (tokenHex, mode) => {
+                const pair = CONTRAST_PAIRS[name];
+                if (!pair) return ''; // No contrast check for this token
+
+                const bgTokenName = pair.bg;
+                const bgToken = tokens[bgTokenName];
+                if (!bgToken) return ''; // Background token not found
+
+                const bgHex = mode === 'light' ? bgToken.light.hex : bgToken.dark.hex;
+                const lc = calculateAPCA(tokenHex, bgHex);
+                const absLc = Math.abs(lc);
+                const threshold = APCA_THRESHOLDS[pair.threshold] || 60;
+
+                const pass = absLc >= threshold;
+                const icon = pass ? '✓' : '✗';
+                const colorClass = pass ? 'apca-pass' : 'apca-fail';
+
+                return `<span class="apca-indicator ${colorClass}" title="APCA Lc: ${absLc.toFixed(0)} (min: ${threshold})">APCA: ${absLc.toFixed(0)} ${icon}</span>`;
+            };
+
+            const apcaLight = getAPCAIndicator(token.light.hex, 'light');
+            const apcaDark = getAPCAIndicator(token.dark.hex, 'dark');
+
             row.innerHTML = `
                 <div class="token-row-header">
                     <span class="token-name">${name.split('/')[1]}</span>
@@ -795,11 +921,13 @@ function initTheme() {
                     <div class="color-preview" style="background: ${token.light.hex};" title="${token.light.hex}"></div>
                     ${generateCustomSelect(paletteColors, lightStep, overrideLight, name, 'light')}
                 </div>
+                ${apcaLight ? `<div class="token-apca-row">${apcaLight}</div>` : ''}
                 <div class="token-mode-row">
                     <label class="mode-label">D</label>
                     <div class="color-preview" style="background: ${token.dark.hex};" title="${token.dark.hex}"></div>
                     ${generateCustomSelect(paletteColors, darkStep, overrideDark, name, 'dark')}
                 </div>
+                ${apcaDark ? `<div class="token-apca-row">${apcaDark}</div>` : ''}
             `;
 
             // Highlighter Events

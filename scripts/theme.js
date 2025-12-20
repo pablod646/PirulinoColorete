@@ -686,6 +686,7 @@ function initTheme() {
             // Interactive states
             if (tokenName.startsWith('Interactive/focus')) return 'accent';
             if (tokenName.startsWith('Interactive/error')) return 'error';
+            if (tokenName.startsWith('Interactive/warning')) return 'warning';
             if (tokenName.startsWith('Interactive/success')) return 'success';
 
             // Default to neutral for everything else
@@ -858,7 +859,18 @@ function initTheme() {
                 document.querySelectorAll('.custom-select.open').forEach(other => {
                     if (other !== customSelect) other.classList.remove('open');
                 });
+
+                const wasOpen = customSelect.classList.contains('open');
                 customSelect.classList.toggle('open');
+
+                // Position dropdown if opening
+                if (!wasOpen) {
+                    const optionsEl = customSelect.querySelector('.custom-options');
+                    const rect = trigger.getBoundingClientRect();
+                    optionsEl.style.top = `${rect.bottom + 4}px`;
+                    optionsEl.style.left = `${rect.left}px`;
+                    optionsEl.style.width = `${rect.width}px`;
+                }
             });
 
             // Handle option selection

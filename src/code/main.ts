@@ -2388,6 +2388,7 @@ async function createInput(
     let borderTerms: string[] = ['border/default'];
     if (state === 'focus') borderTerms = ['border/focus'];
     else if (state === 'error') borderTerms = ['border/error', 'status/error'];
+    else if (state === 'warning') borderTerms = ['border/warning', 'status/warning'];
     else if (state === 'success') borderTerms = ['border/success', 'status/success'];
     else if (state === 'disabled') borderTerms = ['border/disabled'];
 
@@ -2399,14 +2400,16 @@ async function createInput(
     }
     input.strokeWeight = state === 'focus' ? 2 : 1;
 
-    // Add drop shadow for focus, error, and success states
-    if (state === 'focus' || state === 'error' || state === 'success') {
+    // Add drop shadow for focus, error, warning, and success states
+    if (state === 'focus' || state === 'error' || state === 'warning' || state === 'success') {
         // Use theme variables for shadow colors (responsive to light/dark mode)
         let shadowColorTerms: string[] = [];
         if (state === 'focus') {
             shadowColorTerms = ['Interactive/focusRing'];
         } else if (state === 'error') {
             shadowColorTerms = ['Interactive/errorRing'];
+        } else if (state === 'warning') {
+            shadowColorTerms = ['Interactive/warningRing'];
         } else if (state === 'success') {
             shadowColorTerms = ['Interactive/successRing'];
         }
@@ -2417,28 +2420,39 @@ async function createInput(
         let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 }; // Indigo-200
         if (state === 'error') {
             fallbackColor = { r: 0.99, g: 0.82, b: 0.82, a: 1 }; // Red-200
+        } else if (state === 'warning') {
+            fallbackColor = { r: 0.99, g: 0.92, b: 0.73, a: 1 }; // Yellow-200
         } else if (state === 'success') {
             fallbackColor = { r: 0.73, g: 0.92, b: 0.79, a: 1 }; // Green-200
         }
 
+        // Get the actual color from the variable (Light mode)
+        let actualColor = fallbackColor;
+        if (shadowColor) {
+            // Find Light mode
+            const collection = figma.variables.getVariableCollectionById(shadowColor.variableCollectionId);
+            const lightMode = collection?.modes.find(m => m.name === 'Light');
+            const modeId = lightMode?.modeId || Object.keys(shadowColor.valuesByMode)[0];
+
+            const colorValue = shadowColor.valuesByMode[modeId];
+            if (colorValue && typeof colorValue === 'object' && 'r' in colorValue) {
+                const rgb = colorValue as RGB;
+                actualColor = { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+            }
+        }
+
+        // Apply effect with resolved color (not bound to variable)
         const shadowEffect: DropShadowEffect = {
             type: 'DROP_SHADOW',
-            color: fallbackColor,
+            color: actualColor,
             offset: { x: 0, y: 0 },
-            radius: 0, // blur
+            radius: 0,
             spread: 4,
             visible: true,
             blendMode: 'NORMAL'
         };
 
-        if (shadowColor) {
-            // Bind shadow color to the 200 palette variable
-            const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, 'color', shadowColor)];
-            input.effects = effects;
-        } else {
-            // Apply with fallback color if variable not found
-            input.effects = [shadowEffect];
-        }
+        input.effects = [shadowEffect];
     }
 
     // Opacity for disabled
@@ -2500,7 +2514,7 @@ async function createInput(
     let textColorTerms: string[] = ['text/placeholder', 'text/tertiary'];
     if (state === 'focus') {
         textColorTerms = ['text/primary'];
-    } else if (state === 'error' || state === 'success') {
+    } else if (state === 'error' || state === 'warning' || state === 'success') {
         textColorTerms = ['text/primary', 'text/secondary'];
     }
 
@@ -3802,10 +3816,10 @@ async function generateTheme(
             { name: 'Icon/disabled', light: '300', dark: '600' },
             { name: 'Icon/inverse', light: '50', dark: '900' },
 
-            // Interactive (focus states)
-            { name: 'Interactive/focus', light: '500', dark: '400', useAccent: true },
-            { name: 'Interactive/focusRing', light: '400', dark: '500', useAccent: true },
+            // Interactive (ring states for focus feedback)
+            { name: 'Interactive/focusRing', light: '200', dark: '200', useAccent: true },
             { name: 'Interactive/errorRing', light: '200', dark: '200', useStatus: 'error' },
+            { name: 'Interactive/warningRing', light: '200', dark: '200', useStatus: 'warning' },
             { name: 'Interactive/successRing', light: '200', dark: '200', useStatus: 'success' },
         ];
 

@@ -1800,6 +1800,8 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             borderTerms = ["border/focus"];
           else if (state === "error")
             borderTerms = ["border/error", "status/error"];
+          else if (state === "warning")
+            borderTerms = ["border/warning", "status/warning"];
           else if (state === "success")
             borderTerms = ["border/success", "status/success"];
           else if (state === "disabled")
@@ -1811,12 +1813,14 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.strokes = [{ type: "SOLID", color: { r: 0.8, g: 0.8, b: 0.8 } }];
           }
           input.strokeWeight = state === "focus" ? 2 : 1;
-          if (state === "focus" || state === "error" || state === "success") {
+          if (state === "focus" || state === "error" || state === "warning" || state === "success") {
             let shadowColorTerms = [];
             if (state === "focus") {
               shadowColorTerms = ["Interactive/focusRing"];
             } else if (state === "error") {
               shadowColorTerms = ["Interactive/errorRing"];
+            } else if (state === "warning") {
+              shadowColorTerms = ["Interactive/warningRing"];
             } else if (state === "success") {
               shadowColorTerms = ["Interactive/successRing"];
             }
@@ -1824,25 +1828,32 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 };
             if (state === "error") {
               fallbackColor = { r: 0.99, g: 0.82, b: 0.82, a: 1 };
+            } else if (state === "warning") {
+              fallbackColor = { r: 0.99, g: 0.92, b: 0.73, a: 1 };
             } else if (state === "success") {
               fallbackColor = { r: 0.73, g: 0.92, b: 0.79, a: 1 };
             }
+            let actualColor = fallbackColor;
+            if (shadowColor) {
+              const collection = figma.variables.getVariableCollectionById(shadowColor.variableCollectionId);
+              const lightMode = collection == null ? void 0 : collection.modes.find((m) => m.name === "Light");
+              const modeId = (lightMode == null ? void 0 : lightMode.modeId) || Object.keys(shadowColor.valuesByMode)[0];
+              const colorValue = shadowColor.valuesByMode[modeId];
+              if (colorValue && typeof colorValue === "object" && "r" in colorValue) {
+                const rgb = colorValue;
+                actualColor = { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+              }
+            }
             const shadowEffect = {
               type: "DROP_SHADOW",
-              color: fallbackColor,
+              color: actualColor,
               offset: { x: 0, y: 0 },
               radius: 0,
-              // blur
               spread: 4,
               visible: true,
               blendMode: "NORMAL"
             };
-            if (shadowColor) {
-              const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, "color", shadowColor)];
-              input.effects = effects;
-            } else {
-              input.effects = [shadowEffect];
-            }
+            input.effects = [shadowEffect];
           }
           if (state === "disabled") {
             input.opacity = 0.5;
@@ -1883,7 +1894,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           let textColorTerms = ["text/placeholder", "text/tertiary"];
           if (state === "focus") {
             textColorTerms = ["text/primary"];
-          } else if (state === "error" || state === "success") {
+          } else if (state === "error" || state === "warning" || state === "success") {
             textColorTerms = ["text/primary", "text/secondary"];
           }
           const textVar = findVar(textColorTerms, "COLOR");
@@ -2896,10 +2907,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
               { name: "Icon/brand", light: "600", dark: "400", useAccent: true },
               { name: "Icon/disabled", light: "300", dark: "600" },
               { name: "Icon/inverse", light: "50", dark: "900" },
-              // Interactive (focus states)
-              { name: "Interactive/focus", light: "500", dark: "400", useAccent: true },
-              { name: "Interactive/focusRing", light: "400", dark: "500", useAccent: true },
+              // Interactive (ring states for focus feedback)
+              { name: "Interactive/focusRing", light: "200", dark: "200", useAccent: true },
               { name: "Interactive/errorRing", light: "200", dark: "200", useStatus: "error" },
+              { name: "Interactive/warningRing", light: "200", dark: "200", useStatus: "warning" },
               { name: "Interactive/successRing", light: "200", dark: "200", useStatus: "success" }
             ];
             const resolveVar = (entry, mode) => {

@@ -1405,10 +1405,8 @@ button:active .icon,
 }
 
 .custom-options {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
+    /* Position will be set by JavaScript */
     background: rgba(26, 27, 30, 0.98);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -1419,9 +1417,10 @@ button:active .icon,
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
     max-height: 240px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 10000;
     display: none;
     padding: 4px;
+    min-width: 120px;
 }
 
 .custom-select.open .custom-options {
@@ -3405,6 +3404,10 @@ button:active .icon,
                     <label class="checkbox-label small">
                         <input type="checkbox" name="input-state" value="error" checked>
                         <span class="checkmark"></span> Error
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="input-state" value="warning" checked>
+                        <span class="checkmark"></span> Warning
                     </label>
                     <label class="checkbox-label small">
                         <input type="checkbox" name="input-state" value="success" checked>
@@ -6157,6 +6160,7 @@ function initTheme() {
             // Interactive states
             if (tokenName.startsWith('Interactive/focus')) return 'accent';
             if (tokenName.startsWith('Interactive/error')) return 'error';
+            if (tokenName.startsWith('Interactive/warning')) return 'warning';
             if (tokenName.startsWith('Interactive/success')) return 'success';
 
             // Default to neutral for everything else
@@ -6329,7 +6333,18 @@ function initTheme() {
                 document.querySelectorAll('.custom-select.open').forEach(other => {
                     if (other !== customSelect) other.classList.remove('open');
                 });
+
+                const wasOpen = customSelect.classList.contains('open');
                 customSelect.classList.toggle('open');
+
+                // Position dropdown if opening
+                if (!wasOpen) {
+                    const optionsEl = customSelect.querySelector('.custom-options');
+                    const rect = trigger.getBoundingClientRect();
+                    optionsEl.style.top = `${rect.bottom + 4}px`;
+                    optionsEl.style.left = `${rect.left}px`;
+                    optionsEl.style.width = `${rect.width}px`;
+                }
             });
 
             // Handle option selection

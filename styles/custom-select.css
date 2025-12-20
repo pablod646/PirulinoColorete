@@ -59,10 +59,8 @@
 }
 
 .custom-options {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
+    /* Position will be set by JavaScript */
     background: rgba(26, 27, 30, 0.98);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -73,9 +71,10 @@
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
     max-height: 240px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 10000;
     display: none;
     padding: 4px;
+    min-width: 120px;
 }
 
 .custom-select.open .custom-options {

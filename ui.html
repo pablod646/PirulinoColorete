@@ -6150,8 +6150,10 @@ function initTheme() {
             // Icons
             if (tokenName.startsWith('Icon/brand')) return 'accent';
 
-            // Borders - check error first, then brand/focus
+            // Borders - check status first, then brand/focus
             if (tokenName.startsWith('Border/error')) return 'error';
+            if (tokenName.startsWith('Border/warning')) return 'warning';
+            if (tokenName.startsWith('Border/success')) return 'success';
             if (tokenName.startsWith('Border/brand') || tokenName.startsWith('Border/focus')) return 'accent';
 
             // Inputs

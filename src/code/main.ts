@@ -2398,7 +2398,8 @@ async function createInput(
     } else {
         input.strokes = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }];
     }
-    input.strokeWeight = state === 'focus' ? 2 : 1;
+    // Stroke weight: 2px for interactive states, 1px for default/disabled
+    input.strokeWeight = (state === 'focus' || state === 'error' || state === 'warning' || state === 'success') ? 2 : 1;
 
     // Add drop shadow for focus, error, warning, and success states
     if (state === 'focus' || state === 'error' || state === 'warning' || state === 'success') {

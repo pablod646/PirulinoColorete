@@ -1812,7 +1812,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           } else {
             input.strokes = [{ type: "SOLID", color: { r: 0.8, g: 0.8, b: 0.8 } }];
           }
-          input.strokeWeight = state === "focus" ? 2 : 1;
+          input.strokeWeight = state === "focus" || state === "error" || state === "warning" || state === "success" ? 2 : 1;
           if (state === "focus" || state === "error" || state === "warning" || state === "success") {
             let shadowColorTerms = [];
             if (state === "focus") {

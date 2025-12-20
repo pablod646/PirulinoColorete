@@ -2416,43 +2416,31 @@ async function createInput(
 
         const shadowColor = findVar(shadowColorTerms, 'COLOR');
 
-        // Determine fallback color based on state
-        let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 }; // Indigo-200
-        if (state === 'error') {
-            fallbackColor = { r: 0.99, g: 0.82, b: 0.82, a: 1 }; // Red-200
-        } else if (state === 'warning') {
-            fallbackColor = { r: 0.99, g: 0.92, b: 0.73, a: 1 }; // Yellow-200
-        } else if (state === 'success') {
-            fallbackColor = { r: 0.73, g: 0.92, b: 0.79, a: 1 }; // Green-200
-        }
-
-        // Get the actual color from the variable (Light mode)
-        let actualColor = fallbackColor;
         if (shadowColor) {
-            // Find Light mode
-            const collection = await figma.variables.getVariableCollectionByIdAsync(shadowColor.variableCollectionId);
-            const lightMode = collection?.modes.find(m => m.name === 'Light');
-            const modeId = lightMode?.modeId || Object.keys(shadowColor.valuesByMode)[0];
-
-            const colorValue = shadowColor.valuesByMode[modeId];
-            if (colorValue && typeof colorValue === 'object' && 'r' in colorValue) {
-                const rgb = colorValue as RGB;
-                actualColor = { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+            // Determine fallback color based on state
+            let fallbackColor = { r: 0.78, g: 0.82, b: 0.96, a: 1 }; // Indigo-200
+            if (state === 'error') {
+                fallbackColor = { r: 0.99, g: 0.82, b: 0.82, a: 1 }; // Red-200
+            } else if (state === 'warning') {
+                fallbackColor = { r: 0.99, g: 0.92, b: 0.73, a: 1 }; // Yellow-200
+            } else if (state === 'success') {
+                fallbackColor = { r: 0.73, g: 0.92, b: 0.79, a: 1 }; // Green-200
             }
+
+            const shadowEffect: DropShadowEffect = {
+                type: 'DROP_SHADOW',
+                color: fallbackColor,
+                offset: { x: 0, y: 0 },
+                radius: 0,
+                spread: 4,
+                visible: true,
+                blendMode: 'NORMAL'
+            };
+
+            // Bind shadow color to the variable
+            const effects = [figma.variables.setBoundVariableForEffect(shadowEffect, 'color', shadowColor)];
+            input.effects = effects;
         }
-
-        // Apply effect with resolved color (not bound to variable)
-        const shadowEffect: DropShadowEffect = {
-            type: 'DROP_SHADOW',
-            color: actualColor,
-            offset: { x: 0, y: 0 },
-            radius: 0,
-            spread: 4,
-            visible: true,
-            blendMode: 'NORMAL'
-        };
-
-        input.effects = [shadowEffect];
     }
 
     // Opacity for disabled

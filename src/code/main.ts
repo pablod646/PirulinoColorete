@@ -3787,12 +3787,16 @@ async function generateTheme(
             { name: 'Action/primaryHover', light: '700', dark: '300', useAccent: true },
             { name: 'Action/primaryActive', light: '800', dark: '200', useAccent: true },
             { name: 'Action/primaryDisabled', light: '300', dark: '700', useAccent: true },
+            { name: 'Action/primaryText', light: '50', dark: '950', useAccent: true }, // Text on primary button
             { name: 'Action/secondary', light: '100', dark: '800' },
             { name: 'Action/secondaryHover', light: '200', dark: '700' },
+            { name: 'Action/secondaryText', light: '700', dark: '200' }, // Text on secondary button
             { name: 'Action/ghost', light: '50', dark: '900' },
             { name: 'Action/ghostHover', light: '100', dark: '800' },
+            { name: 'Action/ghostText', light: '600', dark: '400', useAccent: true }, // Text on ghost button
             { name: 'Action/destructive', light: '600', dark: '500', useStatus: 'error' },
             { name: 'Action/destructiveHover', light: '700', dark: '400', useStatus: 'error' },
+            { name: 'Action/destructiveText', light: '50', dark: '950', useStatus: 'error' }, // Text on destructive button
 
             // Status
             { name: 'Status/success', light: '600', dark: '400', useStatus: 'success' },

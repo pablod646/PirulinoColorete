@@ -87,6 +87,8 @@ const CONTRAST_PAIRS = {
     // Action text - must be readable on buttons
     'Action/primaryText': { bg: 'Action/primary', threshold: 'uiElement' },
     'Action/secondaryText': { bg: 'Action/secondary', threshold: 'uiElement' },
+    'Action/ghostText': { bg: 'Action/ghost', threshold: 'uiElement' },
+    'Action/destructiveText': { bg: 'Action/destructive', threshold: 'uiElement' },
 
     // Icon tokens - must be visible
     'Icon/primary': { bg: 'Background/primary', threshold: 'uiElement' },
@@ -795,6 +797,9 @@ function initTheme() {
 
             // Destructive actions (use error palette)
             if (tokenName.startsWith('Action/destructive')) return 'error';
+
+            // Action text tokens
+            if (tokenName === 'Action/secondaryText') return 'neutral'; // Secondary button uses neutral text
 
             // Other actions and buttons (use accent)
             if (tokenName.startsWith('Action/') || tokenName.startsWith('Button/')) return 'accent';

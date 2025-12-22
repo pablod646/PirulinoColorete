@@ -1521,6 +1521,7 @@ async function createAtomsCollection(
         { name: 'Button/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
         { name: 'Button/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
         { name: 'Button/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
+        { name: 'Button/letter-spacing', type: 'FLOAT', desktop: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], tablet: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], mobile: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'] },
         { name: 'Button/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
         { name: 'Button/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
         { name: 'Button/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
@@ -1532,6 +1533,7 @@ async function createAtomsCollection(
         { name: 'Input/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
         { name: 'Input/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
         { name: 'Input/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], tablet: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], mobile: ['Typography/Font Weight/Regular', 'Font Weight/Regular'] },
+        { name: 'Input/letter-spacing', type: 'FLOAT', desktop: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], tablet: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], mobile: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'] },
         { name: 'Input/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
         { name: 'Input/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
         { name: 'Input/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
@@ -1543,6 +1545,7 @@ async function createAtomsCollection(
         { name: 'Badge/font-size', type: 'FLOAT', desktop: ['Typography/Body/sm', 'Body/sm'], tablet: ['Typography/Body/xs', 'Body/xs'], mobile: ['Typography/Body/xs', 'Body/xs'] },
         { name: 'Badge/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
         { name: 'Badge/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
+        { name: 'Badge/letter-spacing', type: 'FLOAT', desktop: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], tablet: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], mobile: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'] },
         { name: 'Badge/icon-size', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
         { name: 'Badge/line-height', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
         { name: 'Badge/gap', type: 'FLOAT', desktop: ['gap/sm'], tablet: ['gap/xs'], mobile: ['gap/xs'] },
@@ -2296,6 +2299,12 @@ async function createButton(
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
+    // Bind letter-spacing to Atoms variable
+    const letterSpacingVar = atomVars['Button/letter-spacing'];
+    if (letterSpacingVar) {
+        text.setBoundVariable('letterSpacing', letterSpacingVar);
+    }
+
     // Bind line height to Atoms variable (matches icon-size for consistent component height)
     const lineHeightVar = atomVars['Button/line-height'];
     if (lineHeightVar) {
@@ -2544,6 +2553,12 @@ async function createInput(
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
+    // Bind letter-spacing to Atoms variable
+    const letterSpacingVar = atomVars['Input/letter-spacing'];
+    if (letterSpacingVar) {
+        text.setBoundVariable('letterSpacing', letterSpacingVar);
+    }
+
     // Bind line height to Atoms variable (matches icon-size for consistent component height)
     const lineHeightVar = atomVars['Input/line-height'];
     if (lineHeightVar) {
@@ -2772,6 +2787,12 @@ async function createBadge(
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
+    // Bind letter-spacing to Atoms variable
+    const letterSpacingVar = atomVars['Badge/letter-spacing'];
+    if (letterSpacingVar) {
+        text.setBoundVariable('letterSpacing', letterSpacingVar);
+    }
+
     // Bind line height to Atoms variable (matches icon-size for consistent component height)
     const lineHeightVar = atomVars['Badge/line-height'];
     if (lineHeightVar) {
@@ -2960,6 +2981,12 @@ async function createMenuItem(
     const fontWeightVar = atomVars['NavMenuItem/font-weight'] || atomVars['Button/font-weight'];
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
+    }
+
+    // Bind letter-spacing
+    const letterSpacingVar = atomVars['NavMenuItem/letter-spacing'] || atomVars['Button/letter-spacing'];
+    if (letterSpacingVar) {
+        text.setBoundVariable('letterSpacing', letterSpacingVar);
     }
 
     // Apply text color using the found variable

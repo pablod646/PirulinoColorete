@@ -1170,6 +1170,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             { name: "Button/font-size", type: "FLOAT", desktop: ["Typography/Body/base", "Body/base"], tablet: ["Typography/Body/sm", "Body/sm"], mobile: ["Typography/Body/sm", "Body/sm"] },
             { name: "Button/font-family", type: "STRING", desktop: ["Typography/Font Family/Body", "Font Family/Body"], tablet: ["Typography/Font Family/Body", "Font Family/Body"], mobile: ["Typography/Font Family/Body", "Font Family/Body"] },
             { name: "Button/font-weight", type: "FLOAT", desktop: ["Typography/Font Weight/Medium", "Font Weight/Medium"], tablet: ["Typography/Font Weight/Medium", "Font Weight/Medium"], mobile: ["Typography/Font Weight/Medium", "Font Weight/Medium"] },
+            { name: "Button/letter-spacing", type: "FLOAT", desktop: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], tablet: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], mobile: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"] },
             { name: "Button/icon-size", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
             { name: "Button/line-height", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
             // Same as icon-size for consistent height
@@ -1182,6 +1183,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             { name: "Input/font-size", type: "FLOAT", desktop: ["Typography/Body/base", "Body/base"], tablet: ["Typography/Body/sm", "Body/sm"], mobile: ["Typography/Body/sm", "Body/sm"] },
             { name: "Input/font-family", type: "STRING", desktop: ["Typography/Font Family/Body", "Font Family/Body"], tablet: ["Typography/Font Family/Body", "Font Family/Body"], mobile: ["Typography/Font Family/Body", "Font Family/Body"] },
             { name: "Input/font-weight", type: "FLOAT", desktop: ["Typography/Font Weight/Regular", "Font Weight/Regular"], tablet: ["Typography/Font Weight/Regular", "Font Weight/Regular"], mobile: ["Typography/Font Weight/Regular", "Font Weight/Regular"] },
+            { name: "Input/letter-spacing", type: "FLOAT", desktop: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], tablet: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], mobile: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"] },
             { name: "Input/icon-size", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
             { name: "Input/line-height", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
             // Same as icon-size for consistent height
@@ -1193,6 +1195,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             { name: "Badge/font-size", type: "FLOAT", desktop: ["Typography/Body/sm", "Body/sm"], tablet: ["Typography/Body/xs", "Body/xs"], mobile: ["Typography/Body/xs", "Body/xs"] },
             { name: "Badge/font-family", type: "STRING", desktop: ["Typography/Font Family/Body", "Font Family/Body"], tablet: ["Typography/Font Family/Body", "Font Family/Body"], mobile: ["Typography/Font Family/Body", "Font Family/Body"] },
             { name: "Badge/font-weight", type: "FLOAT", desktop: ["Typography/Font Weight/Medium", "Font Weight/Medium"], tablet: ["Typography/Font Weight/Medium", "Font Weight/Medium"], mobile: ["Typography/Font Weight/Medium", "Font Weight/Medium"] },
+            { name: "Badge/letter-spacing", type: "FLOAT", desktop: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], tablet: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], mobile: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"] },
             { name: "Badge/icon-size", type: "FLOAT", desktop: ["Icon-Size/md"], tablet: ["Icon-Size/sm"], mobile: ["Icon-Size/sm"] },
             { name: "Badge/line-height", type: "FLOAT", desktop: ["Icon-Size/md"], tablet: ["Icon-Size/sm"], mobile: ["Icon-Size/sm"] },
             // Same as icon-size for consistent height
@@ -1730,6 +1733,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
+          const letterSpacingVar = atomVars["Button/letter-spacing"];
+          if (letterSpacingVar) {
+            text.setBoundVariable("letterSpacing", letterSpacingVar);
+          }
           const lineHeightVar = atomVars["Button/line-height"];
           if (lineHeightVar) {
             text.setBoundVariable("lineHeight", lineHeightVar);
@@ -1911,6 +1918,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
+          const letterSpacingVar = atomVars["Input/letter-spacing"];
+          if (letterSpacingVar) {
+            text.setBoundVariable("letterSpacing", letterSpacingVar);
+          }
           const lineHeightVar = atomVars["Input/line-height"];
           if (lineHeightVar) {
             text.setBoundVariable("lineHeight", lineHeightVar);
@@ -2079,6 +2090,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
+          const letterSpacingVar = atomVars["Badge/letter-spacing"];
+          if (letterSpacingVar) {
+            text.setBoundVariable("letterSpacing", letterSpacingVar);
+          }
           const lineHeightVar = atomVars["Badge/line-height"];
           if (lineHeightVar) {
             text.setBoundVariable("lineHeight", lineHeightVar);
@@ -2218,6 +2233,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           const fontWeightVar = atomVars["NavMenuItem/font-weight"] || atomVars["Button/font-weight"];
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
+          }
+          const letterSpacingVar = atomVars["NavMenuItem/letter-spacing"] || atomVars["Button/letter-spacing"];
+          if (letterSpacingVar) {
+            text.setBoundVariable("letterSpacing", letterSpacingVar);
           }
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", textVar)];

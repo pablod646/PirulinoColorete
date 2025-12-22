@@ -6369,10 +6369,10 @@ function initTheme() {
             if (tokenName.startsWith('Input/borderFocus')) return 'accent';
 
             // Interactive states
-            if (tokenName.startsWith('Interactive/focus')) return 'accent';
-            if (tokenName.startsWith('Interactive/error')) return 'error';
-            if (tokenName.startsWith('Interactive/warning')) return 'warning';
-            if (tokenName.startsWith('Interactive/success')) return 'success';
+            if (tokenName.startsWith('Interactive/focusRing') || tokenName === 'Interactive/focus') return 'accent';
+            if (tokenName.startsWith('Interactive/errorRing') || tokenName === 'Interactive/error') return 'error';
+            if (tokenName.startsWith('Interactive/warningRing') || tokenName === 'Interactive/warning') return 'warning';
+            if (tokenName.startsWith('Interactive/successRing') || tokenName === 'Interactive/success') return 'success';
 
             // Default to neutral for everything else
             return 'neutral';

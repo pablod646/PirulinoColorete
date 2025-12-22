@@ -1476,6 +1476,36 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 badgeComponentSet.paddingRight = 24;
               }
             }
+            if (config.components.navMenu) {
+              figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 80, message: "Creating nav menu items..." } });
+              yield new Promise((resolve) => setTimeout(resolve, 50));
+              const { states: menuStates } = config.components.navMenu;
+              const menuItemComponents = [];
+              for (const state of menuStates) {
+                const originalAsComponents = config.asComponents;
+                config.asComponents = true;
+                const menuItem = yield createMenuItem(state, config, findVar, atomVars);
+                const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                menuItem.name = `State=${stateCapitalized}`;
+                menuItemComponents.push(menuItem);
+                componentCount++;
+                config.asComponents = originalAsComponents;
+              }
+              if (menuItemComponents.length > 0) {
+                const menuItemComponentSet = figma.combineAsVariants(menuItemComponents, container);
+                menuItemComponentSet.name = `${config.prefix}NavMenuItem`;
+                menuItemComponentSet.layoutMode = "HORIZONTAL";
+                menuItemComponentSet.layoutWrap = "WRAP";
+                menuItemComponentSet.primaryAxisSizingMode = "AUTO";
+                menuItemComponentSet.counterAxisSizingMode = "AUTO";
+                menuItemComponentSet.itemSpacing = 16;
+                menuItemComponentSet.counterAxisSpacing = 16;
+                menuItemComponentSet.paddingTop = 24;
+                menuItemComponentSet.paddingBottom = 24;
+                menuItemComponentSet.paddingLeft = 24;
+                menuItemComponentSet.paddingRight = 24;
+              }
+            }
             figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 95, message: "Finalizing component sets..." } });
             yield new Promise((resolve) => setTimeout(resolve, 50));
             figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 100, message: "Complete!" } });
@@ -2095,6 +2125,169 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
           }
           return badge;
+        });
+      }
+      function createMenuItem(state, config, findVar, atomVars) {
+        return __async(this, null, function* () {
+          const item = config.asComponents ? figma.createComponent() : figma.createFrame();
+          item.name = `NavMenuItem/${state}`;
+          item.layoutMode = "HORIZONTAL";
+          item.primaryAxisSizingMode = "AUTO";
+          item.counterAxisSizingMode = "AUTO";
+          item.primaryAxisAlignItems = "CENTER";
+          item.counterAxisAlignItems = "CENTER";
+          const vPaddingVar = atomVars["NavMenuItem/padding-y"] || atomVars["Button/padding-y"];
+          if (vPaddingVar) {
+            item.setBoundVariable("paddingTop", vPaddingVar);
+            item.setBoundVariable("paddingBottom", vPaddingVar);
+          } else {
+            item.paddingTop = 8;
+            item.paddingBottom = 8;
+          }
+          const hPaddingVar = atomVars["NavMenuItem/padding-x"] || atomVars["Button/padding-x"];
+          if (hPaddingVar) {
+            item.setBoundVariable("paddingLeft", hPaddingVar);
+            item.setBoundVariable("paddingRight", hPaddingVar);
+          } else {
+            item.paddingLeft = 12;
+            item.paddingRight = 12;
+          }
+          const radiusVar = atomVars["NavMenuItem/radius"] || atomVars["Button/radius"];
+          if (radiusVar) {
+            item.setBoundVariable("topLeftRadius", radiusVar);
+            item.setBoundVariable("topRightRadius", radiusVar);
+            item.setBoundVariable("bottomLeftRadius", radiusVar);
+            item.setBoundVariable("bottomRightRadius", radiusVar);
+          } else {
+            item.cornerRadius = 6;
+          }
+          let bgVarTerms = [];
+          let textVarTerms = [];
+          let iconVarTerms = [];
+          if (state === "default") {
+            bgVarTerms = [];
+            textVarTerms = ["text/secondary", "text/primary"];
+            iconVarTerms = ["icon/secondary", "icon/primary"];
+          } else if (state === "hover") {
+            bgVarTerms = ["surface/hover", "surface/card", "background/secondary"];
+            textVarTerms = ["text/primary"];
+            iconVarTerms = ["icon/primary"];
+          } else if (state === "active") {
+            bgVarTerms = ["action/ghost", "surface/primary", "background/brand"];
+            textVarTerms = ["text/brand", "action/primary", "text/primary"];
+            iconVarTerms = ["icon/brand", "action/primary", "icon/primary"];
+          } else if (state === "disabled") {
+            bgVarTerms = [];
+            textVarTerms = ["text/disabled", "text/tertiary"];
+            iconVarTerms = ["icon/disabled", "icon/tertiary"];
+          }
+          if (bgVarTerms.length > 0) {
+            const bgVar = findVar(bgVarTerms, "COLOR");
+            if (bgVar) {
+              item.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", bgVar)];
+            } else {
+              item.fills = [];
+            }
+          } else {
+            item.fills = [];
+          }
+          if (state === "disabled") {
+            item.opacity = 0.5;
+          }
+          const textVar = findVar(textVarTerms, "COLOR");
+          const iconVar = findVar(iconVarTerms, "COLOR");
+          const iconSizeVar = atomVars["NavMenuItem/icon-size"] || atomVars["Button/icon-size"];
+          const iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, iconVar);
+          iconLeft.visible = false;
+          item.appendChild(iconLeft);
+          const text = figma.createText();
+          text.name = "Label";
+          yield figma.loadFontAsync({ family: "Inter", style: "Medium" });
+          text.fontName = { family: "Inter", style: "Medium" };
+          text.characters = "Menu Item";
+          const fontSizeVar = atomVars["NavMenuItem/font-size"] || atomVars["Button/font-size"];
+          if (fontSizeVar) {
+            text.setBoundVariable("fontSize", fontSizeVar);
+          } else {
+            text.fontSize = 14;
+          }
+          const fontFamilyVar = atomVars["NavMenuItem/font-family"] || atomVars["Button/font-family"];
+          if (fontFamilyVar) {
+            text.setBoundVariable("fontFamily", fontFamilyVar);
+          }
+          const fontWeightVar = atomVars["NavMenuItem/font-weight"] || atomVars["Button/font-weight"];
+          if (fontWeightVar) {
+            text.setBoundVariable("fontWeight", fontWeightVar);
+          }
+          if (textVar) {
+            text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", textVar)];
+          }
+          item.appendChild(text);
+          const badgeFrame = figma.createFrame();
+          badgeFrame.name = "BadgeCounter";
+          badgeFrame.layoutMode = "HORIZONTAL";
+          badgeFrame.primaryAxisSizingMode = "AUTO";
+          badgeFrame.counterAxisSizingMode = "AUTO";
+          badgeFrame.primaryAxisAlignItems = "CENTER";
+          badgeFrame.counterAxisAlignItems = "CENTER";
+          badgeFrame.paddingLeft = 6;
+          badgeFrame.paddingRight = 6;
+          badgeFrame.paddingTop = 2;
+          badgeFrame.paddingBottom = 2;
+          badgeFrame.cornerRadius = 10;
+          badgeFrame.visible = false;
+          const badgeBgVar = findVar(["status/error", "action/primary"], "COLOR");
+          if (badgeBgVar) {
+            badgeFrame.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.9, g: 0.2, b: 0.2 } }, "color", badgeBgVar)];
+          } else {
+            badgeFrame.fills = [{ type: "SOLID", color: { r: 0.9, g: 0.2, b: 0.2 } }];
+          }
+          const badgeText = figma.createText();
+          badgeText.name = "Count";
+          yield figma.loadFontAsync({ family: "Inter", style: "Bold" });
+          badgeText.fontName = { family: "Inter", style: "Bold" };
+          badgeText.fontSize = 10;
+          badgeText.characters = "3";
+          const badgeTextVar = findVar(["text/inverse"], "COLOR");
+          if (badgeTextVar) {
+            badgeText.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 1, g: 1, b: 1 } }, "color", badgeTextVar)];
+          } else {
+            badgeText.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+          }
+          badgeFrame.appendChild(badgeText);
+          item.appendChild(badgeFrame);
+          const iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, iconVar);
+          iconRight.visible = false;
+          item.appendChild(iconRight);
+          const gapVar = atomVars["NavMenuItem/gap"] || atomVars["Button/gap"];
+          if (gapVar) {
+            item.setBoundVariable("itemSpacing", gapVar);
+          } else {
+            item.itemSpacing = 8;
+          }
+          if (config.asComponents && item.type === "COMPONENT") {
+            const component = item;
+            const textProp = component.addComponentProperty("Text", "TEXT", "Menu Item");
+            text.componentPropertyReferences = { characters: textProp };
+            const badgeCountProp = component.addComponentProperty("BadgeCount", "TEXT", "3");
+            badgeText.componentPropertyReferences = { characters: badgeCountProp };
+            const showIconLeftProp = component.addComponentProperty("showIcon", "BOOLEAN", false);
+            iconLeft.componentPropertyReferences = { visible: showIconLeftProp };
+            const showBadgeProp = component.addComponentProperty("showBadge", "BOOLEAN", false);
+            badgeFrame.componentPropertyReferences = { visible: showBadgeProp };
+            const showChevronProp = component.addComponentProperty("showChevron", "BOOLEAN", false);
+            iconRight.componentPropertyReferences = { visible: showChevronProp };
+            if (iconLeft.type === "INSTANCE") {
+              const mainComp = yield iconLeft.getMainComponentAsync();
+              if (mainComp) {
+                const swapProp = component.addComponentProperty("SwapIcon", "INSTANCE_SWAP", mainComp.id);
+                iconLeft.componentPropertyReferences = __spreadProps(__spreadValues({}, iconLeft.componentPropertyReferences), {
+                  mainComponent: swapProp
+                });
+              }
+            }
+          }
+          return item;
         });
       }
       function createTypographyVariables(data) {

@@ -12,6 +12,7 @@
     const genButtons = document.getElementById('gen-buttons');
     const genInputs = document.getElementById('gen-inputs');
     const genBadges = document.getElementById('gen-badges');
+    const genNavMenu = document.getElementById('gen-navmenu');
 
     // Output options
     const prefixInput = document.getElementById('atoms-prefix');
@@ -112,6 +113,12 @@
             badgeSizes.push(cb.value);
         });
 
+        // Collect nav menu states
+        const navMenuStates = [];
+        document.querySelectorAll('input[name="navmenu-state"]:checked').forEach(cb => {
+            navMenuStates.push(cb.value);
+        });
+
         return {
             themeCollectionId: themeCollectionSelect ? themeCollectionSelect.value : '',
             aliasesCollectionId: aliasesCollectionSelect ? aliasesCollectionSelect.value : '',
@@ -121,7 +128,8 @@
             components: {
                 buttons: genButtons && genButtons.checked ? { variants: buttonVariants, sizes: buttonSizes } : null,
                 inputs: genInputs && genInputs.checked ? { variants: inputVariants, states: inputStates } : null,
-                badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null
+                badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null,
+                navMenu: genNavMenu && genNavMenu.checked ? { states: navMenuStates } : null
             }
         };
     }
@@ -132,7 +140,7 @@
             return false;
         }
 
-        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges;
+        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges || config.components.navMenu;
         if (!hasComponents) {
             showNotification('Please select at least one component type', 'error');
             return false;
@@ -215,7 +223,7 @@
     }
 
     function showNotification(message, type) {
-        
+
         // Could use figma.notify via postMessage
     }
 

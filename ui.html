@@ -3519,6 +3519,43 @@ button:active .icon,
                     </label>
                 </div>
             </div>
+
+            <!-- Nav Menu Items Section -->
+            <div class="component-group">
+                <div class="component-group-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-navmenu" checked>
+                        <span class="checkmark"></span>
+                        <span class="component-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12" />
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <line x1="3" y1="18" x2="21" y2="18" />
+                            </svg></span>
+                        <strong>Nav Menu Items</strong>
+                    </label>
+                </div>
+                <div class="component-options" id="navmenu-options">
+                    <span class="label-text">States:</span>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="navmenu-state" value="default" checked>
+                        <span class="checkmark"></span> Default
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="navmenu-state" value="hover" checked>
+                        <span class="checkmark"></span> Hover
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="navmenu-state" value="active" checked>
+                        <span class="checkmark"></span> Active
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="navmenu-state" value="disabled" checked>
+                        <span class="checkmark"></span> Disabled
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -7334,6 +7371,7 @@ if (document.readyState === 'loading') {
     const genButtons = document.getElementById('gen-buttons');
     const genInputs = document.getElementById('gen-inputs');
     const genBadges = document.getElementById('gen-badges');
+    const genNavMenu = document.getElementById('gen-navmenu');
 
     // Output options
     const prefixInput = document.getElementById('atoms-prefix');
@@ -7434,6 +7472,12 @@ if (document.readyState === 'loading') {
             badgeSizes.push(cb.value);
         });
 
+        // Collect nav menu states
+        const navMenuStates = [];
+        document.querySelectorAll('input[name="navmenu-state"]:checked').forEach(cb => {
+            navMenuStates.push(cb.value);
+        });
+
         return {
             themeCollectionId: themeCollectionSelect ? themeCollectionSelect.value : '',
             aliasesCollectionId: aliasesCollectionSelect ? aliasesCollectionSelect.value : '',
@@ -7443,7 +7487,8 @@ if (document.readyState === 'loading') {
             components: {
                 buttons: genButtons && genButtons.checked ? { variants: buttonVariants, sizes: buttonSizes } : null,
                 inputs: genInputs && genInputs.checked ? { variants: inputVariants, states: inputStates } : null,
-                badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null
+                badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null,
+                navMenu: genNavMenu && genNavMenu.checked ? { states: navMenuStates } : null
             }
         };
     }
@@ -7454,7 +7499,7 @@ if (document.readyState === 'loading') {
             return false;
         }
 
-        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges;
+        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges || config.components.navMenu;
         if (!hasComponents) {
             showNotification('Please select at least one component type', 'error');
             return false;
@@ -7537,7 +7582,7 @@ if (document.readyState === 'loading') {
     }
 
     function showNotification(message, type) {
-        
+
         // Could use figma.notify via postMessage
     }
 

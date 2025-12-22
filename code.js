@@ -2238,6 +2238,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           if (letterSpacingVar) {
             text.setBoundVariable("letterSpacing", letterSpacingVar);
           }
+          const lineHeightVar = atomVars["NavMenuItem/line-height"] || atomVars["NavMenuItem/icon-size"] || atomVars["Button/line-height"] || atomVars["Button/icon-size"];
+          if (lineHeightVar) {
+            text.setBoundVariable("lineHeight", lineHeightVar);
+          }
           if (textVar) {
             text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", textVar)];
           }

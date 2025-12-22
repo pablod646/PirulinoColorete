@@ -2989,6 +2989,12 @@ async function createMenuItem(
         text.setBoundVariable('letterSpacing', letterSpacingVar);
     }
 
+    // Bind line-height to icon-size for consistent height (same as Button)
+    const lineHeightVar = atomVars['NavMenuItem/line-height'] || atomVars['NavMenuItem/icon-size'] || atomVars['Button/line-height'] || atomVars['Button/icon-size'];
+    if (lineHeightVar) {
+        text.setBoundVariable('lineHeight', lineHeightVar);
+    }
+
     // Apply text color using the found variable
     if (textVar) {
         text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', textVar)];

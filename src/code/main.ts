@@ -1512,44 +1512,22 @@ async function createAtomsCollection(
         mobile: mobileModeId!
     };
 
-    // Define atom variables with their alias references per mode
+    // Define atom variables - ONLY create what doesn't exist in Aliases
+    // Most values come directly from Aliases (padding, gap, radius, font-size, etc.)
+    // We only need to create Atoms variables for special cases like line-height = icon-size
     // Format: { name, type, desktop: aliasTerms, tablet: aliasTerms, mobile: aliasTerms }
     const atomVariableDefinitions = [
-        // Button variables
-        { name: 'Button/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
-        { name: 'Button/padding-x', type: 'FLOAT', desktop: ['padding/x/lg'], tablet: ['padding/x/md'], mobile: ['padding/x/sm'] },
-        { name: 'Button/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
-        { name: 'Button/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
-        { name: 'Button/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
-        { name: 'Button/letter-spacing', type: 'FLOAT', desktop: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], tablet: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], mobile: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'] },
-        { name: 'Button/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
-        { name: 'Button/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
-        { name: 'Button/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
-        { name: 'Button/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
+        // Button - only line-height needs a dedicated variable (must equal icon-size for consistent height)
+        { name: 'Button/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
 
-        // Input variables
-        { name: 'Input/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] },
-        { name: 'Input/padding-x', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/sm'], mobile: ['padding/y/xs'] }, // Same as padding-y for balanced padding
-        { name: 'Input/font-size', type: 'FLOAT', desktop: ['Typography/Body/base', 'Body/base'], tablet: ['Typography/Body/sm', 'Body/sm'], mobile: ['Typography/Body/sm', 'Body/sm'] },
-        { name: 'Input/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
-        { name: 'Input/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], tablet: ['Typography/Font Weight/Regular', 'Font Weight/Regular'], mobile: ['Typography/Font Weight/Regular', 'Font Weight/Regular'] },
-        { name: 'Input/letter-spacing', type: 'FLOAT', desktop: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], tablet: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], mobile: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'] },
-        { name: 'Input/icon-size', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
-        { name: 'Input/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
-        { name: 'Input/gap', type: 'FLOAT', desktop: ['gap/md'], tablet: ['gap/sm'], mobile: ['gap/xs'] },
-        { name: 'Input/radius', type: 'FLOAT', desktop: ['radius/md'], tablet: ['radius/sm'], mobile: ['radius/sm'] },
+        // Input - only line-height needs a dedicated variable (must equal icon-size for consistent height)
+        { name: 'Input/line-height', type: 'FLOAT', desktop: ['Icon-Size/lg'], tablet: ['Icon-Size/md'], mobile: ['Icon-Size/sm'] },
 
-        // Badge variables
-        { name: 'Badge/padding-y', type: 'FLOAT', desktop: ['padding/y/sm'], tablet: ['padding/y/xs'], mobile: ['padding/y/xs'] },
-        { name: 'Badge/padding-x', type: 'FLOAT', desktop: ['padding/x/md'], tablet: ['padding/x/sm'], mobile: ['padding/x/xs'] },
-        { name: 'Badge/font-size', type: 'FLOAT', desktop: ['Typography/Body/sm', 'Body/sm'], tablet: ['Typography/Body/xs', 'Body/xs'], mobile: ['Typography/Body/xs', 'Body/xs'] },
-        { name: 'Badge/font-family', type: 'STRING', desktop: ['Typography/Font Family/Body', 'Font Family/Body'], tablet: ['Typography/Font Family/Body', 'Font Family/Body'], mobile: ['Typography/Font Family/Body', 'Font Family/Body'] },
-        { name: 'Badge/font-weight', type: 'FLOAT', desktop: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], tablet: ['Typography/Font Weight/Medium', 'Font Weight/Medium'], mobile: ['Typography/Font Weight/Medium', 'Font Weight/Medium'] },
-        { name: 'Badge/letter-spacing', type: 'FLOAT', desktop: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], tablet: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], mobile: ['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'] },
-        { name: 'Badge/icon-size', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
-        { name: 'Badge/line-height', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] }, // Same as icon-size for consistent height
-        { name: 'Badge/gap', type: 'FLOAT', desktop: ['gap/sm'], tablet: ['gap/xs'], mobile: ['gap/xs'] },
-        { name: 'Badge/radius', type: 'FLOAT', desktop: ['radius/full', 'radius/lg'], tablet: ['radius/full', 'radius/md'], mobile: ['radius/full', 'radius/sm'] },
+        // Badge - only line-height needs a dedicated variable (must equal icon-size for consistent height)
+        { name: 'Badge/line-height', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
+
+        // NavMenuItem - only line-height needs a dedicated variable
+        { name: 'NavMenuItem/line-height', type: 'FLOAT', desktop: ['Icon-Size/md'], tablet: ['Icon-Size/sm'], mobile: ['Icon-Size/sm'] },
     ];
 
     const atomVars: Record<string, Variable> = {};
@@ -2185,8 +2163,8 @@ async function createButton(
     btn.primaryAxisAlignItems = 'CENTER';
     btn.counterAxisAlignItems = 'CENTER';
 
-    // Bind padding to Atoms variables (responsive)
-    const vPaddingVar = atomVars['Button/padding-y'];
+    // Bind padding directly from Aliases
+    const vPaddingVar = findVar(['padding/y/sm'], 'FLOAT');
     if (vPaddingVar) {
         btn.setBoundVariable('paddingTop', vPaddingVar);
         btn.setBoundVariable('paddingBottom', vPaddingVar);
@@ -2195,7 +2173,7 @@ async function createButton(
         btn.paddingBottom = 12;
     }
 
-    const hPaddingVar = atomVars['Button/padding-x'];
+    const hPaddingVar = findVar(['padding/x/lg', 'padding/x/md'], 'FLOAT');
     if (hPaddingVar) {
         btn.setBoundVariable('paddingLeft', hPaddingVar);
         btn.setBoundVariable('paddingRight', hPaddingVar);
@@ -2204,8 +2182,8 @@ async function createButton(
         btn.paddingRight = 24;
     }
 
-    // Bind corner radius to Atoms variable
-    const radiusVar = atomVars['Button/radius'];
+    // Bind corner radius directly from Aliases
+    const radiusVar = findVar(['radius/md', 'radius/sm'], 'FLOAT');
     if (radiusVar) {
         btn.setBoundVariable('topLeftRadius', radiusVar);
         btn.setBoundVariable('topRightRadius', radiusVar);
@@ -2264,8 +2242,8 @@ async function createButton(
     // Get text color variable for icons
     const textVar = findVar(textVarTerms, 'COLOR');
 
-    // Create icon left using Atoms icon-size variable (hidden by default)
-    const iconSizeVar = atomVars['Button/icon-size'];
+    // Create icon left using icon-size from Aliases
+    const iconSizeVar = findVar(['Icon-Size/lg', 'Icon-Size/md'], 'FLOAT');
     const iconLeft = await createIconInstanceWithVar('IconLeft', iconSizeVar, textVar);
     iconLeft.visible = false;
     btn.appendChild(iconLeft);
@@ -2279,33 +2257,33 @@ async function createButton(
     const defaultLabel = variant.charAt(0).toUpperCase() + variant.slice(1);
     text.characters = defaultLabel;
 
-    // Bind font size to Atoms variable
-    const fontSizeVar = atomVars['Button/font-size'];
+    // Bind font size directly from Aliases
+    const fontSizeVar = findVar(['Typography/Body/base', 'Body/base'], 'FLOAT');
     if (fontSizeVar) {
         text.setBoundVariable('fontSize', fontSizeVar);
     } else {
         text.fontSize = 16;
     }
 
-    // Bind font family to Atoms variable
-    const fontFamilyVar = atomVars['Button/font-family'];
+    // Bind font family directly from Aliases
+    const fontFamilyVar = findVar(['Typography/Font Family/Body', 'Font Family/Body'], 'STRING');
     if (fontFamilyVar) {
         text.setBoundVariable('fontFamily', fontFamilyVar);
     }
 
-    // Bind font weight to Atoms variable
-    const fontWeightVar = atomVars['Button/font-weight'];
+    // Bind font weight directly from Aliases
+    const fontWeightVar = findVar(['Typography/Font Weight/Medium', 'Font Weight/Medium'], 'FLOAT');
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
-    // Bind letter-spacing to Atoms variable
-    const letterSpacingVar = atomVars['Button/letter-spacing'];
+    // Bind letter-spacing directly from Aliases
+    const letterSpacingVar = findVar(['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], 'FLOAT');
     if (letterSpacingVar) {
         text.setBoundVariable('letterSpacing', letterSpacingVar);
     }
 
-    // Bind line height to Atoms variable (matches icon-size for consistent component height)
+    // Bind line height from Atoms (this one is special - links to icon-size)
     const lineHeightVar = atomVars['Button/line-height'];
     if (lineHeightVar) {
         text.setBoundVariable('lineHeight', lineHeightVar);
@@ -2323,8 +2301,8 @@ async function createButton(
     iconRight.visible = false;
     btn.appendChild(iconRight);
 
-    // Bind gap to Atoms variable
-    const gapVar = atomVars['Button/gap'];
+    // Bind gap directly from Aliases
+    const gapVar = findVar(['gap/md', 'gap/sm'], 'FLOAT');
     if (gapVar) {
         btn.setBoundVariable('itemSpacing', gapVar);
     } else {
@@ -2392,8 +2370,8 @@ async function createInput(
     input.resize(240, input.height);
     input.clipsContent = true; // Required to enable spread on drop shadows
 
-    // Bind padding to Atoms variables (responsive)
-    const vPaddingVar = atomVars['Input/padding-y'];
+    // Bind padding directly from Aliases
+    const vPaddingVar = findVar(['padding/y/sm'], 'FLOAT');
     if (vPaddingVar) {
         input.setBoundVariable('paddingTop', vPaddingVar);
         input.setBoundVariable('paddingBottom', vPaddingVar);
@@ -2402,14 +2380,13 @@ async function createInput(
         input.paddingBottom = 12;
     }
 
-    const hPaddingVar = atomVars['Input/padding-x'];
-    const vPaddingVarForSelect = atomVars['Input/padding-y']; // Use vertical padding for select right padding
+    const hPaddingVar = findVar(['padding/x/sm', 'padding/y/sm'], 'FLOAT');
 
     if (hPaddingVar) {
         input.setBoundVariable('paddingLeft', hPaddingVar);
         // For select variant, use vertical padding for right side (balanced padding)
-        if (variant === 'select' && vPaddingVarForSelect) {
-            input.setBoundVariable('paddingRight', vPaddingVarForSelect);
+        if (variant === 'select' && vPaddingVar) {
+            input.setBoundVariable('paddingRight', vPaddingVar);
         } else if (variant === 'select') {
             input.paddingRight = 12; // Fallback: same as vertical padding
         } else {
@@ -2420,8 +2397,8 @@ async function createInput(
         input.paddingRight = variant === 'select' ? 12 : 16;
     }
 
-    // Bind corner radius to Atoms variable
-    const radiusVar = atomVars['Input/radius'];
+    // Bind corner radius directly from Aliases
+    const radiusVar = findVar(['radius/md', 'radius/sm'], 'FLOAT');
     if (radiusVar) {
         input.setBoundVariable('topLeftRadius', radiusVar);
         input.setBoundVariable('topRightRadius', radiusVar);
@@ -2511,9 +2488,9 @@ async function createInput(
         input.opacity = 0.5;
     }
 
-    // Get icon color variable
+    // Get icon color and size directly from Aliases
     const iconColorVar = findVar(['text/secondary', 'icon/default'], 'COLOR');
-    const iconSizeVar = atomVars['Input/icon-size'];
+    const iconSizeVar = findVar(['Icon-Size/lg', 'Icon-Size/md'], 'FLOAT');
 
     // Declare icon variables
     let iconLeft: InstanceNode | FrameNode | null = null;
@@ -2533,33 +2510,33 @@ async function createInput(
     text.fontName = { family: 'Inter', style: 'Regular' };
     text.characters = state === 'disabled' ? 'Disabled' : (variant === 'textarea' ? 'Enter text...' : 'Placeholder');
 
-    // Bind font size to Atoms variable
-    const fontSizeVar = atomVars['Input/font-size'];
+    // Bind font size directly from Aliases
+    const fontSizeVar = findVar(['Typography/Body/base', 'Body/base'], 'FLOAT');
     if (fontSizeVar) {
         text.setBoundVariable('fontSize', fontSizeVar);
     } else {
         text.fontSize = 16;
     }
 
-    // Bind font family to Atoms variable
-    const fontFamilyVar = atomVars['Input/font-family'];
+    // Bind font family directly from Aliases
+    const fontFamilyVar = findVar(['Typography/Font Family/Body', 'Font Family/Body'], 'STRING');
     if (fontFamilyVar) {
         text.setBoundVariable('fontFamily', fontFamilyVar);
     }
 
-    // Bind font weight to Atoms variable
-    const fontWeightVar = atomVars['Input/font-weight'];
+    // Bind font weight directly from Aliases
+    const fontWeightVar = findVar(['Typography/Font Weight/Regular', 'Font Weight/Regular'], 'FLOAT');
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
-    // Bind letter-spacing to Atoms variable
-    const letterSpacingVar = atomVars['Input/letter-spacing'];
+    // Bind letter-spacing directly from Aliases
+    const letterSpacingVar = findVar(['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], 'FLOAT');
     if (letterSpacingVar) {
         text.setBoundVariable('letterSpacing', letterSpacingVar);
     }
 
-    // Bind line height to Atoms variable (matches icon-size for consistent component height)
+    // Bind line height from Atoms (special - links to icon-size)
     const lineHeightVar = atomVars['Input/line-height'];
     if (lineHeightVar) {
         text.setBoundVariable('lineHeight', lineHeightVar);
@@ -2595,9 +2572,9 @@ async function createInput(
         input.appendChild(chevron);
     }
 
-    // Bind gap to Atoms variable
+    // Bind gap directly from Aliases
     if (variant !== 'textarea') {
-        const gapVar = atomVars['Input/gap'];
+        const gapVar = findVar(['gap/md', 'gap/sm'], 'FLOAT');
         if (gapVar) {
             input.setBoundVariable('itemSpacing', gapVar);
         } else {
@@ -2677,8 +2654,8 @@ async function createBadge(
     badge.primaryAxisAlignItems = 'CENTER';
     badge.counterAxisAlignItems = 'CENTER';
 
-    // Bind padding to Atoms variables (responsive)
-    const vPaddingVar = atomVars['Badge/padding-y'];
+    // Bind padding directly from Aliases
+    const vPaddingVar = findVar(['padding/y/sm', 'padding/y/xs'], 'FLOAT');
     if (vPaddingVar) {
         badge.setBoundVariable('paddingTop', vPaddingVar);
         badge.setBoundVariable('paddingBottom', vPaddingVar);
@@ -2687,7 +2664,7 @@ async function createBadge(
         badge.paddingBottom = 4;
     }
 
-    const hPaddingVar = atomVars['Badge/padding-x'];
+    const hPaddingVar = findVar(['padding/x/md', 'padding/x/sm'], 'FLOAT');
     if (hPaddingVar) {
         badge.setBoundVariable('paddingLeft', hPaddingVar);
         badge.setBoundVariable('paddingRight', hPaddingVar);
@@ -2696,8 +2673,8 @@ async function createBadge(
         badge.paddingRight = 12;
     }
 
-    // Bind corner radius to Atoms variable
-    const radiusVar = atomVars['Badge/radius'];
+    // Bind corner radius directly from Aliases
+    const radiusVar = findVar(['radius/full', 'radius/lg'], 'FLOAT');
     if (radiusVar) {
         badge.setBoundVariable('topLeftRadius', radiusVar);
         badge.setBoundVariable('topRightRadius', radiusVar);
@@ -2744,9 +2721,9 @@ async function createBadge(
         }
     }
 
-    // Get text color and icon size variables
+    // Get text color and icon size directly from Aliases
     const textVar = findVar(textTerms, 'COLOR');
-    const iconSizeVar = atomVars['Badge/icon-size'];
+    const iconSizeVar = findVar(['Icon-Size/md', 'Icon-Size/sm'], 'FLOAT');
 
     // Create icon left (hidden by default)
     const iconLeft = await createIconInstanceWithVar('IconLeft', iconSizeVar, textVar);
@@ -2767,33 +2744,33 @@ async function createBadge(
     };
     text.characters = labelMap[variant] || 'Badge';
 
-    // Bind font size to Atoms variable
-    const fontSizeVar = atomVars['Badge/font-size'];
+    // Bind font size directly from Aliases
+    const fontSizeVar = findVar(['Typography/Body/sm', 'Body/sm'], 'FLOAT');
     if (fontSizeVar) {
         text.setBoundVariable('fontSize', fontSizeVar);
     } else {
         text.fontSize = 14;
     }
 
-    // Bind font family to Atoms variable
-    const fontFamilyVar = atomVars['Badge/font-family'];
+    // Bind font family directly from Aliases
+    const fontFamilyVar = findVar(['Typography/Font Family/Body', 'Font Family/Body'], 'STRING');
     if (fontFamilyVar) {
         text.setBoundVariable('fontFamily', fontFamilyVar);
     }
 
-    // Bind font weight to Atoms variable
-    const fontWeightVar = atomVars['Badge/font-weight'];
+    // Bind font weight directly from Aliases
+    const fontWeightVar = findVar(['Typography/Font Weight/Medium', 'Font Weight/Medium'], 'FLOAT');
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
-    // Bind letter-spacing to Atoms variable
-    const letterSpacingVar = atomVars['Badge/letter-spacing'];
+    // Bind letter-spacing directly from Aliases
+    const letterSpacingVar = findVar(['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], 'FLOAT');
     if (letterSpacingVar) {
         text.setBoundVariable('letterSpacing', letterSpacingVar);
     }
 
-    // Bind line height to Atoms variable (matches icon-size for consistent component height)
+    // Bind line height from Atoms (special - links to icon-size)
     const lineHeightVar = atomVars['Badge/line-height'];
     if (lineHeightVar) {
         text.setBoundVariable('lineHeight', lineHeightVar);
@@ -2810,8 +2787,8 @@ async function createBadge(
     iconRight.visible = false;
     badge.appendChild(iconRight);
 
-    // Bind gap to Atoms variable
-    const gapVar = atomVars['Badge/gap'];
+    // Bind gap directly from Aliases
+    const gapVar = findVar(['gap/sm', 'gap/xs'], 'FLOAT');
     if (gapVar) {
         badge.setBoundVariable('itemSpacing', gapVar);
     } else {
@@ -2876,8 +2853,8 @@ async function createMenuItem(
     item.primaryAxisAlignItems = 'CENTER';
     item.counterAxisAlignItems = 'CENTER';
 
-    // Padding - use NavMenuItem vars, fallback to Button vars, then hardcoded
-    const vPaddingVar = atomVars['NavMenuItem/padding-y'] || atomVars['Button/padding-y'];
+    // Padding directly from Aliases
+    const vPaddingVar = findVar(['padding/y/xs', 'padding/y/sm'], 'FLOAT');
     if (vPaddingVar) {
         item.setBoundVariable('paddingTop', vPaddingVar);
         item.setBoundVariable('paddingBottom', vPaddingVar);
@@ -2886,7 +2863,7 @@ async function createMenuItem(
         item.paddingBottom = 8;
     }
 
-    const hPaddingVar = atomVars['NavMenuItem/padding-x'] || atomVars['Button/padding-x'];
+    const hPaddingVar = findVar(['padding/x/sm', 'padding/x/xs'], 'FLOAT');
     if (hPaddingVar) {
         item.setBoundVariable('paddingLeft', hPaddingVar);
         item.setBoundVariable('paddingRight', hPaddingVar);
@@ -2895,8 +2872,8 @@ async function createMenuItem(
         item.paddingRight = 12;
     }
 
-    // Corner radius - use NavMenuItem, fallback to Button
-    const radiusVar = atomVars['NavMenuItem/radius'] || atomVars['Button/radius'];
+    // Corner radius directly from Aliases
+    const radiusVar = findVar(['radius/sm', 'radius/xs'], 'FLOAT');
     if (radiusVar) {
         item.setBoundVariable('topLeftRadius', radiusVar);
         item.setBoundVariable('topRightRadius', radiusVar);
@@ -2950,8 +2927,8 @@ async function createMenuItem(
     const textVar = findVar(textVarTerms, 'COLOR');
     const iconVar = findVar(iconVarTerms, 'COLOR');
 
-    // Create icon left - use NavMenuItem icon-size, fallback to Button
-    const iconSizeVar = atomVars['NavMenuItem/icon-size'] || atomVars['Button/icon-size'];
+    // Create icon left - icon-size from Aliases
+    const iconSizeVar = findVar(['Icon-Size/md', 'Icon-Size/sm'], 'FLOAT');
     const iconLeft = await createIconInstanceWithVar('IconLeft', iconSizeVar, iconVar);
     iconLeft.visible = false; // Hidden by default
     item.appendChild(iconLeft);
@@ -2963,34 +2940,34 @@ async function createMenuItem(
     text.fontName = { family: 'Inter', style: 'Medium' };
     text.characters = 'Menu Item';
 
-    // Bind font size - use NavMenuItem, fallback to Button
-    const fontSizeVar = atomVars['NavMenuItem/font-size'] || atomVars['Button/font-size'];
+    // Bind font size directly from Aliases
+    const fontSizeVar = findVar(['Typography/Body/sm', 'Body/sm'], 'FLOAT');
     if (fontSizeVar) {
         text.setBoundVariable('fontSize', fontSizeVar);
     } else {
         text.fontSize = 14;
     }
 
-    // Bind font family
-    const fontFamilyVar = atomVars['NavMenuItem/font-family'] || atomVars['Button/font-family'];
+    // Bind font family directly from Aliases
+    const fontFamilyVar = findVar(['Typography/Font Family/Body', 'Font Family/Body'], 'STRING');
     if (fontFamilyVar) {
         text.setBoundVariable('fontFamily', fontFamilyVar);
     }
 
-    // Bind font weight
-    const fontWeightVar = atomVars['NavMenuItem/font-weight'] || atomVars['Button/font-weight'];
+    // Bind font weight directly from Aliases
+    const fontWeightVar = findVar(['Typography/Font Weight/Medium', 'Font Weight/Medium'], 'FLOAT');
     if (fontWeightVar) {
         text.setBoundVariable('fontWeight', fontWeightVar);
     }
 
-    // Bind letter-spacing
-    const letterSpacingVar = atomVars['NavMenuItem/letter-spacing'] || atomVars['Button/letter-spacing'];
+    // Bind letter-spacing directly from Aliases
+    const letterSpacingVar = findVar(['Typography/Letter Spacing/normal', 'Letter Spacing/normal', 'letter-spacing/normal'], 'FLOAT');
     if (letterSpacingVar) {
         text.setBoundVariable('letterSpacing', letterSpacingVar);
     }
 
-    // Bind line-height to icon-size for consistent height (same as Button)
-    const lineHeightVar = atomVars['NavMenuItem/line-height'] || atomVars['NavMenuItem/icon-size'] || atomVars['Button/line-height'] || atomVars['Button/icon-size'];
+    // Bind line-height from Atoms (special - links to icon-size for consistent height)
+    const lineHeightVar = atomVars['NavMenuItem/line-height'];
     if (lineHeightVar) {
         text.setBoundVariable('lineHeight', lineHeightVar);
     }
@@ -3050,8 +3027,8 @@ async function createMenuItem(
     iconRight.visible = false;
     item.appendChild(iconRight);
 
-    // Gap between elements - use NavMenuItem, fallback to Button
-    const gapVar = atomVars['NavMenuItem/gap'] || atomVars['Button/gap'];
+    // Gap between elements directly from Aliases
+    const gapVar = findVar(['gap/sm', 'gap/xs'], 'FLOAT');
     if (gapVar) {
         item.setBoundVariable('itemSpacing', gapVar);
     } else {

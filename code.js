@@ -1164,43 +1164,14 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             mobile: mobileModeId
           };
           const atomVariableDefinitions = [
-            // Button variables
-            { name: "Button/padding-y", type: "FLOAT", desktop: ["padding/y/sm"], tablet: ["padding/y/sm"], mobile: ["padding/y/xs"] },
-            { name: "Button/padding-x", type: "FLOAT", desktop: ["padding/x/lg"], tablet: ["padding/x/md"], mobile: ["padding/x/sm"] },
-            { name: "Button/font-size", type: "FLOAT", desktop: ["Typography/Body/base", "Body/base"], tablet: ["Typography/Body/sm", "Body/sm"], mobile: ["Typography/Body/sm", "Body/sm"] },
-            { name: "Button/font-family", type: "STRING", desktop: ["Typography/Font Family/Body", "Font Family/Body"], tablet: ["Typography/Font Family/Body", "Font Family/Body"], mobile: ["Typography/Font Family/Body", "Font Family/Body"] },
-            { name: "Button/font-weight", type: "FLOAT", desktop: ["Typography/Font Weight/Medium", "Font Weight/Medium"], tablet: ["Typography/Font Weight/Medium", "Font Weight/Medium"], mobile: ["Typography/Font Weight/Medium", "Font Weight/Medium"] },
-            { name: "Button/letter-spacing", type: "FLOAT", desktop: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], tablet: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], mobile: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"] },
-            { name: "Button/icon-size", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
+            // Button - only line-height needs a dedicated variable (must equal icon-size for consistent height)
             { name: "Button/line-height", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
-            // Same as icon-size for consistent height
-            { name: "Button/gap", type: "FLOAT", desktop: ["gap/md"], tablet: ["gap/sm"], mobile: ["gap/xs"] },
-            { name: "Button/radius", type: "FLOAT", desktop: ["radius/md"], tablet: ["radius/sm"], mobile: ["radius/sm"] },
-            // Input variables
-            { name: "Input/padding-y", type: "FLOAT", desktop: ["padding/y/sm"], tablet: ["padding/y/sm"], mobile: ["padding/y/xs"] },
-            { name: "Input/padding-x", type: "FLOAT", desktop: ["padding/y/sm"], tablet: ["padding/y/sm"], mobile: ["padding/y/xs"] },
-            // Same as padding-y for balanced padding
-            { name: "Input/font-size", type: "FLOAT", desktop: ["Typography/Body/base", "Body/base"], tablet: ["Typography/Body/sm", "Body/sm"], mobile: ["Typography/Body/sm", "Body/sm"] },
-            { name: "Input/font-family", type: "STRING", desktop: ["Typography/Font Family/Body", "Font Family/Body"], tablet: ["Typography/Font Family/Body", "Font Family/Body"], mobile: ["Typography/Font Family/Body", "Font Family/Body"] },
-            { name: "Input/font-weight", type: "FLOAT", desktop: ["Typography/Font Weight/Regular", "Font Weight/Regular"], tablet: ["Typography/Font Weight/Regular", "Font Weight/Regular"], mobile: ["Typography/Font Weight/Regular", "Font Weight/Regular"] },
-            { name: "Input/letter-spacing", type: "FLOAT", desktop: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], tablet: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], mobile: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"] },
-            { name: "Input/icon-size", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
+            // Input - only line-height needs a dedicated variable (must equal icon-size for consistent height)
             { name: "Input/line-height", type: "FLOAT", desktop: ["Icon-Size/lg"], tablet: ["Icon-Size/md"], mobile: ["Icon-Size/sm"] },
-            // Same as icon-size for consistent height
-            { name: "Input/gap", type: "FLOAT", desktop: ["gap/md"], tablet: ["gap/sm"], mobile: ["gap/xs"] },
-            { name: "Input/radius", type: "FLOAT", desktop: ["radius/md"], tablet: ["radius/sm"], mobile: ["radius/sm"] },
-            // Badge variables
-            { name: "Badge/padding-y", type: "FLOAT", desktop: ["padding/y/sm"], tablet: ["padding/y/xs"], mobile: ["padding/y/xs"] },
-            { name: "Badge/padding-x", type: "FLOAT", desktop: ["padding/x/md"], tablet: ["padding/x/sm"], mobile: ["padding/x/xs"] },
-            { name: "Badge/font-size", type: "FLOAT", desktop: ["Typography/Body/sm", "Body/sm"], tablet: ["Typography/Body/xs", "Body/xs"], mobile: ["Typography/Body/xs", "Body/xs"] },
-            { name: "Badge/font-family", type: "STRING", desktop: ["Typography/Font Family/Body", "Font Family/Body"], tablet: ["Typography/Font Family/Body", "Font Family/Body"], mobile: ["Typography/Font Family/Body", "Font Family/Body"] },
-            { name: "Badge/font-weight", type: "FLOAT", desktop: ["Typography/Font Weight/Medium", "Font Weight/Medium"], tablet: ["Typography/Font Weight/Medium", "Font Weight/Medium"], mobile: ["Typography/Font Weight/Medium", "Font Weight/Medium"] },
-            { name: "Badge/letter-spacing", type: "FLOAT", desktop: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], tablet: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], mobile: ["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"] },
-            { name: "Badge/icon-size", type: "FLOAT", desktop: ["Icon-Size/md"], tablet: ["Icon-Size/sm"], mobile: ["Icon-Size/sm"] },
+            // Badge - only line-height needs a dedicated variable (must equal icon-size for consistent height)
             { name: "Badge/line-height", type: "FLOAT", desktop: ["Icon-Size/md"], tablet: ["Icon-Size/sm"], mobile: ["Icon-Size/sm"] },
-            // Same as icon-size for consistent height
-            { name: "Badge/gap", type: "FLOAT", desktop: ["gap/sm"], tablet: ["gap/xs"], mobile: ["gap/xs"] },
-            { name: "Badge/radius", type: "FLOAT", desktop: ["radius/full", "radius/lg"], tablet: ["radius/full", "radius/md"], mobile: ["radius/full", "radius/sm"] }
+            // NavMenuItem - only line-height needs a dedicated variable
+            { name: "NavMenuItem/line-height", type: "FLOAT", desktop: ["Icon-Size/md"], tablet: ["Icon-Size/sm"], mobile: ["Icon-Size/sm"] }
           ];
           const atomVars = {};
           const allVariables = yield figma.variables.getLocalVariablesAsync();
@@ -1636,7 +1607,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           btn.counterAxisSizingMode = "AUTO";
           btn.primaryAxisAlignItems = "CENTER";
           btn.counterAxisAlignItems = "CENTER";
-          const vPaddingVar = atomVars["Button/padding-y"];
+          const vPaddingVar = findVar(["padding/y/sm"], "FLOAT");
           if (vPaddingVar) {
             btn.setBoundVariable("paddingTop", vPaddingVar);
             btn.setBoundVariable("paddingBottom", vPaddingVar);
@@ -1644,7 +1615,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             btn.paddingTop = 12;
             btn.paddingBottom = 12;
           }
-          const hPaddingVar = atomVars["Button/padding-x"];
+          const hPaddingVar = findVar(["padding/x/lg", "padding/x/md"], "FLOAT");
           if (hPaddingVar) {
             btn.setBoundVariable("paddingLeft", hPaddingVar);
             btn.setBoundVariable("paddingRight", hPaddingVar);
@@ -1652,7 +1623,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             btn.paddingLeft = 24;
             btn.paddingRight = 24;
           }
-          const radiusVar = atomVars["Button/radius"];
+          const radiusVar = findVar(["radius/md", "radius/sm"], "FLOAT");
           if (radiusVar) {
             btn.setBoundVariable("topLeftRadius", radiusVar);
             btn.setBoundVariable("topRightRadius", radiusVar);
@@ -1709,7 +1680,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             btn.opacity = 0.5;
           }
           const textVar = findVar(textVarTerms, "COLOR");
-          const iconSizeVar = atomVars["Button/icon-size"];
+          const iconSizeVar = findVar(["Icon-Size/lg", "Icon-Size/md"], "FLOAT");
           const iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, textVar);
           iconLeft.visible = false;
           btn.appendChild(iconLeft);
@@ -1719,21 +1690,21 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           text.fontName = { family: "Inter", style: "Medium" };
           const defaultLabel = variant.charAt(0).toUpperCase() + variant.slice(1);
           text.characters = defaultLabel;
-          const fontSizeVar = atomVars["Button/font-size"];
+          const fontSizeVar = findVar(["Typography/Body/base", "Body/base"], "FLOAT");
           if (fontSizeVar) {
             text.setBoundVariable("fontSize", fontSizeVar);
           } else {
             text.fontSize = 16;
           }
-          const fontFamilyVar = atomVars["Button/font-family"];
+          const fontFamilyVar = findVar(["Typography/Font Family/Body", "Font Family/Body"], "STRING");
           if (fontFamilyVar) {
             text.setBoundVariable("fontFamily", fontFamilyVar);
           }
-          const fontWeightVar = atomVars["Button/font-weight"];
+          const fontWeightVar = findVar(["Typography/Font Weight/Medium", "Font Weight/Medium"], "FLOAT");
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
-          const letterSpacingVar = atomVars["Button/letter-spacing"];
+          const letterSpacingVar = findVar(["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], "FLOAT");
           if (letterSpacingVar) {
             text.setBoundVariable("letterSpacing", letterSpacingVar);
           }
@@ -1748,7 +1719,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           const iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, textVar);
           iconRight.visible = false;
           btn.appendChild(iconRight);
-          const gapVar = atomVars["Button/gap"];
+          const gapVar = findVar(["gap/md", "gap/sm"], "FLOAT");
           if (gapVar) {
             btn.setBoundVariable("itemSpacing", gapVar);
           } else {
@@ -1794,7 +1765,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           input.counterAxisAlignItems = "CENTER";
           input.resize(240, input.height);
           input.clipsContent = true;
-          const vPaddingVar = atomVars["Input/padding-y"];
+          const vPaddingVar = findVar(["padding/y/sm"], "FLOAT");
           if (vPaddingVar) {
             input.setBoundVariable("paddingTop", vPaddingVar);
             input.setBoundVariable("paddingBottom", vPaddingVar);
@@ -1802,12 +1773,11 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.paddingTop = 12;
             input.paddingBottom = 12;
           }
-          const hPaddingVar = atomVars["Input/padding-x"];
-          const vPaddingVarForSelect = atomVars["Input/padding-y"];
+          const hPaddingVar = findVar(["padding/x/sm", "padding/y/sm"], "FLOAT");
           if (hPaddingVar) {
             input.setBoundVariable("paddingLeft", hPaddingVar);
-            if (variant === "select" && vPaddingVarForSelect) {
-              input.setBoundVariable("paddingRight", vPaddingVarForSelect);
+            if (variant === "select" && vPaddingVar) {
+              input.setBoundVariable("paddingRight", vPaddingVar);
             } else if (variant === "select") {
               input.paddingRight = 12;
             } else {
@@ -1817,7 +1787,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.paddingLeft = 16;
             input.paddingRight = variant === "select" ? 12 : 16;
           }
-          const radiusVar = atomVars["Input/radius"];
+          const radiusVar = findVar(["radius/md", "radius/sm"], "FLOAT");
           if (radiusVar) {
             input.setBoundVariable("topLeftRadius", radiusVar);
             input.setBoundVariable("topRightRadius", radiusVar);
@@ -1891,7 +1861,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.opacity = 0.5;
           }
           const iconColorVar = findVar(["text/secondary", "icon/default"], "COLOR");
-          const iconSizeVar = atomVars["Input/icon-size"];
+          const iconSizeVar = findVar(["Icon-Size/lg", "Icon-Size/md"], "FLOAT");
           let iconLeft = null;
           let iconRight = null;
           if (variant !== "textarea") {
@@ -1904,21 +1874,21 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
           text.fontName = { family: "Inter", style: "Regular" };
           text.characters = state === "disabled" ? "Disabled" : variant === "textarea" ? "Enter text..." : "Placeholder";
-          const fontSizeVar = atomVars["Input/font-size"];
+          const fontSizeVar = findVar(["Typography/Body/base", "Body/base"], "FLOAT");
           if (fontSizeVar) {
             text.setBoundVariable("fontSize", fontSizeVar);
           } else {
             text.fontSize = 16;
           }
-          const fontFamilyVar = atomVars["Input/font-family"];
+          const fontFamilyVar = findVar(["Typography/Font Family/Body", "Font Family/Body"], "STRING");
           if (fontFamilyVar) {
             text.setBoundVariable("fontFamily", fontFamilyVar);
           }
-          const fontWeightVar = atomVars["Input/font-weight"];
+          const fontWeightVar = findVar(["Typography/Font Weight/Regular", "Font Weight/Regular"], "FLOAT");
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
-          const letterSpacingVar = atomVars["Input/letter-spacing"];
+          const letterSpacingVar = findVar(["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], "FLOAT");
           if (letterSpacingVar) {
             text.setBoundVariable("letterSpacing", letterSpacingVar);
           }
@@ -1948,7 +1918,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             input.appendChild(chevron);
           }
           if (variant !== "textarea") {
-            const gapVar = atomVars["Input/gap"];
+            const gapVar = findVar(["gap/md", "gap/sm"], "FLOAT");
             if (gapVar) {
               input.setBoundVariable("itemSpacing", gapVar);
             } else {
@@ -2004,7 +1974,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           badge.counterAxisSizingMode = "AUTO";
           badge.primaryAxisAlignItems = "CENTER";
           badge.counterAxisAlignItems = "CENTER";
-          const vPaddingVar = atomVars["Badge/padding-y"];
+          const vPaddingVar = findVar(["padding/y/sm", "padding/y/xs"], "FLOAT");
           if (vPaddingVar) {
             badge.setBoundVariable("paddingTop", vPaddingVar);
             badge.setBoundVariable("paddingBottom", vPaddingVar);
@@ -2012,7 +1982,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             badge.paddingTop = 4;
             badge.paddingBottom = 4;
           }
-          const hPaddingVar = atomVars["Badge/padding-x"];
+          const hPaddingVar = findVar(["padding/x/md", "padding/x/sm"], "FLOAT");
           if (hPaddingVar) {
             badge.setBoundVariable("paddingLeft", hPaddingVar);
             badge.setBoundVariable("paddingRight", hPaddingVar);
@@ -2020,7 +1990,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             badge.paddingLeft = 12;
             badge.paddingRight = 12;
           }
-          const radiusVar = atomVars["Badge/radius"];
+          const radiusVar = findVar(["radius/full", "radius/lg"], "FLOAT");
           if (radiusVar) {
             badge.setBoundVariable("topLeftRadius", radiusVar);
             badge.setBoundVariable("topRightRadius", radiusVar);
@@ -2061,7 +2031,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
           }
           const textVar = findVar(textTerms, "COLOR");
-          const iconSizeVar = atomVars["Badge/icon-size"];
+          const iconSizeVar = findVar(["Icon-Size/md", "Icon-Size/sm"], "FLOAT");
           const iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, textVar);
           iconLeft.visible = false;
           badge.appendChild(iconLeft);
@@ -2076,21 +2046,21 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             error: "Error"
           };
           text.characters = labelMap[variant] || "Badge";
-          const fontSizeVar = atomVars["Badge/font-size"];
+          const fontSizeVar = findVar(["Typography/Body/sm", "Body/sm"], "FLOAT");
           if (fontSizeVar) {
             text.setBoundVariable("fontSize", fontSizeVar);
           } else {
             text.fontSize = 14;
           }
-          const fontFamilyVar = atomVars["Badge/font-family"];
+          const fontFamilyVar = findVar(["Typography/Font Family/Body", "Font Family/Body"], "STRING");
           if (fontFamilyVar) {
             text.setBoundVariable("fontFamily", fontFamilyVar);
           }
-          const fontWeightVar = atomVars["Badge/font-weight"];
+          const fontWeightVar = findVar(["Typography/Font Weight/Medium", "Font Weight/Medium"], "FLOAT");
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
-          const letterSpacingVar = atomVars["Badge/letter-spacing"];
+          const letterSpacingVar = findVar(["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], "FLOAT");
           if (letterSpacingVar) {
             text.setBoundVariable("letterSpacing", letterSpacingVar);
           }
@@ -2105,7 +2075,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           const iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, textVar);
           iconRight.visible = false;
           badge.appendChild(iconRight);
-          const gapVar = atomVars["Badge/gap"];
+          const gapVar = findVar(["gap/sm", "gap/xs"], "FLOAT");
           if (gapVar) {
             badge.setBoundVariable("itemSpacing", gapVar);
           } else {
@@ -2151,7 +2121,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           item.counterAxisSizingMode = "AUTO";
           item.primaryAxisAlignItems = "CENTER";
           item.counterAxisAlignItems = "CENTER";
-          const vPaddingVar = atomVars["NavMenuItem/padding-y"] || atomVars["Button/padding-y"];
+          const vPaddingVar = findVar(["padding/y/xs", "padding/y/sm"], "FLOAT");
           if (vPaddingVar) {
             item.setBoundVariable("paddingTop", vPaddingVar);
             item.setBoundVariable("paddingBottom", vPaddingVar);
@@ -2159,7 +2129,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             item.paddingTop = 8;
             item.paddingBottom = 8;
           }
-          const hPaddingVar = atomVars["NavMenuItem/padding-x"] || atomVars["Button/padding-x"];
+          const hPaddingVar = findVar(["padding/x/sm", "padding/x/xs"], "FLOAT");
           if (hPaddingVar) {
             item.setBoundVariable("paddingLeft", hPaddingVar);
             item.setBoundVariable("paddingRight", hPaddingVar);
@@ -2167,7 +2137,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             item.paddingLeft = 12;
             item.paddingRight = 12;
           }
-          const radiusVar = atomVars["NavMenuItem/radius"] || atomVars["Button/radius"];
+          const radiusVar = findVar(["radius/sm", "radius/xs"], "FLOAT");
           if (radiusVar) {
             item.setBoundVariable("topLeftRadius", radiusVar);
             item.setBoundVariable("topRightRadius", radiusVar);
@@ -2211,7 +2181,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           }
           const textVar = findVar(textVarTerms, "COLOR");
           const iconVar = findVar(iconVarTerms, "COLOR");
-          const iconSizeVar = atomVars["NavMenuItem/icon-size"] || atomVars["Button/icon-size"];
+          const iconSizeVar = findVar(["Icon-Size/md", "Icon-Size/sm"], "FLOAT");
           const iconLeft = yield createIconInstanceWithVar("IconLeft", iconSizeVar, iconVar);
           iconLeft.visible = false;
           item.appendChild(iconLeft);
@@ -2220,25 +2190,25 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           yield figma.loadFontAsync({ family: "Inter", style: "Medium" });
           text.fontName = { family: "Inter", style: "Medium" };
           text.characters = "Menu Item";
-          const fontSizeVar = atomVars["NavMenuItem/font-size"] || atomVars["Button/font-size"];
+          const fontSizeVar = findVar(["Typography/Body/sm", "Body/sm"], "FLOAT");
           if (fontSizeVar) {
             text.setBoundVariable("fontSize", fontSizeVar);
           } else {
             text.fontSize = 14;
           }
-          const fontFamilyVar = atomVars["NavMenuItem/font-family"] || atomVars["Button/font-family"];
+          const fontFamilyVar = findVar(["Typography/Font Family/Body", "Font Family/Body"], "STRING");
           if (fontFamilyVar) {
             text.setBoundVariable("fontFamily", fontFamilyVar);
           }
-          const fontWeightVar = atomVars["NavMenuItem/font-weight"] || atomVars["Button/font-weight"];
+          const fontWeightVar = findVar(["Typography/Font Weight/Medium", "Font Weight/Medium"], "FLOAT");
           if (fontWeightVar) {
             text.setBoundVariable("fontWeight", fontWeightVar);
           }
-          const letterSpacingVar = atomVars["NavMenuItem/letter-spacing"] || atomVars["Button/letter-spacing"];
+          const letterSpacingVar = findVar(["Typography/Letter Spacing/normal", "Letter Spacing/normal", "letter-spacing/normal"], "FLOAT");
           if (letterSpacingVar) {
             text.setBoundVariable("letterSpacing", letterSpacingVar);
           }
-          const lineHeightVar = atomVars["NavMenuItem/line-height"] || atomVars["NavMenuItem/icon-size"] || atomVars["Button/line-height"] || atomVars["Button/icon-size"];
+          const lineHeightVar = atomVars["NavMenuItem/line-height"];
           if (lineHeightVar) {
             text.setBoundVariable("lineHeight", lineHeightVar);
           }
@@ -2282,7 +2252,7 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           const iconRight = yield createIconInstanceWithVar("IconRight", iconSizeVar, iconVar);
           iconRight.visible = false;
           item.appendChild(iconRight);
-          const gapVar = atomVars["NavMenuItem/gap"] || atomVars["Button/gap"];
+          const gapVar = findVar(["gap/sm", "gap/xs"], "FLOAT");
           if (gapVar) {
             item.setBoundVariable("itemSpacing", gapVar);
           } else {

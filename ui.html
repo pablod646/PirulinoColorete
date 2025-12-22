@@ -6614,7 +6614,36 @@ function initTheme() {
                         undoThemeBtn.style.display = 'flex';
                     }
 
-                    // Trigger Regeneration
+                    // Collect ALL current token values as base, then merge user overrides
+                    const getScale = (name) => {
+                        if (!name) return null;
+                        const parts = name.split(/[\/\- ]/);
+                        const lastPart = parts[parts.length - 1];
+                        if (/^\d+$/.test(lastPart)) return lastPart;
+                        return null;
+                    };
+
+                    // Build complete overrides from current theme data
+                    const completeOverrides = {};
+                    if (generatedThemeData && generatedThemeData.tokens) {
+                        Object.entries(generatedThemeData.tokens).forEach(([name, token]) => {
+                            const lightScale = getScale(token.light?.name);
+                            const darkScale = getScale(token.dark?.name);
+                            if (lightScale || darkScale) {
+                                completeOverrides[name] = {};
+                                if (lightScale) completeOverrides[name].light = lightScale;
+                                if (darkScale) completeOverrides[name].dark = darkScale;
+                            }
+                        });
+                    }
+
+                    // Merge user's manual overrides (these take priority)
+                    Object.entries(tokenOverrides).forEach(([name, modes]) => {
+                        if (!completeOverrides[name]) completeOverrides[name] = {};
+                        if (modes.light) completeOverrides[name].light = modes.light;
+                        if (modes.dark) completeOverrides[name].dark = modes.dark;
+                    });
+
                     const msg = {
                         type: 'regenerate-theme',
                         accentPalette: accentSelect.value,
@@ -6625,7 +6654,7 @@ function initTheme() {
                             error: errorSelect.value
                         },
                         themeName: themeNameInput.value.trim(),
-                        tokenOverrides: tokenOverrides
+                        tokenOverrides: completeOverrides // Send ALL values, not just user changes
                     };
 
                     // Store scroll position to restore after re-render

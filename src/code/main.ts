@@ -3076,7 +3076,7 @@ async function createMenuItem(
         const showChevronProp = component.addComponentProperty('showChevron', 'BOOLEAN', false);
         iconRight.componentPropertyReferences = { visible: showChevronProp };
 
-        // Add INSTANCE_SWAP for icon
+        // Add INSTANCE_SWAP for left icon
         if (iconLeft.type === 'INSTANCE') {
             const mainComp = await iconLeft.getMainComponentAsync();
             if (mainComp) {
@@ -3084,6 +3084,18 @@ async function createMenuItem(
                 iconLeft.componentPropertyReferences = {
                     ...iconLeft.componentPropertyReferences,
                     mainComponent: swapProp
+                };
+            }
+        }
+
+        // Add INSTANCE_SWAP for right icon (chevron)
+        if (iconRight.type === 'INSTANCE') {
+            const mainCompRight = await iconRight.getMainComponentAsync();
+            if (mainCompRight) {
+                const swapChevronProp = component.addComponentProperty('SwapChevron', 'INSTANCE_SWAP', mainCompRight.id);
+                iconRight.componentPropertyReferences = {
+                    ...iconRight.componentPropertyReferences,
+                    mainComponent: swapChevronProp
                 };
             }
         }

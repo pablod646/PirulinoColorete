@@ -2305,6 +2305,15 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 });
               }
             }
+            if (iconRight.type === "INSTANCE") {
+              const mainCompRight = yield iconRight.getMainComponentAsync();
+              if (mainCompRight) {
+                const swapChevronProp = component.addComponentProperty("SwapChevron", "INSTANCE_SWAP", mainCompRight.id);
+                iconRight.componentPropertyReferences = __spreadProps(__spreadValues({}, iconRight.componentPropertyReferences), {
+                  mainComponent: swapChevronProp
+                });
+              }
+            }
           }
           return item;
         });

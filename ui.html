@@ -5796,7 +5796,36 @@ function initTheme() {
             if (type === 'theme-loaded-for-edit') {
                 generatedThemeData = payload; // Important: update global data
                 originalThemeData = JSON.parse(JSON.stringify(payload)); // Deep copy for undo
-                tokenOverrides = {}; // Reset overrides when loading existing theme
+
+                // Extract scale values from the loaded theme and store in tokenOverrides
+                // This preserves the scale values when regenerating with a different palette
+                tokenOverrides = {};
+
+                // Helper to extract scale from name like "Colors/Blue/100" -> "100"
+                const getScale = (name) => {
+                    if (!name) return null;
+                    const parts = name.split(/[\/\- ]/);
+                    return parts[parts.length - 1];
+                };
+
+                if (payload.tokens) {
+                    for (const [tokenName, tokenData] of Object.entries(payload.tokens)) {
+                        if (tokenData.light && tokenData.light.name) {
+                            const scale = getScale(tokenData.light.name);
+                            if (scale) {
+                                if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
+                                tokenOverrides[tokenName].light = scale;
+                            }
+                        }
+                        if (tokenData.dark && tokenData.dark.name) {
+                            const scale = getScale(tokenData.dark.name);
+                            if (scale) {
+                                if (!tokenOverrides[tokenName]) tokenOverrides[tokenName] = {};
+                                tokenOverrides[tokenName].dark = scale;
+                            }
+                        }
+                    }
+                }
 
                 // Extract paletteData first for custom dropdowns
                 if (payload.paletteData) {
@@ -5967,8 +5996,11 @@ function initTheme() {
     const triggerRegeneration = () => {
         if (!accentSelect.value || !neutralSelect.value) return;
 
-        // Gather current overrides from the UI if any
-        const currentOverrides = {};
+        // Start with saved tokenOverrides from the loaded theme (if any)
+        // This preserves scale values like 100, 900 when changing palettes
+        const currentOverrides = { ...tokenOverrides };
+
+        // Override with values from UI selectors (user's latest changes take precedence)
         document.querySelectorAll('.token-override-select').forEach(sel => {
             const token = sel.dataset.token;
             const mode = sel.dataset.mode;
@@ -5989,10 +6021,9 @@ function initTheme() {
                 error: errorSelect.value
             },
             themeName: themeNameInput.value.trim(),
-            tokenOverrides: currentOverrides, // Send existing overrides so they aren't lost
-            isRegenerate: true // Flag to tell backend this is a live update
+            tokenOverrides: currentOverrides,
+            isRegenerate: true
         };
-
 
         parent.postMessage({ pluginMessage: msg }, '*');
 

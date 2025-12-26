@@ -113,6 +113,7 @@ interface AtomsConfig {
         inputs: { variants: string[]; states: string[] } | null;
         badges: { variants: string[]; sizes: string[] } | null;
         navMenu: { states: string[] } | null;
+        navLink: { states: string[] } | null;
     };
 }
 
@@ -1879,6 +1880,51 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             }
         }
 
+        // ============================================
+        // NAV LINKS (Header Navigation - Minimal Style)
+        // ============================================
+        if (config.components.navLink) {
+            figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 90, message: 'Creating nav links...' } });
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const { states: linkStates } = config.components.navLink;
+            const navLinkComponents: ComponentNode[] = [];
+
+            for (const state of linkStates) {
+                const originalAsComponents = config.asComponents;
+                config.asComponents = true;
+
+                const navLink = await createNavLink(state, config, findVar, atomVars) as ComponentNode;
+
+                // Name with property=value format for variants
+                const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                navLink.name = `State=${stateCapitalized}`;
+
+                navLinkComponents.push(navLink);
+                componentCount++;
+
+                config.asComponents = originalAsComponents;
+            }
+
+            // Combine all nav link components into a ComponentSet
+            if (navLinkComponents.length > 0) {
+                const navLinkComponentSet = figma.combineAsVariants(navLinkComponents, container);
+                navLinkComponentSet.name = `${config.prefix}NavLink`;
+
+                // Style the component set frame
+                navLinkComponentSet.layoutMode = 'HORIZONTAL';
+                navLinkComponentSet.layoutWrap = 'WRAP';
+                navLinkComponentSet.primaryAxisSizingMode = 'AUTO';
+                navLinkComponentSet.counterAxisSizingMode = 'AUTO';
+                navLinkComponentSet.itemSpacing = 16;
+                navLinkComponentSet.counterAxisSpacing = 16;
+                navLinkComponentSet.paddingTop = 24;
+                navLinkComponentSet.paddingBottom = 24;
+                navLinkComponentSet.paddingLeft = 24;
+                navLinkComponentSet.paddingRight = 24;
+            }
+        }
+
         // Final progress update
         figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 95, message: 'Finalizing component sets...' } });
 
@@ -3144,6 +3190,147 @@ async function createMenuItem(
     return item;
 }
 
+// Helper: Create NavLink component (Header Navigation - Minimal Style)
+async function createNavLink(
+    state: string,
+    config: AtomsConfig,
+    findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined,
+    atomVars: Record<string, Variable>
+): Promise<FrameNode | ComponentNode> {
+    const link = config.asComponents
+        ? figma.createComponent()
+        : figma.createFrame();
+
+    link.name = `NavLink/${state}`;
+    link.layoutMode = 'HORIZONTAL';
+    link.primaryAxisSizingMode = 'AUTO';
+    link.counterAxisSizingMode = 'AUTO';
+    link.primaryAxisAlignItems = 'CENTER';
+    link.counterAxisAlignItems = 'CENTER';
+
+    // Compact padding for header links
+    const hPaddingVar = findVar(['padding/x/sm', 'padding/x/xs'], 'FLOAT');
+    if (hPaddingVar) {
+        link.setBoundVariable('paddingLeft', hPaddingVar);
+        link.setBoundVariable('paddingRight', hPaddingVar);
+    } else {
+        link.paddingLeft = 8;
+        link.paddingRight = 8;
+    }
+
+    const vPaddingVar = findVar(['padding/y/xs'], 'FLOAT');
+    if (vPaddingVar) {
+        link.setBoundVariable('paddingTop', vPaddingVar);
+        link.setBoundVariable('paddingBottom', vPaddingVar);
+    } else {
+        link.paddingTop = 4;
+        link.paddingBottom = 4;
+    }
+
+    // No background - transparent
+    link.fills = [];
+
+    // No corner radius for header links
+    link.cornerRadius = 0;
+
+    // Text color based on state
+    let textVarTerms: string[] = [];
+
+    if (state === 'active') {
+        textVarTerms = ['text/brand', 'action/primary'];
+    } else if (state === 'hover') {
+        textVarTerms = ['text/primary'];
+    } else if (state === 'disabled') {
+        textVarTerms = ['text/disabled', 'text/tertiary'];
+    } else {
+        // default
+        textVarTerms = ['text/secondary'];
+    }
+
+    const textVar = findVar(textVarTerms, 'COLOR');
+
+    // Create the text label
+    const text = figma.createText();
+    text.name = 'Label';
+    await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
+    text.fontName = { family: 'Inter', style: 'Medium' };
+    text.characters = 'Menu Item';
+
+    // Font size from Aliases
+    const fontSizeVar = findVar(['Typography/Body/sm', 'Body/sm', 'Typography/Body/base'], 'FLOAT');
+    if (fontSizeVar) {
+        text.setBoundVariable('fontSize', fontSizeVar);
+    } else {
+        text.fontSize = 14;
+    }
+
+    // Font family from Aliases
+    const fontFamilyVar = findVar(['Typography/Font Family/Body', 'Font Family/Body'], 'STRING');
+    if (fontFamilyVar) {
+        text.setBoundVariable('fontFamily', fontFamilyVar);
+    }
+
+    // Font weight - medium for default, semibold for active
+    if (state === 'active') {
+        await figma.loadFontAsync({ family: 'Inter', style: 'Semi Bold' });
+        text.fontName = { family: 'Inter', style: 'Semi Bold' };
+    }
+
+    // Apply text color
+    if (textVar) {
+        text.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', textVar)];
+    } else {
+        text.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
+    }
+
+    link.appendChild(text);
+
+    // For active state, wrap in vertical layout to add underline below
+    if (state === 'active') {
+        // Change to vertical layout to stack text + underline
+        link.layoutMode = 'VERTICAL';
+        link.primaryAxisAlignItems = 'CENTER';
+        link.counterAxisAlignItems = 'CENTER';
+        link.itemSpacing = 2;
+
+        // Create underline bar
+        const underline = figma.createFrame();
+        underline.name = 'ActiveIndicator';
+        underline.layoutMode = 'HORIZONTAL';
+        underline.primaryAxisSizingMode = 'FIXED';
+        underline.counterAxisSizingMode = 'FIXED';
+        underline.resize(text.width, 2);
+
+        // Use the accent color for the underline
+        const underlineColorVar = findVar(['action/primary', 'text/brand'], 'COLOR');
+        if (underlineColorVar) {
+            underline.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.8 } }, 'color', underlineColorVar)];
+        } else {
+            underline.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.8 } }];
+        }
+
+        // Round corners slightly
+        underline.cornerRadius = 1;
+
+        link.appendChild(underline);
+    }
+
+    // Opacity for disabled
+    if (state === 'disabled') {
+        link.opacity = 0.5;
+    }
+
+    // Add component properties if it's a component
+    if (config.asComponents && link.type === 'COMPONENT') {
+        const component = link as ComponentNode;
+
+        // Expose text as editable property
+        const textProp = component.addComponentProperty('Text', 'TEXT', 'Menu Item');
+        text.componentPropertyReferences = { characters: textProp };
+    }
+
+    return link;
+}
 
 async function createTypographyVariables(data: TypographyData): Promise<void> {
     try {

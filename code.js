@@ -1484,6 +1484,36 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 menuItemComponentSet.paddingRight = 24;
               }
             }
+            if (config.components.navLink) {
+              figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 90, message: "Creating nav links..." } });
+              yield new Promise((resolve) => setTimeout(resolve, 50));
+              const { states: linkStates } = config.components.navLink;
+              const navLinkComponents = [];
+              for (const state of linkStates) {
+                const originalAsComponents = config.asComponents;
+                config.asComponents = true;
+                const navLink = yield createNavLink(state, config, findVar, atomVars);
+                const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+                navLink.name = `State=${stateCapitalized}`;
+                navLinkComponents.push(navLink);
+                componentCount++;
+                config.asComponents = originalAsComponents;
+              }
+              if (navLinkComponents.length > 0) {
+                const navLinkComponentSet = figma.combineAsVariants(navLinkComponents, container);
+                navLinkComponentSet.name = `${config.prefix}NavLink`;
+                navLinkComponentSet.layoutMode = "HORIZONTAL";
+                navLinkComponentSet.layoutWrap = "WRAP";
+                navLinkComponentSet.primaryAxisSizingMode = "AUTO";
+                navLinkComponentSet.counterAxisSizingMode = "AUTO";
+                navLinkComponentSet.itemSpacing = 16;
+                navLinkComponentSet.counterAxisSpacing = 16;
+                navLinkComponentSet.paddingTop = 24;
+                navLinkComponentSet.paddingBottom = 24;
+                navLinkComponentSet.paddingLeft = 24;
+                navLinkComponentSet.paddingRight = 24;
+              }
+            }
             figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 95, message: "Finalizing component sets..." } });
             yield new Promise((resolve) => setTimeout(resolve, 50));
             figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 100, message: "Complete!" } });
@@ -2351,6 +2381,100 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
           }
           return item;
+        });
+      }
+      function createNavLink(state, config, findVar, atomVars) {
+        return __async(this, null, function* () {
+          const link = config.asComponents ? figma.createComponent() : figma.createFrame();
+          link.name = `NavLink/${state}`;
+          link.layoutMode = "HORIZONTAL";
+          link.primaryAxisSizingMode = "AUTO";
+          link.counterAxisSizingMode = "AUTO";
+          link.primaryAxisAlignItems = "CENTER";
+          link.counterAxisAlignItems = "CENTER";
+          const hPaddingVar = findVar(["padding/x/sm", "padding/x/xs"], "FLOAT");
+          if (hPaddingVar) {
+            link.setBoundVariable("paddingLeft", hPaddingVar);
+            link.setBoundVariable("paddingRight", hPaddingVar);
+          } else {
+            link.paddingLeft = 8;
+            link.paddingRight = 8;
+          }
+          const vPaddingVar = findVar(["padding/y/xs"], "FLOAT");
+          if (vPaddingVar) {
+            link.setBoundVariable("paddingTop", vPaddingVar);
+            link.setBoundVariable("paddingBottom", vPaddingVar);
+          } else {
+            link.paddingTop = 4;
+            link.paddingBottom = 4;
+          }
+          link.fills = [];
+          link.cornerRadius = 0;
+          let textVarTerms = [];
+          if (state === "active") {
+            textVarTerms = ["text/brand", "action/primary"];
+          } else if (state === "hover") {
+            textVarTerms = ["text/primary"];
+          } else if (state === "disabled") {
+            textVarTerms = ["text/disabled", "text/tertiary"];
+          } else {
+            textVarTerms = ["text/secondary"];
+          }
+          const textVar = findVar(textVarTerms, "COLOR");
+          const text = figma.createText();
+          text.name = "Label";
+          yield figma.loadFontAsync({ family: "Inter", style: "Medium" });
+          text.fontName = { family: "Inter", style: "Medium" };
+          text.characters = "Menu Item";
+          const fontSizeVar = findVar(["Typography/Body/sm", "Body/sm", "Typography/Body/base"], "FLOAT");
+          if (fontSizeVar) {
+            text.setBoundVariable("fontSize", fontSizeVar);
+          } else {
+            text.fontSize = 14;
+          }
+          const fontFamilyVar = findVar(["Typography/Font Family/Body", "Font Family/Body"], "STRING");
+          if (fontFamilyVar) {
+            text.setBoundVariable("fontFamily", fontFamilyVar);
+          }
+          if (state === "active") {
+            yield figma.loadFontAsync({ family: "Inter", style: "Semi Bold" });
+            text.fontName = { family: "Inter", style: "Semi Bold" };
+          }
+          if (textVar) {
+            text.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", textVar)];
+          } else {
+            text.fills = [{ type: "SOLID", color: { r: 0.4, g: 0.4, b: 0.4 } }];
+          }
+          link.appendChild(text);
+          if (state === "active") {
+            link.layoutMode = "VERTICAL";
+            link.primaryAxisAlignItems = "CENTER";
+            link.counterAxisAlignItems = "CENTER";
+            link.itemSpacing = 2;
+            const underline = figma.createFrame();
+            underline.name = "ActiveIndicator";
+            underline.layoutMode = "HORIZONTAL";
+            underline.primaryAxisSizingMode = "FIXED";
+            underline.counterAxisSizingMode = "FIXED";
+            underline.resize(text.width, 2);
+            const underlineColorVar = findVar(["action/primary", "text/brand"], "COLOR");
+            if (underlineColorVar) {
+              underline.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.2, g: 0.4, b: 0.8 } }, "color", underlineColorVar)];
+            } else {
+              underline.fills = [{ type: "SOLID", color: { r: 0.2, g: 0.4, b: 0.8 } }];
+            }
+            underline.cornerRadius = 1;
+            link.appendChild(underline);
+          }
+          if (state === "disabled") {
+            link.opacity = 0.5;
+          }
+          if (config.asComponents && link.type === "COMPONENT") {
+            const component = link;
+            const textProp = component.addComponentProperty("Text", "TEXT", "Menu Item");
+            text.componentPropertyReferences = { characters: textProp };
+          }
+          return link;
         });
       }
       function createTypographyVariables(data) {

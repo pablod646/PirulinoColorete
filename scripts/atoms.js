@@ -13,6 +13,7 @@
     const genInputs = document.getElementById('gen-inputs');
     const genBadges = document.getElementById('gen-badges');
     const genNavMenu = document.getElementById('gen-navmenu');
+    const genNavLink = document.getElementById('gen-navlink');
 
     // Output options
     const prefixInput = document.getElementById('atoms-prefix');
@@ -125,6 +126,12 @@
             navMenuStates.push(cb.value);
         });
 
+        // Collect nav link states
+        const navLinkStates = [];
+        document.querySelectorAll('input[name="navlink-state"]:checked').forEach(cb => {
+            navLinkStates.push(cb.value);
+        });
+
         return {
             themeCollectionId: themeCollectionSelect ? themeCollectionSelect.value : '',
             aliasesCollectionId: aliasesCollectionSelect ? aliasesCollectionSelect.value : '',
@@ -135,7 +142,8 @@
                 buttons: genButtons && genButtons.checked ? { variants: buttonVariants, styles: buttonStyles, sizes: buttonSizes } : null,
                 inputs: genInputs && genInputs.checked ? { variants: inputVariants, states: inputStates } : null,
                 badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null,
-                navMenu: genNavMenu && genNavMenu.checked ? { states: navMenuStates } : null
+                navMenu: genNavMenu && genNavMenu.checked ? { states: navMenuStates } : null,
+                navLink: genNavLink && genNavLink.checked ? { states: navLinkStates } : null
             }
         };
     }
@@ -146,7 +154,7 @@
             return false;
         }
 
-        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges || config.components.navMenu;
+        const hasComponents = config.components.buttons || config.components.inputs || config.components.badges || config.components.navMenu || config.components.navLink;
         if (!hasComponents) {
             showNotification('Please select at least one component type', 'error');
             return false;

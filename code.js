@@ -1355,21 +1355,25 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
             }
             let componentCount = 0;
             if (config.components.buttons) {
-              const { variants } = config.components.buttons;
+              const { variants, styles } = config.components.buttons;
+              const buttonStyles = styles && styles.length > 0 ? styles : ["filled"];
               figma.ui.postMessage({ type: "atoms-generation-progress", payload: { percent: 10, message: "Creating buttons..." } });
               yield new Promise((resolve) => setTimeout(resolve, 50));
               const buttonComponents = [];
               const states = ["Default", "Hover", "Active", "Disabled"];
               for (const variant of variants) {
-                for (const state of states) {
-                  const originalAsComponents = config.asComponents;
-                  config.asComponents = true;
-                  const btn = yield createButton(variant, state.toLowerCase(), config, findVar, atomVars);
-                  const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                  btn.name = `Variant=${variantCapitalized}, State=${state}`;
-                  buttonComponents.push(btn);
-                  componentCount++;
-                  config.asComponents = originalAsComponents;
+                for (const style of buttonStyles) {
+                  for (const state of states) {
+                    const originalAsComponents = config.asComponents;
+                    config.asComponents = true;
+                    const btn = yield createButton(variant, state.toLowerCase(), style, config, findVar, atomVars);
+                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                    const styleCapitalized = style.charAt(0).toUpperCase() + style.slice(1);
+                    btn.name = `Variant=${variantCapitalized}, Style=${styleCapitalized}, State=${state}`;
+                    buttonComponents.push(btn);
+                    componentCount++;
+                    config.asComponents = originalAsComponents;
+                  }
                 }
               }
               if (buttonComponents.length > 0) {
@@ -1598,10 +1602,10 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           return iconFrame;
         });
       }
-      function createButton(variant, state, config, findVar, atomVars) {
+      function createButton(variant, state, style, config, findVar, atomVars) {
         return __async(this, null, function* () {
           const btn = config.asComponents ? figma.createComponent() : figma.createFrame();
-          btn.name = `Button/${variant}/${state}`;
+          btn.name = `Button/${variant}/${style}/${state}`;
           btn.layoutMode = "HORIZONTAL";
           btn.primaryAxisSizingMode = "AUTO";
           btn.counterAxisSizingMode = "AUTO";
@@ -1634,42 +1638,99 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
           }
           let bgVarTerms = [];
           let textVarTerms = [];
+          let borderVarTerms = [];
+          const isOutlined = style === "outlined";
           if (variant === "primary") {
-            if (state === "hover")
-              bgVarTerms = ["action/primaryhover", "primaryhover"];
-            else if (state === "active")
-              bgVarTerms = ["action/primaryactive", "primaryactive"];
-            else if (state === "disabled")
-              bgVarTerms = ["action/primarydisabled", "primarydisabled"];
-            else
-              bgVarTerms = ["action/primary"];
-            textVarTerms = ["action/primarytext", "text/inverse"];
+            if (isOutlined) {
+              if (state === "hover")
+                bgVarTerms = ["action/primaryhover", "primaryhover"];
+              else if (state === "active")
+                bgVarTerms = ["action/primaryactive", "primaryactive"];
+              else
+                bgVarTerms = [];
+              borderVarTerms = ["action/primary"];
+              textVarTerms = ["action/primary", "text/brand"];
+            } else {
+              if (state === "hover")
+                bgVarTerms = ["action/primaryhover", "primaryhover"];
+              else if (state === "active")
+                bgVarTerms = ["action/primaryactive", "primaryactive"];
+              else if (state === "disabled")
+                bgVarTerms = ["action/primarydisabled", "primarydisabled"];
+              else
+                bgVarTerms = ["action/primary"];
+              textVarTerms = ["action/primarytext", "text/inverse"];
+            }
           } else if (variant === "secondary") {
-            if (state === "hover")
-              bgVarTerms = ["action/secondaryhover", "secondaryhover"];
-            else
-              bgVarTerms = ["action/secondary"];
-            textVarTerms = ["action/secondarytext", "text/primary"];
+            if (isOutlined) {
+              if (state === "hover")
+                bgVarTerms = ["action/secondaryhover", "secondaryhover"];
+              else if (state === "active")
+                bgVarTerms = ["action/secondaryactive", "secondaryactive"];
+              else
+                bgVarTerms = [];
+              borderVarTerms = ["border/default"];
+              textVarTerms = ["text/primary"];
+            } else {
+              if (state === "hover")
+                bgVarTerms = ["action/secondaryhover", "secondaryhover"];
+              else
+                bgVarTerms = ["action/secondary"];
+              textVarTerms = ["action/secondarytext", "text/primary"];
+            }
           } else if (variant === "ghost") {
-            if (state === "hover")
-              bgVarTerms = ["action/ghosthover", "ghosthover"];
-            else
-              bgVarTerms = ["action/ghost", "background/primary"];
-            textVarTerms = ["action/ghosttext", "text/brand", "action/primary"];
+            if (isOutlined) {
+              if (state === "hover")
+                bgVarTerms = ["action/ghosthover", "ghosthover"];
+              else
+                bgVarTerms = [];
+              borderVarTerms = ["border/subtle", "border/default"];
+              textVarTerms = ["action/ghosttext", "text/brand", "action/primary"];
+            } else {
+              if (state === "hover")
+                bgVarTerms = ["action/ghosthover", "ghosthover"];
+              else
+                bgVarTerms = ["action/ghost", "background/primary"];
+              textVarTerms = ["action/ghosttext", "text/brand", "action/primary"];
+            }
           } else if (variant === "destructive") {
-            if (state === "hover")
-              bgVarTerms = ["action/destructivehover", "destructivehover"];
-            else
-              bgVarTerms = ["action/destructive"];
-            textVarTerms = ["action/destructivetext", "text/inverse"];
+            if (isOutlined) {
+              if (state === "hover")
+                bgVarTerms = ["action/destructivehover", "destructivehover"];
+              else if (state === "active")
+                bgVarTerms = ["action/destructiveactive", "destructiveactive"];
+              else
+                bgVarTerms = [];
+              borderVarTerms = ["action/destructive", "status/error"];
+              textVarTerms = ["action/destructive", "status/error"];
+            } else {
+              if (state === "hover")
+                bgVarTerms = ["action/destructivehover", "destructivehover"];
+              else
+                bgVarTerms = ["action/destructive"];
+              textVarTerms = ["action/destructivetext", "text/inverse"];
+            }
           }
-          const bgVar = findVar(bgVarTerms, "COLOR");
-          if (bgVar) {
-            btn.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", bgVar)];
+          if (isOutlined && bgVarTerms.length === 0) {
+            btn.fills = [];
           } else {
-            btn.fills = [{ type: "SOLID", color: { r: 0.2, g: 0.6, b: 0.9 } }];
+            const bgVar = findVar(bgVarTerms, "COLOR");
+            if (bgVar) {
+              btn.fills = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", bgVar)];
+            } else if (isOutlined) {
+              btn.fills = [];
+            } else {
+              btn.fills = [{ type: "SOLID", color: { r: 0.2, g: 0.6, b: 0.9 } }];
+            }
           }
-          if (variant === "secondary" || variant === "ghost") {
+          if (isOutlined) {
+            const borderVar = findVar(borderVarTerms, "COLOR");
+            if (borderVar) {
+              btn.strokes = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }, "color", borderVar)];
+              btn.strokeWeight = 1.5;
+              btn.strokeAlign = "INSIDE";
+            }
+          } else if (variant === "secondary" || variant === "ghost") {
             const borderVar = findVar(["border/default"], "COLOR");
             if (borderVar) {
               btn.strokes = [figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0.8, g: 0.8, b: 0.8 } }, "color", borderVar)];
@@ -3181,14 +3242,29 @@ module.exports = ${JSON.stringify(config, null, 2)}`;
                 },
                 border: {
                   default: get("Border/default"),
+                  subtle: get("Border/subtle"),
+                  strong: get("Border/strong"),
                   focus: get("Border/focus"),
-                  error: get("Border/error")
+                  disabled: get("Border/disabled"),
+                  error: get("Border/error"),
+                  success: get("Border/success"),
+                  warning: get("Border/warning")
                 },
                 action: {
                   primary: get("Action/primary"),
                   primaryHover: get("Action/primaryHover"),
+                  primaryActive: get("Action/primaryActive"),
+                  primaryDisabled: get("Action/primaryDisabled"),
+                  primaryText: get("Action/primaryText"),
                   secondary: get("Action/secondary"),
-                  destructive: get("Action/destructive")
+                  secondaryHover: get("Action/secondaryHover"),
+                  secondaryText: get("Action/secondaryText"),
+                  ghost: get("Action/ghost"),
+                  ghostHover: get("Action/ghostHover"),
+                  ghostText: get("Action/ghostText"),
+                  destructive: get("Action/destructive"),
+                  destructiveHover: get("Action/destructiveHover"),
+                  destructiveText: get("Action/destructiveText")
                 },
                 status: {
                   success: get("Status/success"),

@@ -3393,6 +3393,17 @@ button:active .icon,
                         <span class="checkmark"></span> Destructive
                     </label>
                 </div>
+                <div class="component-styles" style="margin-top: var(--space-2);">
+                    <span class="label-text">Styles:</span>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-style" value="filled" checked>
+                        <span class="checkmark"></span> Filled
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" name="btn-style" value="outlined" checked>
+                        <span class="checkmark"></span> Outlined
+                    </label>
+                </div>
                 <div class="component-sizes" style="margin-top: var(--space-2);">
                     <span class="label-text">Sizes:</span>
                     <label class="checkbox-label small">
@@ -6222,6 +6233,97 @@ function initTheme() {
 
                     </div>
                 </div>
+
+                <!-- Component Showcase Section -->
+                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid ${p.border.subtle || p.border.default};">
+                    <h3 data-tokens="Text/secondary" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: ${p.text.secondary}; margin: 0 0 16px 0; letter-spacing: 0.05em;">Component Showcase</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        
+                        <!-- Buttons Section -->
+                        <div data-tokens="Surface/card Border/default" style="${cardStyle}">
+                            <h4 data-tokens="Text/primary" style="font-size: 13px; font-weight: 600; color: ${p.text.primary}; margin: 0 0 16px 0;">Buttons</h4>
+                            
+                            <!-- Filled Buttons -->
+                            <div style="margin-bottom: 16px;">
+                                <span data-tokens="Text/secondary" style="display: block; font-size: 10px; text-transform: uppercase; color: ${p.text.secondary}; margin-bottom: 8px; letter-spacing: 0.05em;">Filled</span>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    <button data-tokens="Action/primary Action/primaryText" style="background: ${p.action.primary}; color: ${p.action.primaryText || '#ffffff'}; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Primary</button>
+                                    <button data-tokens="Action/secondary Action/secondaryText Border/default" style="background: ${p.action.secondary || p.bg.tertiary}; color: ${p.action.secondaryText || p.text.primary}; border: 1px solid ${p.border.default}; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Secondary</button>
+                                    <button data-tokens="Action/ghost Action/ghostText" style="background: ${p.action.ghost || 'transparent'}; color: ${p.action.ghostText || p.action.primary}; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Ghost</button>
+                                    <button data-tokens="Action/destructive Action/destructiveText" style="background: ${p.action.destructive}; color: ${p.action.destructiveText || '#ffffff'}; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Destructive</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Outlined Buttons -->
+                            <div>
+                                <span data-tokens="Text/secondary" style="display: block; font-size: 10px; text-transform: uppercase; color: ${p.text.secondary}; margin-bottom: 8px; letter-spacing: 0.05em;">Outlined</span>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    <button data-tokens="Action/primary" style="background: transparent; color: ${p.action.primary}; border: 1.5px solid ${p.action.primary}; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Primary</button>
+                                    <button data-tokens="Border/default Text/primary" style="background: transparent; color: ${p.text.primary}; border: 1.5px solid ${p.border.default}; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Secondary</button>
+                                    <button data-tokens="Border/subtle Action/ghostText" style="background: transparent; color: ${p.action.ghostText || p.action.primary}; border: 1.5px solid ${p.border.subtle || p.border.default}; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Ghost</button>
+                                    <button data-tokens="Action/destructive" style="background: transparent; color: ${p.action.destructive}; border: 1.5px solid ${p.action.destructive}; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 12px;">Destructive</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Badges & Tags Section -->
+                        <div data-tokens="Surface/card Border/default" style="${cardStyle}">
+                            <h4 data-tokens="Text/primary" style="font-size: 13px; font-weight: 600; color: ${p.text.primary}; margin: 0 0 16px 0;">Badges & Tags</h4>
+                            
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+                                <span data-tokens="Action/primary" style="background: ${p.action.primary}; color: #ffffff; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500;">Primary</span>
+                                <span data-tokens="Background/tertiary Text/primary Border/default" style="background: ${p.bg.tertiary || p.bg.secondary}; color: ${p.text.primary}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid ${p.border.default};">Neutral</span>
+                                <span data-tokens="Status/successBg Status/success" style="background: ${p.status.successBg}; color: ${p.status.success}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500;">Success</span>
+                                <span data-tokens="Status/warningBg Status/warning" style="background: ${p.status.warningBg}; color: ${p.status.warning}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500;">Warning</span>
+                                <span data-tokens="Status/errorBg Status/error" style="background: ${p.status.errorBg}; color: ${p.status.error}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500;">Error</span>
+                            </div>
+                            
+                            <!-- Outlined Badges -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                <span data-tokens="Action/primary" style="background: transparent; color: ${p.action.primary}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid ${p.action.primary};">Primary</span>
+                                <span data-tokens="Status/success" style="background: transparent; color: ${p.status.success}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid ${p.status.success};">Success</span>
+                                <span data-tokens="Status/warning" style="background: transparent; color: ${p.status.warning}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid ${p.status.warning};">Warning</span>
+                                <span data-tokens="Status/error" style="background: transparent; color: ${p.status.error}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid ${p.status.error};">Error</span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Nav Menu Items -->
+                    <div data-tokens="Surface/card Border/default" style="${cardStyle} margin-top: 16px;">
+                        <h4 data-tokens="Text/primary" style="font-size: 13px; font-weight: 600; color: ${p.text.primary}; margin: 0 0 16px 0;">Navigation Menu Items</h4>
+                        
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <!-- Default State -->
+                            <div data-tokens="Background/primary Text/primary Border/default" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; background: ${p.bg.primary}; border: 1px solid transparent;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${p.text.secondary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                                <span data-tokens="Text/primary" style="font-size: 13px; color: ${p.text.primary};">Dashboard</span>
+                            </div>
+                            
+                            <!-- Hover State -->
+                            <div data-tokens="Background/secondary Text/primary" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; background: ${p.bg.secondary};">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${p.text.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                <span data-tokens="Text/primary" style="font-size: 13px; color: ${p.text.primary}; font-weight: 500;">Team</span>
+                            </div>
+                            
+                            <!-- Active State -->
+                            <div data-tokens="Action/primary" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; background: ${p.action.primary}15; border: 1px solid ${p.action.primary}30;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${p.action.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                                <span data-tokens="Action/primary" style="font-size: 13px; color: ${p.action.primary}; font-weight: 500;">Projects</span>
+                                <span data-tokens="Action/primary" style="background: ${p.action.primary}; color: #fff; padding: 2px 6px; border-radius: 9999px; font-size: 10px; font-weight: 600;">12</span>
+                            </div>
+                            
+                            <!-- Disabled State -->
+                            <div data-tokens="Text/disabled" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; opacity: 0.5;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${p.text.secondary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                <span data-tokens="Text/secondary" style="font-size: 13px; color: ${p.text.secondary};">Settings</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+
             </div>
         `;
 
@@ -7473,6 +7575,12 @@ if (document.readyState === 'loading') {
             buttonVariants.push(cb.value);
         });
 
+        // Collect button styles (filled, outlined)
+        const buttonStyles = [];
+        document.querySelectorAll('input[name="btn-style"]:checked').forEach(cb => {
+            buttonStyles.push(cb.value);
+        });
+
         // Collect button sizes
         const buttonSizes = [];
         document.querySelectorAll('input[name="btn-size"]:checked').forEach(cb => {
@@ -7516,7 +7624,7 @@ if (document.readyState === 'loading') {
             output: outputSelect ? outputSelect.value : 'frame',
             asComponents: asComponentsCheckbox ? asComponentsCheckbox.checked : true,
             components: {
-                buttons: genButtons && genButtons.checked ? { variants: buttonVariants, sizes: buttonSizes } : null,
+                buttons: genButtons && genButtons.checked ? { variants: buttonVariants, styles: buttonStyles, sizes: buttonSizes } : null,
                 inputs: genInputs && genInputs.checked ? { variants: inputVariants, states: inputStates } : null,
                 badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null,
                 navMenu: genNavMenu && genNavMenu.checked ? { states: navMenuStates } : null

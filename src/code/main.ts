@@ -109,7 +109,7 @@ interface AtomsConfig {
     output: 'page' | 'frame' | 'selection';
     asComponents: boolean;
     components: {
-        buttons: { variants: string[]; sizes: string[] } | null;
+        buttons: { variants: string[]; styles: string[]; sizes: string[] } | null;
         inputs: { variants: string[]; states: string[] } | null;
         badges: { variants: string[]; sizes: string[] } | null;
         navMenu: { states: string[] } | null;
@@ -1681,10 +1681,11 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
         let componentCount = 0;
 
         // ============================================
-        // BUTTONS (no more size variants - using Atoms variables)
+        // BUTTONS (with style variants: filled, outlined)
         // ============================================
         if (config.components.buttons) {
-            const { variants } = config.components.buttons;
+            const { variants, styles } = config.components.buttons;
+            const buttonStyles = styles && styles.length > 0 ? styles : ['filled']; // Default to filled
 
             figma.ui.postMessage({ type: 'atoms-generation-progress', payload: { percent: 10, message: 'Creating buttons...' } });
             await new Promise(resolve => setTimeout(resolve, 50));
@@ -1694,21 +1695,24 @@ async function generateAtomicComponents(config: AtomsConfig): Promise<void> {
             const states = ['Default', 'Hover', 'Active', 'Disabled'];
 
             for (const variant of variants) {
-                for (const state of states) {
-                    // Force component creation for variants
-                    const originalAsComponents = config.asComponents;
-                    config.asComponents = true;
+                for (const style of buttonStyles) {
+                    for (const state of states) {
+                        // Force component creation for variants
+                        const originalAsComponents = config.asComponents;
+                        config.asComponents = true;
 
-                    const btn = await createButton(variant, state.toLowerCase(), config, findVar, atomVars) as ComponentNode;
+                        const btn = await createButton(variant, state.toLowerCase(), style, config, findVar, atomVars) as ComponentNode;
 
-                    // Name with property=value format for variants
-                    const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
-                    btn.name = `Variant=${variantCapitalized}, State=${state}`;
+                        // Name with property=value format for variants
+                        const variantCapitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+                        const styleCapitalized = style.charAt(0).toUpperCase() + style.slice(1);
+                        btn.name = `Variant=${variantCapitalized}, Style=${styleCapitalized}, State=${state}`;
 
-                    buttonComponents.push(btn);
-                    componentCount++;
+                        buttonComponents.push(btn);
+                        componentCount++;
 
-                    config.asComponents = originalAsComponents;
+                        config.asComponents = originalAsComponents;
+                    }
                 }
             }
 
@@ -2148,6 +2152,7 @@ async function createIconInstance(
 async function createButton(
     variant: string,
     state: string,
+    style: string, // 'filled' or 'outlined'
     config: AtomsConfig,
     findVar: (terms: string[], type?: VariableResolvedDataType) => Variable | undefined,
     atomVars: Record<string, Variable>
@@ -2156,7 +2161,7 @@ async function createButton(
         ? figma.createComponent()
         : figma.createFrame();
 
-    btn.name = `Button/${variant}/${state}`;
+    btn.name = `Button/${variant}/${style}/${state}`;
     btn.layoutMode = 'HORIZONTAL';
     btn.primaryAxisSizingMode = 'AUTO';
     btn.counterAxisSizingMode = 'AUTO';
@@ -2193,40 +2198,92 @@ async function createButton(
         btn.cornerRadius = 8;
     }
 
-    // Background color based on variant and state
+    // Background, border and text colors based on variant, state, and style
     let bgVarTerms: string[] = [];
     let textVarTerms: string[] = [];
+    let borderVarTerms: string[] = [];
+    const isOutlined = style === 'outlined';
 
     if (variant === 'primary') {
-        if (state === 'hover') bgVarTerms = ['action/primaryhover', 'primaryhover'];
-        else if (state === 'active') bgVarTerms = ['action/primaryactive', 'primaryactive'];
-        else if (state === 'disabled') bgVarTerms = ['action/primarydisabled', 'primarydisabled'];
-        else bgVarTerms = ['action/primary'];
-        textVarTerms = ['action/primarytext', 'text/inverse'];
+        if (isOutlined) {
+            // Outlined: transparent bg, colored border and text
+            if (state === 'hover') bgVarTerms = ['action/primaryhover', 'primaryhover'];
+            else if (state === 'active') bgVarTerms = ['action/primaryactive', 'primaryactive'];
+            else bgVarTerms = []; // No background for default outlined
+            borderVarTerms = ['action/primary'];
+            textVarTerms = ['action/primary', 'text/brand'];
+        } else {
+            // Filled
+            if (state === 'hover') bgVarTerms = ['action/primaryhover', 'primaryhover'];
+            else if (state === 'active') bgVarTerms = ['action/primaryactive', 'primaryactive'];
+            else if (state === 'disabled') bgVarTerms = ['action/primarydisabled', 'primarydisabled'];
+            else bgVarTerms = ['action/primary'];
+            textVarTerms = ['action/primarytext', 'text/inverse'];
+        }
     } else if (variant === 'secondary') {
-        if (state === 'hover') bgVarTerms = ['action/secondaryhover', 'secondaryhover'];
-        else bgVarTerms = ['action/secondary'];
-        textVarTerms = ['action/secondarytext', 'text/primary'];
+        if (isOutlined) {
+            if (state === 'hover') bgVarTerms = ['action/secondaryhover', 'secondaryhover'];
+            else if (state === 'active') bgVarTerms = ['action/secondaryactive', 'secondaryactive'];
+            else bgVarTerms = [];
+            borderVarTerms = ['border/default'];
+            textVarTerms = ['text/primary'];
+        } else {
+            if (state === 'hover') bgVarTerms = ['action/secondaryhover', 'secondaryhover'];
+            else bgVarTerms = ['action/secondary'];
+            textVarTerms = ['action/secondarytext', 'text/primary'];
+        }
     } else if (variant === 'ghost') {
-        if (state === 'hover') bgVarTerms = ['action/ghosthover', 'ghosthover'];
-        else bgVarTerms = ['action/ghost', 'background/primary'];
-        textVarTerms = ['action/ghosttext', 'text/brand', 'action/primary'];
+        if (isOutlined) {
+            // Ghost outlined is same as ghost filled (no border normally)
+            if (state === 'hover') bgVarTerms = ['action/ghosthover', 'ghosthover'];
+            else bgVarTerms = [];
+            borderVarTerms = ['border/subtle', 'border/default'];
+            textVarTerms = ['action/ghosttext', 'text/brand', 'action/primary'];
+        } else {
+            if (state === 'hover') bgVarTerms = ['action/ghosthover', 'ghosthover'];
+            else bgVarTerms = ['action/ghost', 'background/primary'];
+            textVarTerms = ['action/ghosttext', 'text/brand', 'action/primary'];
+        }
     } else if (variant === 'destructive') {
-        if (state === 'hover') bgVarTerms = ['action/destructivehover', 'destructivehover'];
-        else bgVarTerms = ['action/destructive'];
-        textVarTerms = ['action/destructivetext', 'text/inverse'];
+        if (isOutlined) {
+            if (state === 'hover') bgVarTerms = ['action/destructivehover', 'destructivehover'];
+            else if (state === 'active') bgVarTerms = ['action/destructiveactive', 'destructiveactive'];
+            else bgVarTerms = [];
+            borderVarTerms = ['action/destructive', 'status/error'];
+            textVarTerms = ['action/destructive', 'status/error'];
+        } else {
+            if (state === 'hover') bgVarTerms = ['action/destructivehover', 'destructivehover'];
+            else bgVarTerms = ['action/destructive'];
+            textVarTerms = ['action/destructivetext', 'text/inverse'];
+        }
     }
 
     // Apply background
-    const bgVar = findVar(bgVarTerms, 'COLOR');
-    if (bgVar) {
-        btn.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', bgVar)];
+    if (isOutlined && bgVarTerms.length === 0) {
+        // Transparent background for outlined default state
+        btn.fills = [];
     } else {
-        btn.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.6, b: 0.9 } }];
+        const bgVar = findVar(bgVarTerms, 'COLOR');
+        if (bgVar) {
+            btn.fills = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', bgVar)];
+        } else if (isOutlined) {
+            btn.fills = [];
+        } else {
+            btn.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.6, b: 0.9 } }];
+        }
     }
 
-    // Add border for secondary/ghost
-    if (variant === 'secondary' || variant === 'ghost') {
+    // Apply border
+    if (isOutlined) {
+        // Outlined buttons always have a border
+        const borderVar = findVar(borderVarTerms, 'COLOR');
+        if (borderVar) {
+            btn.strokes = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }, 'color', borderVar)];
+            btn.strokeWeight = 1.5;
+            btn.strokeAlign = 'INSIDE';
+        }
+    } else if (variant === 'secondary' || variant === 'ghost') {
+        // Filled secondary/ghost still have borders
         const borderVar = findVar(['border/default'], 'COLOR');
         if (borderVar) {
             btn.strokes = [figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }, 'color', borderVar)];
@@ -4195,14 +4252,29 @@ async function generateTheme(
                 },
                 border: {
                     default: get('Border/default'),
+                    subtle: get('Border/subtle'),
+                    strong: get('Border/strong'),
                     focus: get('Border/focus'),
+                    disabled: get('Border/disabled'),
                     error: get('Border/error'),
+                    success: get('Border/success'),
+                    warning: get('Border/warning'),
                 },
                 action: {
                     primary: get('Action/primary'),
                     primaryHover: get('Action/primaryHover'),
+                    primaryActive: get('Action/primaryActive'),
+                    primaryDisabled: get('Action/primaryDisabled'),
+                    primaryText: get('Action/primaryText'),
                     secondary: get('Action/secondary'),
+                    secondaryHover: get('Action/secondaryHover'),
+                    secondaryText: get('Action/secondaryText'),
+                    ghost: get('Action/ghost'),
+                    ghostHover: get('Action/ghostHover'),
+                    ghostText: get('Action/ghostText'),
                     destructive: get('Action/destructive'),
+                    destructiveHover: get('Action/destructiveHover'),
+                    destructiveText: get('Action/destructiveText'),
                 },
                 status: {
                     success: get('Status/success'),

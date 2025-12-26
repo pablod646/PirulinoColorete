@@ -83,6 +83,12 @@
             buttonVariants.push(cb.value);
         });
 
+        // Collect button styles (filled, outlined)
+        const buttonStyles = [];
+        document.querySelectorAll('input[name="btn-style"]:checked').forEach(cb => {
+            buttonStyles.push(cb.value);
+        });
+
         // Collect button sizes
         const buttonSizes = [];
         document.querySelectorAll('input[name="btn-size"]:checked').forEach(cb => {
@@ -126,7 +132,7 @@
             output: outputSelect ? outputSelect.value : 'frame',
             asComponents: asComponentsCheckbox ? asComponentsCheckbox.checked : true,
             components: {
-                buttons: genButtons && genButtons.checked ? { variants: buttonVariants, sizes: buttonSizes } : null,
+                buttons: genButtons && genButtons.checked ? { variants: buttonVariants, styles: buttonStyles, sizes: buttonSizes } : null,
                 inputs: genInputs && genInputs.checked ? { variants: inputVariants, states: inputStates } : null,
                 badges: genBadges && genBadges.checked ? { variants: badgeVariants, sizes: badgeSizes } : null,
                 navMenu: genNavMenu && genNavMenu.checked ? { states: navMenuStates } : null

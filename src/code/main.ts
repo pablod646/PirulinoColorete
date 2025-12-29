@@ -4120,6 +4120,10 @@ async function createSemanticTokens(config: AliasConfig): Promise<void> {
             { name: 'Icon-Size/md', desktop: '20', tablet: '18', mobile: '16' },
             { name: 'Icon-Size/lg', desktop: '24', tablet: '20', mobile: '18' },
             { name: 'Icon-Size/xl', desktop: '32', tablet: '28', mobile: '24' },
+            { name: 'Icon-Size/2xl', desktop: '40', tablet: '36', mobile: '32' },
+            { name: 'Icon-Size/3xl', desktop: '48', tablet: '44', mobile: '40' },
+            { name: 'Icon-Size/4xl', desktop: '56', tablet: '52', mobile: '48' },
+            { name: 'Icon-Size/5xl', desktop: '64', tablet: '60', mobile: '56' },
         ];
 
         for (const item of iconSizeMap) {
